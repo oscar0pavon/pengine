@@ -2,7 +2,7 @@
 WORKDIR := $(shell pwd)
 
 all:
-	mkdir $(WORKDIR)/bin
+	mkdir -p $(WORKDIR)/bin
 	make -C ./src/engine WORKDIR=$(WORKDIR)
 	make -C ./src/editor WORKDIR=$(WORKDIR)
 	make -C ./src/shaders
