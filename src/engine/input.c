@@ -27,10 +27,11 @@ void mouse_movement_control(float xpos, float ypos){
      
 }
 
+int char_pressed = 0;
 
 #ifdef LINUX
 void pe_input_character_callback(GLFWwindow* window, unsigned int codepoint){
-	pe_input_character(codepoint);
+    pe_input_character(codepoint);
 }
 
 void pe_input_mouse_movement_callback(GLFWwindow* window, double xpos, double ypos){

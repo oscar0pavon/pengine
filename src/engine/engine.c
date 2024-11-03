@@ -38,7 +38,7 @@ void pe_input_character(unsigned int codepoint) {
 
 #ifdef DESKTOP
   if (current_window->char_parser == NULL) {
-    LOG("Not charter parser assing to PEWindow\n");
+    LOG("Not character parser assing to PEWindow\n");
     return;
   }
   current_window->char_parser(keyboard_utf);

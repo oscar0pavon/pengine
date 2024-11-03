@@ -85,6 +85,7 @@ void pe_wm_create_window(EngineWindow *win, EngineWindow *share_window,
   camera_width_screen = INIT_WINDOW_SIZE_X;
   window_update_viewport(INIT_WINDOW_SIZE_X, INIT_WINDOW_SIZE_Y);
 
+
   win->initialized = true;
   pe_is_glfw_window_created = true;
 }

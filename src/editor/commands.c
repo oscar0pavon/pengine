@@ -8,6 +8,7 @@
 #include "../engine/utils.h"
 #include "../editor/editor_mode.h"
 #include "HLOD_factory.h"
+#include <stdbool.h>
 #include <unistd.h>
 
 int log_command_offset = 0;
@@ -17,8 +18,13 @@ char first_char_command;
 char* command_array_pointer;
 char* argument_array_pointer;
 
+int time_called = 0;
 void pe_editor_parse_cmd_char(unsigned char character) {
-  //LOG("Parse char\n");
+  time_called++;
+  if(time_called != 2)
+    return;
+
+  time_called=0;
   if (character == ':') {
     //LOG("## command mode\n");
     command_text_buffer[command_character_count] = character;
