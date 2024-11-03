@@ -1,2 +1,0 @@
-#/bin/sh
-cd ./Binaries/ && gdb ./Editor
