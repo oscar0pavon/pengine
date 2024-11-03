@@ -8,6 +8,7 @@
 #include <engine/macros.h>
 #include <engine/renderer/vulkan/vulkan.h>
 #include <vulkan/vulkan_core.h>
+#include <engine/files.h>
 
 VkDynamicState dynamicStates[] = {VK_DYNAMIC_STATE_VIEWPORT,
                                   VK_DYNAMIC_STATE_SCISSOR};
@@ -252,24 +253,24 @@ void pe_vk_pipelines_init() {
   VkPipelineShaderStageCreateInfo red_shader[2];
   ZERO(red_shader);
   pe_vk_shader_load(red_shader,
-                    "/sdcard/Download/NativeContent/shaders/other_vert.spv",
-                    "/sdcard/Download/NativeContent/shaders/blue_frag.spv");
+                    file_other_vert_spv,
+                    file_blue_frag_spv);
   base_pipeline_info.pStages = red_shader;
   array_add(&pe_vk_pipeline_infos, &base_pipeline_info);
 
   // red triangle
   VkPipelineShaderStageCreateInfo blue_shader[2];
   pe_vk_shader_load(blue_shader,
-                    "/sdcard/Download/NativeContent/shaders/vert.spv",
-                    "/sdcard/Download/NativeContent/shaders/frag.spv");
+                    file_vert_spv,
+                    file_frag_spv);
   base_pipeline_info.pStages = blue_shader;
   array_add(&pe_vk_pipeline_infos, &base_pipeline_info);
 
   // vertex buffer model
   VkPipelineShaderStageCreateInfo in_position[2];
   pe_vk_shader_load(in_position,
-                    "/sdcard/Download/NativeContent/shaders/in_position.spv",
-                    "/sdcard/Download/NativeContent/shaders/frag.spv");
+                    file_in_position_spv,
+                    file_frag_spv);
   base_pipeline_info.pStages = in_position;
   PPipelineInfo in_position_pipeline_info;
   ZERO(in_position_pipeline_info);
@@ -284,8 +285,8 @@ void pe_vk_pipelines_init() {
 
   VkPipelineShaderStageCreateInfo uniform[2];
   pe_vk_shader_load(uniform,
-                    "/sdcard/Download/NativeContent/shaders/diffuse_vert.spv",
-                    "/sdcard/Download/NativeContent/shaders/diffuse_frag.spv");
+                    file_diffuse_vert_spv,
+                    file_diffuse_frag_spv);
   base_pipeline_info.pStages = uniform;
   PPipelineInfo uniform_pipeline_info;
   ZERO(uniform_pipeline_info);
@@ -306,8 +307,8 @@ void pe_vk_pipelines_init() {
   //
   VkPipelineShaderStageCreateInfo skinned[2];
   pe_vk_shader_load(skinned,
-                    "/sdcard/Download/NativeContent/shaders/skinned.spv",
-                    "/sdcard/Download/NativeContent/shaders/diffuse_frag.spv");
+                    file_skinned_spv,
+                    file_diffuse_frag_spv);
   base_pipeline_info.pStages = skinned;
   PPipelineInfo skinned_pipeline_info;
   ZERO(skinned_pipeline_info);

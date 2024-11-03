@@ -17,6 +17,8 @@
 #include <wchar.h>
 #include <wctype.h>
 
+#include <engine/files.h>
+
 void pe_vk_transition_image_layout(VkImage image, VkFormat format,
                                    VkImageLayout old_layout,
                                    VkImageLayout new_layout,
@@ -254,7 +256,7 @@ void pe_vk_create_depth_resources() {
 void pe_vk_create_texture_image() {
   PTexture texture;
   ZERO(texture);
-  pe_load_texture("/sdcard/Download/chess/viking_room.png", &texture);
+  pe_load_texture(file_rotate_png, &texture);
 
   pe_vk_mip_levels =
       floor(log2(GLM_MAX(texture.image.width, texture.image.heigth))) + 1;

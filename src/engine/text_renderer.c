@@ -4,6 +4,7 @@
 
 #include <freetype/freetype.h>
 #include <ft2build.h>
+#include <engine/files.h>
 
 FT_GlyphSlot glyph;
 
@@ -158,7 +159,7 @@ void text_renderer_init() {
   }
 
   File font;
-  load_file("/sdcard/Download/NativeContent/DejaVuSerif.ttf", &font);
+  load_file(file_font, &font);
   int error = FT_New_Memory_Face(ft, font.data, font.size_in_bytes, 0, &face);
 
   if (error != 0) {

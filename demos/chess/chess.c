@@ -5,6 +5,8 @@
 #include <engine/animation/node.h>
 #include <engine/shader.h>
 
+#include <engine/files.h>
+
 vec4 color1 = {0, 0.2, 0, 1};
 vec4 color2 = {1, 0.5, 1, 1};
 
@@ -197,7 +199,7 @@ void chess_piece_set_mesh(PMesh mesh) {
 }
 void chess_create_leaders() {
 
-  add_element_with_model_path("/sdcard/Download/chess/reina.glb");
+  add_element_with_model_path(file_reina_glb);
   chess_piece_set_pos(VEC2(7, 4));
   chess_piece_init_scale();
   pe_element_rotate(selected_element, 90, VEC3(1, 0, 0));
@@ -309,7 +311,7 @@ void chess_create_bishop() {
 
 void chess_create_pawn() {
 
-  add_element_with_model_path("/home/pavon/PavonEngine/demos/chess/peon.glb");
+  add_element_with_model_path(file_peon_glb);
 
   chess_piece_set_pos(VEC2(1, 0));
   chess_piece_init_scale();
