@@ -30,7 +30,7 @@ void pe_wm_glfw_init(){
 
     }
 
-    glfwSetErrorCallback(window_manager_error_callback);
+    //glfwSetErrorCallback(window_manager_error_callback);
     glfwInit();
 
 }
@@ -42,6 +42,10 @@ void windows_manager_init(){
 	pe_wm_glfw_init();		
   LOG("Window manager initilized\n");
   pe_is_window_init = true;
+}
+
+void pe_wm_make_context(EngineWindow*window){
+  glfwMakeContextCurrent(window->window);
 }
 
 void pe_wm_create_window(EngineWindow *win, EngineWindow *share_window,
@@ -82,6 +86,7 @@ void pe_wm_create_window(EngineWindow *win, EngineWindow *share_window,
   window_update_viewport(INIT_WINDOW_SIZE_X, INIT_WINDOW_SIZE_Y);
 
   win->initialized = true;
+  pe_is_glfw_window_created = true;
 }
 
 void window_resize_callback(GLFWwindow* window, int width, int height){

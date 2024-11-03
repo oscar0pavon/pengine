@@ -44,17 +44,21 @@ void render_thread_init() {
   pe_thread_control(
       &render_thread_commads); // for execute program_ini() from application
 
-  pe_shader_compile_std();
-  int max;
-  glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &max);
+  
+  if(pe_renderer_type == PEWMOPENGLES2){
+
+    pe_shader_compile_std();
+  //int max;
+  //glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &max);
   // LOG("########## Maximun vertex attributes: %i",max);
+  #ifdef DESKTOP
+    glEnable(GL_MULTISAMPLE);
+  #endif
 
-#ifdef DESKTOP
-  glEnable(GL_MULTISAMPLE);
-#endif
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+  }
 
-  glEnable(GL_DEPTH_TEST);
-  glEnable(GL_CULL_FACE);
 
   if (render_thread_definition.init != NULL)
     render_thread_definition.init();
@@ -67,9 +71,13 @@ void render_thread_init() {
     #endif
   }
 
-  pe_gui_init();
+  if(pe_renderer_type == PEWMOPENGLES2){
+    pe_gui_init();
 
-  text_renderer_init();
+    text_renderer_init();
+  }
+
+  LOG("Render thread init\n");
 }
 
 void pe_render_draw() {

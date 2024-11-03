@@ -42,7 +42,7 @@ void pe_game_draw(){
 void pe_game_create_window(){
 
     //window_create(game_window, NULL, game->name); 
-    LOG("Creating window for game");
+    LOG("Creating window for game\n");
     pe_wm_configure_window(game_window);
 
 }

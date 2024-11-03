@@ -75,6 +75,8 @@ void pe_wm_egl_end();
 
 void pe_wm_swap_buffers();
 
+void pe_wm_make_context(EngineWindow*window);
+
 void pe_wm_events_update();
 
 void pe_wm_input_update();
@@ -97,5 +99,7 @@ PERendererType pe_renderer_type;
 bool pe_is_window_init;
 
 bool pe_is_window_terminate;
+
+bool pe_is_glfw_window_created;
 
 #endif // !ENGINE_WINDOWS_MANAGER_H

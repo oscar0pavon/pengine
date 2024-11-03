@@ -13,6 +13,7 @@
 
 #include "elements.h"
 #include "physics.h"
+#include "window_manager.h"
 
 #include <engine/animation/animation.h>
 
@@ -508,12 +509,13 @@ void pe_program_main_loop(void (*program_loop)(void),
   while (!engine_initialized) {
   } // wait for initilization
 
-  // pe_wm_check(program_window);
+#ifdef ANDROID
+  pe_wm_check(program_window);
+#endif
 
   // LOG("######## Program LOOP go");
+  usleep(50000);
   while (!pe_wm_should_close(program_window)) {
-    pe_wm_events_update();
-
     pe_wm_input_update();
 
     program_loop();

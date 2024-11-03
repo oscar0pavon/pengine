@@ -1,3 +1,5 @@
+#include "window_manager.h"
+#include "platforms/windows_manager.h"
 #include "windows_manager.h"
 #include <engine/log.h>
 
@@ -15,6 +17,7 @@ EGLContext context;
 #include <engine/platforms/windows_manager.h>
 #include <engine/window_manager.h>
 
+bool pe_wm_swapped = false;
 
 #ifdef ANDROID
 void pe_wm_egl_init(){
@@ -204,7 +207,7 @@ void pe_wm_configure_window(EngineWindow* win){
 
   win->initialized = true;
 	
-	LOG("Window created");
+	LOG("Window created\n");
 }
 
 
@@ -254,6 +257,12 @@ void pe_wm_swap_buffers() {
 #endif
 }
 
+bool is_wm_swapped(){
+	if(pe_wm_swapped){
+		pe_wm_swapped=false;
+	}
+	return true;
+}
 
 void pe_wm_events_update() {
 #ifdef LINUX
@@ -277,12 +286,14 @@ void pe_wm_windows_draw() {
       LOG("Window close\n");
       continue;
     }
-
     window->draw();
 
     if (pe_renderer_type == PEWMOPENGLES2) {
 
       pe_wm_swap_buffers();
+			pe_wm_swapped = true;
+			pe_wm_events_update();
+
     }
   }
 }
