@@ -48,7 +48,7 @@ void draw_element_text_list(PETextMenu *menu, const char *text, int i);
 
 void text_renderer_loop();
 
-void text_draw_commands();
+void pe_editor_draw_command_line();
 
 int mark_id;
 

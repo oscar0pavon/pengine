@@ -18,8 +18,9 @@ char* command_array_pointer;
 char* argument_array_pointer;
 
 void pe_editor_parse_cmd_char(unsigned char character) {
+  //LOG("Parse char\n");
   if (character == ':') {
-    LOG("## command mode");
+    //LOG("## command mode\n");
     command_text_buffer[command_character_count] = character;
     command_character_count++;
     if (editor_sub_mode != EDITOR_SUB_MODE_TEXT_INPUT)

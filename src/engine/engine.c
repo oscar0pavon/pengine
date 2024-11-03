@@ -33,21 +33,18 @@ void pe_debug_print_mat4(mat4 mat) {
 void pe_input_character(unsigned int codepoint) {
   if (codepoint == 241) // equal "ñ"
     return;
-  unsigned char character[2];
-  // code_to_utf8(character,codepoint);
+ 
   char keyboard_utf = (char)codepoint;
 
-  LOG("Converted: %c", keyboard_utf);
-//    LOG("Converted: %s\n",character);
 #ifdef DESKTOP
   if (current_window->char_parser == NULL) {
     LOG("Not charter parser assing to PEWindow\n");
     return;
   }
-  current_window->char_parser(character[0]);
+  current_window->char_parser(keyboard_utf);
 #endif
 #ifdef ANDROID
-  pe_editor_parse_cmd_char(character[0]);
+  pe_editor_parse_cmd_char(keyboard_utf);
 #endif
 }
 

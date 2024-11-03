@@ -440,7 +440,7 @@ void pe_editor_draw() {
   glClearColor(COLOR(editor_background_color));
   render_clear_buffer(RENDER_COLOR_BUFFER | RENDER_DEPTH_BUFFER);
 
-  text_draw_commands();
+  pe_editor_draw_command_line();
 
   if (isDrawUV)
     draw_UV();
@@ -624,6 +624,8 @@ void pe_editor_init() {//executed in main thread from main()
     //init_modeling(); 
 
     editor_render_init();
+
+    game_window->char_parser = pe_editor_parse_cmd_char;
    
     LOG("[OK]Editor initialized\n");
 }

@@ -194,11 +194,10 @@ void pe_wm_configure_window(EngineWindow* win){
 	glfwSetKeyCallback(win->window, pe_input_key_callback);
 	glfwSetCursorPosCallback(win, pe_input_mouse_movement_callback);
 	glfwSetMouseButtonCallback(win, pe_input_mouse_button_callback);
-	glfwSetCharCallback(win->window, pe_input_key_callback);
+	glfwSetCharCallback(win->window, pe_input_character_callback);
 
 	glfwSetWindowFocusCallback(win->window,window_focus_callback);
 	glfwSetFramebufferSizeCallback(win->window, window_resize_callback);
-
 #endif
 
 #if defined ANDROID && defined OPENGLES

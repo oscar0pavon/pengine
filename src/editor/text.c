@@ -232,7 +232,7 @@ void draw_stats_triangles() {
 	text_render_in_screen_space(pe_editor_text_size,buf,540,0);
 }
 
-void text_draw_commands() {
+void pe_editor_draw_command_line() {
   if (editor_sub_mode == EDITOR_SUB_MODE_TEXT_INPUT) {
     text_render_in_screen_space(pe_editor_text_size, command_text_buffer, 0,
                                 -camera_heigth_screen + 20);
@@ -240,11 +240,11 @@ void text_draw_commands() {
 }
 
 void text_renderer_loop() {
-  //draw_engine_memory();
-  ////draw_frame_time();
-  //draw_FPS();
-  //draw_count_of_draw_call();
-  //draw_stats_triangles();
+  draw_engine_memory();
+  draw_frame_time();
+  draw_FPS();
+  draw_count_of_draw_call();
+  draw_stats_triangles();
 
  text_render_in_screen_space(pe_editor_text_size, editor_mode_show_text,camera_width_screen - 100, 0);
 
@@ -252,9 +252,10 @@ void text_renderer_loop() {
     text_render_in_screen_space(pe_editor_text_size, editor_sub_mode_text,
                                 camera_width_screen - 100, 30);
   }
-    //strcpy(editor_sub_mode_text,"submode");
-   // text_render_in_screen_space(pe_editor_text_size, editor_sub_mode_text,
-    //                            camera_width_screen - 100, -30);
+    strcpy(editor_sub_mode_text,"submode");
+    text_render_in_screen_space(pe_editor_text_size, editor_sub_mode_text,
+                               camera_width_screen - 100, -30);
+    
 }
 
 void editor_text_init(){
