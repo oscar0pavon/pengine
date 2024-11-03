@@ -61,9 +61,11 @@ void render_thread_init() {
 
   engine_initialized = true;
 
-#if VULKAN
-  pe_vk_init();
-#endif
+  if(pe_renderer_type == PEWMVULKAN){
+    #if VULKAN
+      pe_vk_init();
+    #endif
+  }
 
   pe_gui_init();
 
@@ -160,7 +162,9 @@ void pe_frame_draw() {
 
   engine_draw_elements(&frame_draw_static_elements);
 
-  pe_vk_draw_frame();
+  if(pe_renderer_type == PEWMVULKAN){
+    pe_vk_draw_frame();
+  }
 
   //draw_skeletal_bones();
 

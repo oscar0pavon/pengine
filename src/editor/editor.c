@@ -1,5 +1,4 @@
 #include "editor.h"
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h> 
@@ -606,7 +605,6 @@ void pe_editor_render_thread_configure_and_start() {
 }
 
 void pe_editor_init() {//executed in main thread from main()
-
     editor_data_init();
 
     editor_command_queue_init();
@@ -614,11 +612,16 @@ void pe_editor_init() {//executed in main thread from main()
 #ifdef DESKTOP
     edit_server_init();
 #endif
-    //pe_editor_window_configure();
 
-    //pe_editor_render_thread_configure_and_start();
+    //need to uncommed to use oldmain()
+
+     //pe_editor_window_configure();
+
+     //pe_editor_render_thread_configure_and_start();
+
+    //end old main
     
-    init_modeling(); 
+    //init_modeling(); 
 
     editor_render_init();
    
