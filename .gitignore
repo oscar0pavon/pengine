@@ -1,3 +1,4 @@
+src/engine/files.h
 # Prerequisites
 *.d
 

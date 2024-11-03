@@ -7,6 +7,7 @@
 #include <engine/threads.h>
 #include <string.h>
 #include <engine/interruptions.h>
+#include <engine/files.h>
 
 bool pe_shader_get_error(GLuint shader, GLenum info_type,
                          const char *path_for_error_debug) {
@@ -77,15 +78,14 @@ bool pe_shader_compile_std() {
 #ifdef LINUX
 
     standart_vertex_shader = pe_shader_load_src_and_create(
-        "/home/pavon/PavonEngine/NativeContent/shaders/std.vert",
+        file_std_vert,
         GL_VERTEX_SHADER);
     standart_fragment_shader = pe_shader_load_src_and_create(
-        "/home/pavon/PavonEngine/NativeContent/shaders/diffuse.frag",
+        file_diffuse_frag,
         GL_FRAGMENT_SHADER);
 
     shader_skin_vertex = pe_shader_load_src_and_create(
-        "/home/pavon/PavonEngine/NativeContent/shaders/skin_vertex_shader.glsl",
-        //"/home/pavon/PavonEngine/NativeContent/shaders/std.vert",
+        file_skin_vertex_shader,
         GL_VERTEX_SHADER);
 #endif
 #ifdef ANDROID
@@ -95,16 +95,16 @@ bool pe_shader_compile_std() {
     //  standart_vertex_shader = compile_shader(pe_shader_src_std_vert,
     //  GL_VERTEX_SHADER);
     standart_vertex_shader = pe_shader_load_src_and_create(
-        "/sdcard/Download/PavonEngine/shaders/std.vert", GL_VERTEX_SHADER);
+        file_std_vert, GL_VERTEX_SHADER);
     standart_fragment_shader = pe_shader_load_src_and_create(
-        "/sdcard/Download/PavonEngine/shaders/diffuse.frag",
+        file_diffuse_frag,
         GL_FRAGMENT_SHADER);
 
     shader_skin_vertex = pe_shader_load_src_and_create(
-        "/sdcard/Download/PavonEngine/shaders/skin_vertex_shader.glsl",
+        file_skin_vertex_shader,
         GL_VERTEX_SHADER);
     shader_skin_diffuse = pe_shader_load_src_and_create(
-        "/sdcard/Download/PavonEngine/shaders/diffuse.frag",
+        file_diffuse_frag,
         GL_FRAGMENT_SHADER);
 
 #endif
