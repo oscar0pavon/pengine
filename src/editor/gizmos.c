@@ -6,6 +6,7 @@
 #include "skeletal_editor.h"
 #include <editor/editor_mode.h>
 #include <engine/renderer/renderer.h>
+#include <engine/files.h>
 
 Array debug_objects;
 Array bounding_boxes;
@@ -311,8 +312,8 @@ void gizmos_init() {
   array_init(&debug_objects, sizeof(DebugLine), 300);
 
   load_model_to_array(
-      &gizmos, "/sdcard/Download/NativeContent/Editor/translate.glb",
-      "/sdcard/Download/NativeContent/Editor/transform_gizmo.jpg");
+      &gizmos, file_translate_glb,
+      file_transform_jpg);
   selected_model->mesh.vertex_buffer_id = selected_model->vertex_buffer_id;
   selected_model->mesh.index_buffer_id = selected_model->index_buffer_id;
 
@@ -320,17 +321,17 @@ void gizmos_init() {
   selected_model->mesh.index_array.count = selected_model->index_array.count;
 
   load_model_to_array(&gizmos,
-                      "/sdcard/Download/NativeContent/Editor/rotate.glb",
-                      "/sdcard/Download/NativeContent/Editor/rotate_gizmo.png");
+                      file_rotate_glb,
+                      file_rotate_png);
   load_model_to_array(
-      &gizmos, "/sdcard/Download/NativeContent/Editor/scale.glb",
-      "/sdcard/Download/NativeContent/Editor/transform_gizmo.jpg");
+      &gizmos, file_scale_glb,
+      file_transform_jpg);
   load_model_to_array(&gizmos,
-                      "/sdcard/Download/NativeContent/Editor/camera.gltf",
-                      "/sdcard/Download/NativeContent/Editor/camera_gizmo.jpg");
+                      file_camera_gltf,
+                      file_camera_jpg);
   load_model_to_array(
-      &gizmos, "/sdcard/Download/NativeContent/Editor/player_start.gltf",
-      "/sdcard/Download/NativeContent/Editor/player_start_gizmo.jpg");
+      &gizmos, file_player_start_glb,
+      file_player_start_jpg);
 
   can_draw_gizmos = true;
   can_draw_skeletal_bones = false;

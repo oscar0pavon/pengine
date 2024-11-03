@@ -10,6 +10,7 @@ all:
 
 
 clean:
+	rm -f ./src/engine/files.h
 	make -C ./src/editor WORKDIR=$(WORKDIR) clean
 	make -C ./src/engine WORKDIR=$(WORKDIR) clean
 	make -C ./src/shaders clean

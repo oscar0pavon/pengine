@@ -10,6 +10,8 @@
 
 #include <engine/macros.h>
 
+#include <engine/files.h>
+
 GLuint new_mesh_vertex_buffer;
 
 PModel model;
@@ -138,7 +140,7 @@ void init_modeling() {
   // pe_comp_static_mesh_shader_init(&model);
 
   GLuint frag = pe_shader_load_src_and_create(
-      "/sdcard/Download/PavonEngine/shaders/vertex_modelling.frag",
+      file_vertex_modeling, 
       GL_FRAGMENT_SHADER);
 
   pe_shader_create_for_model(&model, frag, standart_vertex_shader);
