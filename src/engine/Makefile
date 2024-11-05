@@ -49,7 +49,7 @@ ALL_OBJS := $(OBJS) $(components_objs) $(opengl_obj) $(renderer_objs) $(animatio
 
 engine.a: $(ALL_OBJS) 	
 	make -C ./renderer/vulkan WORKDIR=$(WORKDIR)
-	ar rcs libengine.a *.o ./Collision/collision.o ./platforms/windows_manager.o ../ThirdParty/parson.o ./renderer/vulkan/*.o $^
+	ar rcs libengine.a *.o ./renderer/vulkan/*.o $^
 
 
 clean:
