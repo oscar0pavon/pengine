@@ -565,11 +565,10 @@ void pe_program_main_loop(void (*program_loop)(void),
     program_loop();
 
     usleep(2 * 1000);
+  
     if (pe_renderer_type == PEWMOPENGLES2) {
-
       pe_wm_swap_buffers();
-			pe_wm_events_update();
-
     }
+		pe_wm_events_update();
   }
 }

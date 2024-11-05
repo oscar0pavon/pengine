@@ -29,7 +29,7 @@ int main(int argc , char* argv[]){
   game = &editor;
 
 
-  pe_renderer_type = PEWMOPENGLES2;
+  pe_renderer_type = PEWMVULKAN;
   pe_game_create(game);
 
 }
