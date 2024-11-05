@@ -6,31 +6,53 @@ include $(WORKDIR)/include.make
 
 all: engine.a
 
-components_src := $(wildcard ./components/*.c)
+components_src := $(shell find ./components -name '*.c')
+components_objs := $(components_src:%.c=%.o)
 
 opengl_src := $(wildcard ./renderer/opengl/*.c)
+opengl_obj := $(opengl_src:%.c=%.o)
 renderer_src := $(wildcard ./renderer/*.c)
+renderer_objs := $(renderer_src:%.c=%.o)
 animation_src := $(wildcard ./animation/*.c)
+animation_objs := $(animation_src:%.c=%.o)
+
+
 
 $(OBJS): %.o : %.c 
 	$(CC) $(CFLAGS) $(GLOBAL_DEFINE) $(CINCLUDES) -c $<
 
-engine.a: $(OBJS) 
-	$(COMPILE) -c $(components_src)
-	$(COMPILE) -c $(renderer_src)
-	make -C ./renderer/vulkan WORKDIR=$(WORKDIR)
-	$(COMPILE) -c $(opengl_src)
-	$(COMPILE) -c $(animation_src)
-	$(COMPILE) -c ../ThirdParty/parson.c
-	$(COMPILE) -c ./platforms/windows_manager.c 
-	$(COMPILE) -c ./Collision/collision.c
 
-	ar rcs libengine.a *.o ./renderer/vulkan/*.o
+./components/%.o : ./components/%.c
+	$(CC) $(CFLAGS) $(GLOBAL_DEFINE) $(CINCLUDES) -c $< -o $@
+
+./renderer/opengl/%.o: ./renderer/opengl/%.c
+	$(CC) $(CFLAGS) $(GLOBAL_DEFINE) $(CINCLUDES) -c $< -o $@
+
+./animation/%.o: ./animation/%.c
+	$(CC) $(CFLAGS) $(GLOBAL_DEFINE) $(CINCLUDES) -c $< -o $@
+
+./renderer/%.o: ./renderer/%.c
+	$(CC) $(CFLAGS) $(GLOBAL_DEFINE) $(CINCLUDES) -c $< -o $@
+
+../ThirdParty/parson.o: ../ThirdParty/parson.c
+	$(CC) $(CFLAGS) $(GLOBAL_DEFINE) $(CINCLUDES) -c $< -o $@
+
+./platforms/windows_manager.o: ./platforms/windows_manager.c
+	$(CC) $(CFLAGS) $(GLOBAL_DEFINE) $(CINCLUDES) -c $< -o $@
+
+./Collision/collision.o: ./Collision/collision.c
+	$(CC) $(CFLAGS) $(GLOBAL_DEFINE) $(CINCLUDES) -c $< -o $@
+
+
+engine.a: $(OBJS) $(components_objs) $(opengl_obj) $(renderer_objs) $(animation_objs) ./Collision/collision.o ./platforms/windows_manager.o ../ThirdParty/parson.o
+	make -C ./renderer/vulkan WORKDIR=$(WORKDIR)
+	ar rcs libengine.a *.o ./Collision/collision.o ./platforms/windows_manager.o ../ThirdParty/parson.o ./renderer/vulkan/*.o $^
 
 
 clean:
 	rm -f *.o
 	rm -f libengine.a
+	rm -f $(components_objs)
 	make -C ./renderer/vulkan clean
 	
 	
