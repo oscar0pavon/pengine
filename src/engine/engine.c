@@ -19,6 +19,8 @@
 
 #include <editor/skeletal_editor.h>
 
+#include <engine/renderer/render_thread.h>
+
 Array engine_elements;
 Array engine_textures;
 
@@ -503,6 +505,32 @@ wait:
 void pe_program_main_loop(void (*program_loop)(void),
                           EngineWindow *program_window) {
 
+    pe_init();
+
+   
+    EngineWindow win;
+    ZERO(win);
+
+    array_add(&engine_windows, &win);
+    game_window = array_pop(&engine_windows);
+
+    
+  LOG("########## PE renderizer GO");
+    
+    pe_game_create_window();
+
+    pe_game_render_init();//editor init
+    pe_game_render_config();
+    //pe_render_thread_start_and_draw();
+  render_thread_init();
+
+  //*********  Timing ******
+  float render_frame_time = 0;
+  float disired_frame_time = 0.016f;
+
+  u8 frames = 0;
+  float frame_second = 0;
+
   while (!engine_initialized) {
   } // wait for initilization
 
@@ -511,12 +539,40 @@ void pe_program_main_loop(void (*program_loop)(void),
 #endif
 
   // LOG("######## Program LOOP go");
-  usleep(50000);
   while (!pe_wm_should_close(program_window)) {
     pe_wm_input_update();
+    pe_game_input();
+    if (pe_renderer_type == PEWMOPENGLES2) {
+      pe_wm_context_current();
+    }
+    pe_wm_windows_draw();
+    render_frame_time += time_delta;
 
+    time_start();
+
+    pe_game_draw();
+    //********* Timing **********
+    time_end();
+
+    frame_second += time_elapsed_time;
+
+    if (frame_second >= 1000) {
+      FPS = frames * (1000.f / frame_second);
+      frames = 0;
+      frame_second = 0;
+    } else {
+      frames++;
+    }
+    //********* End timing ********
     program_loop();
 
+    render_thread_definition.end();
     usleep(2 * 1000);
+    if (pe_renderer_type == PEWMOPENGLES2) {
+
+      pe_wm_swap_buffers();
+			pe_wm_events_update();
+
+    }
   }
 }

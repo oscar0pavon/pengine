@@ -82,44 +82,15 @@ void render_thread_init() {
 
 void pe_render_draw() {
 
-  LOG("########## PE renderizer GO");
-
-  render_thread_init();
-
-  //*********  Timing ******
-  float render_frame_time = 0;
-  float disired_frame_time = 0.016f;
-
-  u8 frames = 0;
-  float frame_second = 0;
   //************************
 
-  while (engine_running) {
-    render_frame_time += time_delta;
-
-    time_start();
 
     pe_thread_control(&render_thread_commads);
 
     if (render_thread_definition.draw != NULL)
       render_thread_definition.draw();
 
-    //********* Timing **********
-    time_end();
-
-    frame_second += time_elapsed_time;
-
-    if (frame_second >= 1000) {
-      FPS = frames * (1000.f / frame_second);
-      frames = 0;
-      frame_second = 0;
-    } else {
-      frames++;
-    }
-    //********* End timing ********
-  }
   // end while
-  render_thread_definition.end();
 }
 
 /*Start render thread and call pe_render_draw()*/

@@ -30,7 +30,7 @@ void pe_wm_glfw_init(){
 
     }
 
-    //glfwSetErrorCallback(window_manager_error_callback);
+    glfwSetErrorCallback(window_manager_error_callback);
     glfwInit();
 
 }

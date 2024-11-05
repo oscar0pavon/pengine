@@ -275,9 +275,6 @@ void pe_wm_windows_draw() {
 
   for (u8 i = 0; i < engine_windows.count; i++) {
     EngineWindow *window = array_get(&engine_windows, i);
-    if (pe_renderer_type == PEWMOPENGLES2) {
-      pe_wm_context_current();
-    }
     if (!window->initialized)
       continue;
     if (pe_wm_should_close(window)) {
@@ -285,14 +282,6 @@ void pe_wm_windows_draw() {
       LOG("Window close\n");
       continue;
     }
-    window->draw();
 
-    if (pe_renderer_type == PEWMOPENGLES2) {
-
-      pe_wm_swap_buffers();
-			pe_wm_swapped = true;
-			pe_wm_events_update();
-
-    }
   }
 }

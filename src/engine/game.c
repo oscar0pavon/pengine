@@ -41,7 +41,6 @@ void pe_game_draw(){
 }
 void pe_game_create_window(){
 
-    //window_create(game_window, NULL, game->name); 
     LOG("Creating window for game\n");
     pe_wm_configure_window(game_window);
 
@@ -55,39 +54,6 @@ void pe_game_create(PGame * created_game){
     LOG("Creating Pavon Engine game...\n");
     game = created_game; 
 
-    pe_init();
-
-   
-    EngineWindow win;
-    ZERO(win);
-
-    array_add(&engine_windows, &win);
-    game_window = array_pop(&engine_windows);
-
-    game_window->init = &pe_game_create_window;//window specific data
-    game_window->draw = &pe_game_draw;//Main loop draw in window
-    game_window->input = &pe_game_input; 
-
-
-
-    //Send window initialization to the render thread
-
-    PEThreadCommand thread_commad;
-    thread_commad.command = &pe_wm_window_init;
-    thread_commad.data = game_window;
-    thread_commad.done = false;
-    thread_commad.type = POINTER;
-    array_add(&render_thread_commads, &thread_commad);
-
-    
-    //wait for android window initialization
-    while(pe_is_window_init == false){
-        pe_wm_events_update();
-    } 
-
-
-    pe_game_render_config();
-    pe_render_thread_start_and_draw();
 
     LOG("game created\n");
 
