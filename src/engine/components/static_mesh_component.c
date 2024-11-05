@@ -45,11 +45,8 @@ void pe_shader_create_for_model(PModel* model, u32 frag, u32 vert) {
   shader_creation.vertex = vert;
   shader_creation.pixel = frag;
 
-  thread_main.wait = true;
 
-  pe_th_exec_in(pe_th_render_id, &pe_shader_create, &shader_creation);
-
-  pe_th_wait(&thread_main);
+  pe_shader_create(&shader_creation);
 }
 
 void pe_comp_static_mesh_shader_init(PModel* model) {
@@ -63,9 +60,8 @@ void pe_comp_static_mesh_shader_init(PModel* model) {
 
   thread_main.wait = true;
 
-  pe_th_exec_in(pe_th_render_id, &pe_shader_create, &shader_creation);
+  pe_shader_create(&shader_creation);
 
-  pe_th_wait(&thread_main);
 }
 
 void pe_comp_static_mesh_texture_fill(StaticMeshComponent* mesh_component,int i){

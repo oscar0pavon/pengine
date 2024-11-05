@@ -71,7 +71,8 @@ void pe_th_exec_function(PEThreadID id , void(*function)() ){
 	PEThreadID curren_thread_id = pthread_self();
 
 	if(curren_thread_id == id){
-		function();
+		if(function!=NULL)	
+			function();
 		return;
 	}
 

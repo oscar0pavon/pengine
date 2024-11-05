@@ -236,8 +236,7 @@ void pe_gui_button_set_tex_with_path(Button *button, const char *path) {
   if (result == -1)
     return;
 
-  pe_th_exec_in(pe_th_render_id, &pe_tex_to_gpu, &button->texture);
-  pe_th_wait(&thread_main);
+  pe_tex_to_gpu(&button->texture);
   LOGW("button imgae");
 }
 
@@ -316,9 +315,10 @@ void new_empty_button() {
   creation.vertex = pe_gui_shader_vert;
   creation.shader = &new_button.shader;
 
-  pe_th_exec_in(pe_th_render_id, &pe_shader_new, &creation);
+  //pe_th_exec_in(pe_th_render_id, &pe_shader_new, &creation);
+  pe_shader_new(&creation);
 
-  pe_th_wait(&thread_main);
+  //pe_th_wait(&thread_main);
 
   array_add(actual_buttons_array, &new_button);
 }

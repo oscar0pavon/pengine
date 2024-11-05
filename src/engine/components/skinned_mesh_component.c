@@ -26,9 +26,8 @@ void pe_comp_skinned_mesh_init(ComponentDefinition *element_component) {
   shader_creation.pixel = shader_skin_diffuse;
   shader_creation.shader = &selected_model->shader;
 
-  pe_th_exec_in(pe_th_render_id, &pe_shader_new, &shader_creation);
+  pe_shader_new(&shader_creation);
 
-  pe_th_wait(&thread_main);
 
   memcpy(mesh_component, pe_curr_skin_loading, sizeof(PSkinnedMeshComponent));
 

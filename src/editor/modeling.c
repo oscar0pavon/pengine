@@ -104,7 +104,8 @@ void pe_modeling_extrude_vertex(Array *vertex_array, PVertex *vertex) {
   PVertex *get_vertex = array_get(&model.vertex_array, 0);
   pe_modeling_vertex_copy_data(get_vertex, &model.vertex_array);
 
-  pe_th_exec_function(pe_th_render_id, pe_modeling_vertex_update);
+  //pe_th_exec_function(pe_th_render_id, pe_modeling_vertex_update);
+  pe_modeling_vertex_update();
 }
 
 void vertex_new(float x, float y, float z) {
@@ -123,9 +124,8 @@ void vertex_new(float x, float y, float z) {
 
   pe_modeling_update_vertex_selected(&model);
 
-  pe_th_exec_function(pe_th_render_id, pe_modeling_vertex_update);
+  pe_modeling_vertex_update();
 
-  pe_th_wait(&thread_main);
 
   LOG("## Vertex Added");
 }

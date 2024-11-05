@@ -94,8 +94,8 @@ int pe_load_texture(const char *path, PTexture *new_texture) {
     return -1;
   }
 
-    pe_th_exec_in(pe_th_render_id,&pe_gpu_load_texture,new_texture);
-    //pe_gpu_load_texture(new_texture);
+    //pe_th_exec_in(pe_th_render_id,&pe_gpu_load_texture,new_texture);
+    pe_gpu_load_texture(new_texture);
     return 1;
 
 }

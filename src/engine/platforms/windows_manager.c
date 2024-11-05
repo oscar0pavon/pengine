@@ -7,7 +7,7 @@
 
 void window_manager_error_callback(int error, const char* description)
 {
-	    fprintf(stderr, "PEglfw error: %s\n", description);
+      printf("GLFW error: %s\n",description);
 }
 
 void pe_wm_glfw_init(){

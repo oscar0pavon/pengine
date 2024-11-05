@@ -7,7 +7,7 @@ void pe_end(){
 }
 
 void pe_init() {
-    LOG("Initializing Pavon Engine");
+    LOG("Initializing Pavon Engine\n");
     init_engine_memory(); // VERY IMPORTANT
 
     pe_init_arrays();

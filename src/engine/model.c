@@ -262,8 +262,9 @@ void pe_loader_mesh(cgltf_mesh *mesh) {
     actual_vertex_array = &selected_model->vertex_array;
     actual_index_array = &selected_model->index_array;
     pe_loader_mesh_load_primitive(&mesh->primitives[i]);
-    pe_th_exec_in(pe_th_render_id, &GPU_buffers_create_for_model,
-                  selected_model);
+    // pe_th_exec_in(pe_th_render_id, &GPU_buffers_create_for_model,
+    //               selected_model);
+    GPU_buffers_create_for_model(selected_model);
     while (!selected_model->gpu_ready) {
     };
     models_parsed++;
