@@ -44,7 +44,10 @@ $(OBJS): %.o : %.c
 	$(CC) $(CFLAGS) $(GLOBAL_DEFINE) $(CINCLUDES) -c $< -o $@
 
 
-engine.a: $(OBJS) $(components_objs) $(opengl_obj) $(renderer_objs) $(animation_objs) ./Collision/collision.o ./platforms/windows_manager.o ../ThirdParty/parson.o
+ALL_OBJS := $(OBJS) $(components_objs) $(opengl_obj) $(renderer_objs) $(animation_objs) ./Collision/collision.o ./platforms/windows_manager.o ../ThirdParty/parson.o
+
+
+engine.a: $(ALL_OBJS) 	
 	make -C ./renderer/vulkan WORKDIR=$(WORKDIR)
 	ar rcs libengine.a *.o ./Collision/collision.o ./platforms/windows_manager.o ../ThirdParty/parson.o ./renderer/vulkan/*.o $^
 
@@ -52,7 +55,7 @@ engine.a: $(OBJS) $(components_objs) $(opengl_obj) $(renderer_objs) $(animation_
 clean:
 	rm -f *.o
 	rm -f libengine.a
-	rm -f $(components_objs)
+	rm -f $(ALL_OBJS)
 	make -C ./renderer/vulkan clean
 	
 	
