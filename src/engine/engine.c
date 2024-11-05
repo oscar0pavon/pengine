@@ -5,6 +5,7 @@
 #include "engine.h"
 #include <unistd.h>
 
+#include "game.h"
 #include "images.h"
 
 #include "model.h"
@@ -514,16 +515,13 @@ void pe_program_main_loop(void (*program_loop)(void),
     array_add(&engine_windows, &win);
     game_window = array_pop(&engine_windows);
 
-    
   LOG("########## PE renderizer GO");
-    
     pe_game_create_window();
 
     pe_game_render_init();//editor init
     pe_game_render_config();
     //pe_render_thread_start_and_draw();
   render_thread_init();
-
   //*********  Timing ******
   float render_frame_time = 0;
   float disired_frame_time = 0.016f;
@@ -539,7 +537,7 @@ void pe_program_main_loop(void (*program_loop)(void),
 #endif
 
   // LOG("######## Program LOOP go");
-  while (!pe_wm_should_close(program_window)) {
+  while (!pe_wm_should_close(game_window)) {
     pe_wm_input_update();
     pe_game_input();
     if (pe_renderer_type == PEWMOPENGLES2) {
@@ -566,7 +564,6 @@ void pe_program_main_loop(void (*program_loop)(void),
     //********* End timing ********
     program_loop();
 
-    render_thread_definition.end();
     usleep(2 * 1000);
     if (pe_renderer_type == PEWMOPENGLES2) {
 

@@ -60,9 +60,6 @@ void render_thread_init() {
   }
 
 
-  if (render_thread_definition.init != NULL)
-    render_thread_definition.init();
-
   engine_initialized = true;
 
   if(pe_renderer_type == PEWMVULKAN){
