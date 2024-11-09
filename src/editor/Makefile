@@ -7,19 +7,27 @@ all: peditor
 $(OBJS): %.o : %.c
 	$(CC) $(CFLAGS) $(GLOBAL_DEFINE) $(CINCLUDES) -c $<
 
-windows := $(wildcard ./windows/*.c)
-textures := $(wildcard ./Textures/*.c)
+windows_src := $(wildcard ./windows/*.c)
+windows_objs := $(windows_src:%.c=%.o)
+textures_src := $(wildcard ./Textures/*.c)
+textures_objs := $(textures_src:%.c=%.o)
 
 LIBC := /usr/lib/crt1.o /usr/lib/crti.o /usr/lib/libc.so /usr/lib/crtn.o -dynamic-linker /lib/ld-linux.so.2
 LIBRARIES := -lvulkan -lm -lglfw3 -lGLESv2 -lpthread -lfreetype -lEGL -ldl  
 
+
+./windows/%.o : ./windows/%.c
+	$(CC) $(CFLAGS) $(GLOBAL_DEFINE) $(CINCLUDES) -c $< -o $@
+
+./Textures/%.o : ./Textures/%.c
+	$(CC) $(CFLAGS) $(GLOBAL_DEFINE) $(CINCLUDES) -c $< -o $@
+
+
 ld:
 	ld $(LIBC) *.o -L../engine -lengine $(LIBRARIES) -o $(WORKDIR)/bin/peditor
 
-peditor: $(OBJS)
-	$(COMPILE) -c $(textures)
-	$(COMPILE) -c $(windows)
-	gcc *.o -o $(WORKDIR)/bin/peditor -L../engine $(LIBRARIES) -lengine
+peditor: $(OBJS) $(textures_objs) $(windows_objs)
+	gcc *.o $(windows_objs) $(textures_objs) -o $(WORKDIR)/bin/peditor -L../engine $(LIBRARIES) -lengine
 	
 
 
