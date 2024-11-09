@@ -435,67 +435,6 @@ void editor_render_finish(){
 #endif
 }
 
-void pe_editor_draw() {
-
-  glClearColor(COLOR(editor_background_color));
-  render_clear_buffer(RENDER_COLOR_BUFFER | RENDER_DEPTH_BUFFER);
-
-  pe_editor_draw_command_line();
-
-  if (isDrawUV)
-    draw_UV();
-
-  if (controlling_camera_component) {
-    CameraComponent *camera = pe_comp_get(CAMERA_COMPONENT);
-    update_main_camera_with_camera_component_values(camera);
-  }
-
-  for_each_element_components(&update_per_frame_component);
-
-  test_elements_occlusion();
-  check_meshes_distance();
-
-  editor_stats_draw_calls =
-      frame_draw_static_elements.count + frame_draw_skinned_elements.count;
-
-  editor_stats_calculates_triangles();
-
-  if (update_vertex_bones_gizmos == true) {
-    update_joints_vertex();
-  }
-
-  if (pe_renderer_type == PEWMVULKAN) {
-#ifdef DESKTOP
-    if (pe_vk_initialized == true) {
-
-     pe_vk_draw_frame();
-    }
-#endif
-  } else {
-
-    engine_draw_elements(&frame_draw_static_elements);
-  }
-
-  pe_render_skinned_elements(&array_skinned_mesh_pointers);
-
-  pe_frame_clean();
-
-  draw_gizmos();
-
-  if (editor_mode == EDITOR_MODE_GUI_EDITOR ||
-      editor_mode == EDITOR_PLAY_MODE) {
-    draw_gui();
-  }
-
-  if(editor_mode == PE_EDITOR_MODELING_MODE){
-  }
-
-   // draw_vertices(); 
-   
-  text_renderer_loop();
-  //pe_editor_menus_update();
-  // editor_message("editor message");
-}
 
 void editor_main_render_thread(){
 
@@ -628,4 +567,66 @@ void pe_editor_init() {//executed in main thread from main()
     game_window->char_parser = pe_editor_parse_cmd_char;
    
     LOG("[OK]Editor initialized\n");
+}
+
+void pe_editor_draw() {
+
+  glClearColor(COLOR(editor_background_color));
+  render_clear_buffer(RENDER_COLOR_BUFFER | RENDER_DEPTH_BUFFER);
+
+  pe_editor_draw_command_line();
+
+  if (isDrawUV)
+    draw_UV();
+
+  if (controlling_camera_component) {
+    CameraComponent *camera = pe_comp_get(CAMERA_COMPONENT);
+    update_main_camera_with_camera_component_values(camera);
+  }
+
+  for_each_element_components(&update_per_frame_component);
+
+  test_elements_occlusion();
+  check_meshes_distance();
+
+  editor_stats_draw_calls =
+      frame_draw_static_elements.count + frame_draw_skinned_elements.count;
+
+  editor_stats_calculates_triangles();
+
+  if (update_vertex_bones_gizmos == true) {
+    update_joints_vertex();
+  }
+
+  if (pe_renderer_type == PEWMVULKAN) {
+#ifdef DESKTOP
+    if (pe_vk_initialized == true) {
+
+     pe_vk_draw_frame();
+    }
+#endif
+  } else {
+
+    engine_draw_elements(&frame_draw_static_elements);
+  }
+
+  pe_render_skinned_elements(&array_skinned_mesh_pointers);
+
+  pe_frame_clean();
+
+  draw_gizmos();
+
+  if (editor_mode == EDITOR_MODE_GUI_EDITOR ||
+      editor_mode == EDITOR_PLAY_MODE) {
+    draw_gui();
+  }
+
+  if(editor_mode == PE_EDITOR_MODELING_MODE){
+  }
+
+   // draw_vertices(); 
+   
+  text_renderer_loop();
+  //pe_editor_menus_update();
+  // editor_message("editor message");
 }
