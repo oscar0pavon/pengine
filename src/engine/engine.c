@@ -475,6 +475,7 @@ void pe_init_arrays() {
 
   pe_is_window_terminate = false;
 }
+
 void pe_init_global_variables() {
 
   pe_data_loader_models_loaded_count = 0;
@@ -486,6 +487,7 @@ void pe_init_global_variables() {
   update_vertex_bones_gizmos = false;
 #endif
 }
+
 void pe_wm_check(EngineWindow *program_window) {
 
 wait:
@@ -503,25 +505,26 @@ wait:
   }
 #endif
 }
+
 void pe_program_main_loop(void (*program_loop)(void),
                           EngineWindow *program_window) {
 
-    pe_init();
+  pe_init();
 
-   
-    EngineWindow win;
-    ZERO(win);
+  EngineWindow win;
+  ZERO(win);
 
-    array_add(&engine_windows, &win);
-    game_window = array_pop(&engine_windows);
+  array_add(&engine_windows, &win);
+  game_window = array_pop(&engine_windows);
 
   LOG("########## PE renderizer GO");
-    pe_game_create_window();
+  pe_game_create_window();
 
-    pe_game_render_init();//editor init
-    pe_game_render_config();
-    //pe_render_thread_start_and_draw();
+  pe_game_render_init(); // editor init
+  pe_game_render_config();
+  // pe_render_thread_start_and_draw();
   render_thread_init();
+
   //*********  Timing ******
   float render_frame_time = 0;
   float disired_frame_time = 0.016f;
@@ -536,8 +539,10 @@ void pe_program_main_loop(void (*program_loop)(void),
   pe_wm_check(program_window);
 #endif
 
-  // LOG("######## Program LOOP go");
+  //Main loop 
   while (!pe_wm_should_close(game_window)) {
+    time_start();
+    
     pe_wm_input_update();
     pe_game_input();
     if (pe_renderer_type == PEWMOPENGLES2) {
@@ -546,9 +551,15 @@ void pe_program_main_loop(void (*program_loop)(void),
     pe_wm_windows_draw();
     render_frame_time += time_delta;
 
-    time_start();
 
     pe_game_draw();
+    program_loop();
+
+    if (pe_renderer_type == PEWMOPENGLES2) {
+      pe_wm_swap_buffers();
+    }
+    pe_wm_events_update();
+    
     //********* Timing **********
     time_end();
 
@@ -562,13 +573,5 @@ void pe_program_main_loop(void (*program_loop)(void),
       frames++;
     }
     //********* End timing ********
-    program_loop();
-
-    usleep(2 * 1000);
-  
-    if (pe_renderer_type == PEWMOPENGLES2) {
-      pe_wm_swap_buffers();
-    }
-		pe_wm_events_update();
   }
 }
