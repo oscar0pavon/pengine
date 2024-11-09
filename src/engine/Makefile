@@ -61,6 +61,5 @@ clean:
 	rm -f *.o
 	rm -f libengine.a
 	rm -f $(ALL_OBJS)
-	make -C ./renderer/vulkan clean
 	
 	
