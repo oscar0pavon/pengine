@@ -14,8 +14,6 @@ textures_objs := $(textures_src:%.c=%.o)
 
 
 
-./windows/%.o : ./windows/%.c
-	$(CC) $(CFLAGS) $(GLOBAL_DEFINE) $(CINCLUDES) -c $< -o $@
 
 ./Textures/%.o : ./Textures/%.c
 	$(CC) $(CFLAGS) $(GLOBAL_DEFINE) $(CINCLUDES) -c $< -o $@
@@ -24,8 +22,8 @@ textures_objs := $(textures_src:%.c=%.o)
 ld:
 	ld $(LIBC) *.o -L../engine -lengine $(LIBRARIES) -o $(WORKDIR)/bin/peditor
 
-peditor: $(OBJS) $(textures_objs) $(windows_objs)
-	gcc *.o $(windows_objs) $(textures_objs) -o $(WORKDIR)/bin/peditor -L../engine $(LIBRARIES) -lengine
+peditor: $(OBJS) $(textures_objs)
+	gcc *.o $(textures_objs) -o $(WORKDIR)/bin/peditor -L../engine $(LIBRARIES) -lengine
 	
 
 

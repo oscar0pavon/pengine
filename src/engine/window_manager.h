@@ -2,10 +2,6 @@
 #define PE_WINDOWS_MANAGER_H
 
 
-#ifdef EDITOR
-  #include <editor/windows/static_mesh_editor.h>
-  #include <editor/windows/tabs.h>
-#endif // EDITOR
 
 #define INIT_WINDOW_SIZE_X 1280
 #define INIT_WINDOW_SIZE_Y 720
@@ -25,10 +21,6 @@ typedef struct EngineWindow {
   void (*input)(void);
   void (*char_parser)(unsigned char);
   CameraComponent camera;
-#ifdef EDITOR
-  u8 tab_current_id;
-  EditorTab *tab_current;
-#endif
 } EngineWindow;
 
 void pe_wm_init();

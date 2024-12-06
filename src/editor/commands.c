@@ -1,7 +1,6 @@
 #include "commands.h"
 #include "editor.h"
 
-#include "windows/content_browser.h"
 
 #include <editor/project_manager.h>
 
@@ -44,10 +43,6 @@ void pe_editor_parse_cmd_char(unsigned char character) {
   }
 
   if (editor_sub_mode == EDITOR_SUB_MODE_TEXT_INPUT) {
-    command_text_buffer[command_character_count] = character;
-    command_character_count++;
-  }
-  if (editor_window_content_browser_hint && window_content_browser->focus) {
     command_text_buffer[command_character_count] = character;
     command_character_count++;
   }

@@ -26,7 +26,6 @@
 #include <engine/renderer/renderer.h>
 
 #ifdef DESKTOP
-#include "windows/content_browser.h"
 
 #include "edit_server.h"
 
@@ -38,7 +37,6 @@
 
 #include "text.h"
 #include "menus.h"
-#include "windows/windows.h"
 #include "commands.h"
 
 
