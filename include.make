@@ -12,4 +12,4 @@ COMPILE := $(CC) $(CFLAGS) $(GLOBAL_DEFINE) $(CINCLUDES)
 
 LIBC := /usr/lib/crt1.o /usr/lib/crti.o /usr/lib/libc.so /usr/lib/crtn.o -dynamic-linker /lib/ld-linux.so.2
 
-LIBRARIES := -lvulkan -lm -lglfw3 -lpthread -lfreetype -ldl -lX11 -lGL
+LIBRARIES := -lvulkan -lm -lpthread -lfreetype -ldl -lX11 -lGL

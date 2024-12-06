@@ -490,23 +490,6 @@ void pe_init_global_variables() {
 #endif
 }
 
-void pe_wm_check(EngineWindow *program_window) {
-
-wait:
-  if (program_window == NULL) {
-    goto wait;
-  }
-
-  // wait for window initialization in the render thread
-  while (!program_window->initialized) {
-  };
-
-#ifdef LINUX
-  if (program_window->window == NULL) {
-    goto wait;
-  }
-#endif
-}
 
 void pe_program_main_loop(void (*program_loop)(void),
                           EngineWindow *program_window) {

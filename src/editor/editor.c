@@ -374,24 +374,6 @@ void collision_test(){
 
 void editor_main_window_init() {
 
-#ifdef DESKTOP
-  pe_wm_create_window(window_editor_main, NULL, "PavonEngine");
-  glfwSetKeyCallback(window_editor_main->window, &pe_input_key_callback);
-  glfwSetCursorPosCallback(window_editor_main->window,
-                           &pe_input_mouse_movement_callback);
-  glfwSetMouseButtonCallback(window_editor_main->window,
-                             &pe_input_mouse_button_callback);
-  glfwSetCharCallback(window_editor_main->window, &pe_input_character_callback);
-  glfwSetWindowFocusCallback(window_editor_main->window,
-                             &window_focus_callback);
-  glfwSetFramebufferSizeCallback(window_editor_main->window,
-                                 &window_resize_callback);
-#endif
-
-  window_editor_main->char_parser = pe_editor_parse_cmd_char;
-
-  // draw_loading_screen();
-  // glfwSwapBuffers(window_editor_main->window);
 
   // Load level form command line
   if (strcmp(editor_level_open_path, "") != 0) {
@@ -430,9 +412,7 @@ void pe_editor_load_native_model(){
 
 
 void editor_render_finish(){
-#ifdef DESKTOP 
-	glfwTerminate();
-#endif
+
 }
 
 

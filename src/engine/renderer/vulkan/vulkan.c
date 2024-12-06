@@ -183,9 +183,10 @@ void pe_vk_create_surface() {
     LOGW("NO WINDOWS CREATED");
   }
 
-  VKVALID(glfwCreateWindowSurface(vk_instance, current_window->window, NULL,
-                                  &vk_surface),
-          "Can't create window surface");
+  //TODO: implement with Xlib
+  // VKVALID(glfwCreateWindowSurface(vk_instance, current_window->window, NULL,
+  //                                 &vk_surface),
+  //         "Can't create window surface");
 #endif
 }
 

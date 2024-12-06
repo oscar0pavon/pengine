@@ -1,15 +1,6 @@
 #ifndef PE_WINDOWS_MANAGER_H
 #define PE_WINDOWS_MANAGER_H
 
-#define GLFW_INCLUDE_ES2
-#define GLFW_INCLUDE_GLEXT
-
-#ifdef DESKTOP
-
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-
-#endif
 
 #ifdef EDITOR
   #include <editor/windows/static_mesh_editor.h>
@@ -38,9 +29,6 @@ typedef struct EngineWindow {
   u8 tab_current_id;
   EditorTab *tab_current;
 #endif
-#ifdef DESKTOP
-  GLFWwindow *window;
-#endif
 } EngineWindow;
 
 void pe_wm_init();
@@ -49,10 +37,6 @@ bool is_wm_swapped();
 
 void pe_wm_configure_window(EngineWindow*);
 
-#ifdef LINUX
-void window_resize_callback(GLFWwindow *, int width, int height);
-void window_focus_callback(GLFWwindow *, int);
-#endif
 
 void pe_wm_create_window(EngineWindow *, EngineWindow *share_window,
                    const char *name);

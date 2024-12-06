@@ -211,38 +211,31 @@ void pe_input_key_callback(GLFWwindow* window, int key, int scancode, int action
 
 void pe_input_mouse_button_callback(GLFWwindow* window, int button, int action, int mods){
 
-		if (button ==  GLFW_MOUSE_BUTTON_LEFT ){
-			if(action == GLFW_PRESS){
-				
-				glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);  
-                move_camera_input = false;
-                mouse_navigate_control = false;
-                //change_to_editor_mode(EDITOR_DEFAULT_MODE);
-				left_click = true;
-                touch_position_x = actual_mouse_position_x;
-                touch_position_y = actual_mouse_position_y;
-			}
-			if(action == GLFW_RELEASE){
-                left_click = false;
-                touch_position_x = -1;
-                touch_position_y = -1;
-			}
+  if (button == GLFW_MOUSE_BUTTON_LEFT) {
+    if (action == GLFW_PRESS) {
 
-		}
-		if (button == GLFW_MOUSE_BUTTON_RIGHT ){
-			if(action == GLFW_PRESS){
-				glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); 
-                move_camera_input = true;
-                mouse_navigate_control = true;
-                //change_to_editor_mode(EDITOR_NAVIGATE_MODE);
-			
-			}
-			if(action == GLFW_RELEASE){
-				
-			}
-
-		}
-
+      move_camera_input = false;
+      mouse_navigate_control = false;
+      // change_to_editor_mode(EDITOR_DEFAULT_MODE);
+      left_click = true;
+      touch_position_x = actual_mouse_position_x;
+      touch_position_y = actual_mouse_position_y;
+    }
+    if (action == GLFW_RELEASE) {
+      left_click = false;
+      touch_position_x = -1;
+      touch_position_y = -1;
+    }
+  }
+  if (button == GLFW_MOUSE_BUTTON_RIGHT) {
+    if (action == GLFW_PRESS) {
+      move_camera_input = true;
+      mouse_navigate_control = true;
+      // change_to_editor_mode(EDITOR_NAVIGATE_MODE);
+    }
+    if (action == GLFW_RELEASE) {
+    }
+  }
 }
 
 #endif//define LINUX
