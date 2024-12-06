@@ -12,8 +12,6 @@ windows_objs := $(windows_src:%.c=%.o)
 textures_src := $(wildcard ./Textures/*.c)
 textures_objs := $(textures_src:%.c=%.o)
 
-LIBC := /usr/lib/crt1.o /usr/lib/crti.o /usr/lib/libc.so /usr/lib/crtn.o -dynamic-linker /lib/ld-linux.so.2
-LIBRARIES := -lvulkan -lm -lglfw3 -lGLESv2 -lpthread -lfreetype -lEGL -ldl -lX11 -lGL
 
 
 ./windows/%.o : ./windows/%.c
