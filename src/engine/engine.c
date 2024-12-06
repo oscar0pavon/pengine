@@ -41,13 +41,6 @@ void pe_input_character(unsigned int codepoint) {
  
   char keyboard_utf = (char)codepoint;
 
-#ifdef DESKTOP
-  if (current_window->char_parser == NULL) {
-    LOG("Not character parser assing to PEWindow\n");
-    return;
-  }
-  current_window->char_parser(keyboard_utf);
-#endif
 #ifdef ANDROID
   pe_editor_parse_cmd_char(keyboard_utf);
 #endif
@@ -460,8 +453,6 @@ void pe_init_arrays() {
 
   array_init(&render_thread_commads, sizeof(PEThreadCommand), 100);
 
-  array_init(&engine_windows, sizeof(EngineWindow), 40);
-
   array_init(&pe_array_textures, sizeof(PTexture), 100);
 
   current_textures_array = &pe_array_textures;
@@ -491,16 +482,9 @@ void pe_init_global_variables() {
 }
 
 
-void pe_program_main_loop(void (*program_loop)(void),
-                          EngineWindow *program_window) {
+void pe_program_main_loop(void (*program_loop)(void)) {
 
   pe_init();
-
-  EngineWindow win;
-  ZERO(win);
-
-  array_add(&engine_windows, &win);
-  game_window = array_pop(&engine_windows);
 
   LOG("########## PE renderizer GO");
   pe_game_create_window();
@@ -525,7 +509,8 @@ void pe_program_main_loop(void (*program_loop)(void),
 #endif
 
   //Main loop 
-  while (!pe_wm_should_close(game_window)) {
+  //TODO window should close
+  while (1) {
     time_start();
     
     pe_wm_input_update();
@@ -533,7 +518,6 @@ void pe_program_main_loop(void (*program_loop)(void),
     if (pe_renderer_type == PEWMOPENGLES2) {
       pe_wm_context_current();
     }
-    pe_wm_windows_draw();
     render_frame_time += time_delta;
 
 

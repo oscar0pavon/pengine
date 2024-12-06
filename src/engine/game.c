@@ -11,6 +11,7 @@
 #include "camera.h"
 
 #include "engine.h"
+#include "window_manager.h"
 
 #include <dlfcn.h>
 #include <engine/base.h>
@@ -26,11 +27,9 @@ void pe_game_render_init(){
 }
 
 void pe_game_render_config(){
-	render_thread_definition.init = &pe_game_render_init;
-	render_thread_definition.draw = &pe_wm_windows_draw; 
-#ifdef LINUX
-#endif
+
 }
+
 void pe_game_draw(){
 
   pe_frame_draw();
@@ -40,7 +39,7 @@ void pe_game_draw(){
 void pe_game_create_window(){
 
     LOG("Creating window for game\n");
-    pe_wm_configure_window(game_window);
+    pe_wm_create_x11_window();
 
 }
 void pe_game_input(){
@@ -55,7 +54,7 @@ void pe_game_create(PGame * created_game){
 
     LOG("game created\n");
 
-    pe_program_main_loop(game->loop, game_window);
+    pe_program_main_loop(game->loop);
 
 }
 

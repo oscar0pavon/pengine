@@ -7,10 +7,9 @@ bool is_blender_file_saved;
 bool blender_file_checked;
 
 #include <engine/window_manager.h>
-#include "../../engine/log.h"
+#include <engine/log.h>
 
 static void blender_loop_checker(){
-    if( window_editor_main->focus){
        
 
         if(is_editing_blender_file){
@@ -26,10 +25,6 @@ static void blender_loop_checker(){
             }
             
         }
-    }else{
-        blender_file_checked = false;
-       
-    }
 }
 
 #endif // !EDITOR_BLENDER_H

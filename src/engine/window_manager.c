@@ -143,21 +143,6 @@ void pe_wm_egl_end() {
 
 void pe_wm_input_update() {
 
-  // Draw tab bar 	& draw current tabb
-  for (u8 i = 0; i < engine_windows.count; i++) {
-    EngineWindow *window = array_get(&engine_windows, i);
-		if (!window->initialized){
-      continue;
-		}
-
-#ifdef LINUX
-    // The mouse need to stay in the window for window->input call
-    if (window->focus) {
-      if (window->input)
-        window->input();
-    }
-#endif
-
 #ifdef ANDROID
 
 		if (window->input){
@@ -165,17 +150,8 @@ void pe_wm_input_update() {
       window->input();
 		}
 #endif
-  }
+
 }
-
-bool pe_wm_should_close(EngineWindow* window){
-	if(pe_is_window_terminate)	
-		return true;
-	else
-    return false;
-}
-
-
 
 void pe_wm_init(){
 
@@ -190,53 +166,7 @@ void window_update_viewport(int width, int height){
 #ifdef PE_FREETYPE
     text_renderer_update_pixel_size();
 #endif
-		camera_update_aspect_ratio(&current_window->camera);
-}
-
-void pe_wm_configure_window(EngineWindow* win){
-  
-	if (win == NULL) { 
-		LOG("ERROR: Window not found\n");
-    return;
-  }
-	if (win->initialized){
-		LOG("Window already initialized\n");
-    return;
-	}
-
-  current_window = win;
-
-
-#ifdef LINUX
-	pe_wm_create_x11_window();
-#endif
-
-#if defined ANDROID && defined OPENGLES
-	pe_wm_egl_init();	
-#endif
-
-  win->initialized = true;
-	
-	LOG("Window created\n");
-}
-
-
-void pe_wm_window_init(EngineWindow* window){
-	LOG("Initialing Window\n");
-	if(window->init != NULL)
-		window->init();
-	window->initialized = true;
-
-	LOG("Window init pe_wm_window_init\n");
-}
-
-
-
-void window_set_focus(EngineWindow* window){
-    current_window->focus = false;
-    window->focus = true;
-    current_window = window;
-    //LOG("Focus windows change\n");
+		//camera_update_aspect_ratio(&current_window->camera);
 }
 
 void pe_wm_context_current(){
@@ -273,29 +203,12 @@ void pe_wm_events_update() {
   pe_android_poll_envents();
 #endif
 }
-void pe_wm_windows_draw() {
-
-  for (u8 i = 0; i < engine_windows.count; i++) {
-    EngineWindow *window = array_get(&engine_windows, i);
-    if (!window->initialized)
-      continue;
-    if (pe_wm_should_close(window)) {
-      window->finish();
-      LOG("Window close\n");
-      continue;
-    }
-
-  }
-}
 
 
 void windows_manager_init(){
   pe_is_window_init = true;
 }
 
-void pe_wm_make_context(EngineWindow*window){
-  glXMakeCurrent(display, window, gl_context);
-}
 
 void pe_wm_create_x11_window(){
 
@@ -333,15 +246,4 @@ void pe_wm_create_x11_window(){
     camera_width_screen = INIT_WINDOW_SIZE_X;
     window_update_viewport(INIT_WINDOW_SIZE_X, INIT_WINDOW_SIZE_Y);
 }
-
-
-void window_initialize_windows(){
-	for(u8 i = 0; i<engine_windows.count ; i++ ){
-		EngineWindow* window = array_get(&engine_windows,i);
-		if(window->initialized)
-			   continue;
-		window->init();	
-	}
-}
-
 

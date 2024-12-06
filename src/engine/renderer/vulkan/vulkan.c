@@ -179,10 +179,7 @@ void pe_vk_create_surface() {
       "Surface Error");
 #endif
 #if DESKTOP
-  if (!current_window) {
-    LOGW("NO WINDOWS CREATED");
-  }
-
+  
   //TODO: implement with Xlib
   // VKVALID(glfwCreateWindowSurface(vk_instance, current_window->window, NULL,
   //                                 &vk_surface),

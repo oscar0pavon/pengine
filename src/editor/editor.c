@@ -332,7 +332,8 @@ void editor_focus_selected_element(){
     vec3 direction;
     glm_vec3_sub(selected_element->transform->position, main_camera.position,direction);
     glm_normalize_to(direction,main_camera.front);
-    camera_update(&current_window->camera);
+    //TODO: implement global camera
+    //camera_update(&current_window->camera);
 }
 
 
@@ -417,7 +418,6 @@ void editor_render_finish(){
 void editor_main_render_thread(){
 
 	//window_manager_draw_windows();
-  pe_wm_windows_draw();
 
 
 }
@@ -480,30 +480,14 @@ void editor_render_init() {
 
 void pe_editor_window_configure() {
 
-  // All window definition here
-  EngineWindow main_window;
-  ZERO(main_window);
-
-  main_window.init = &editor_main_window_init; // window specific data
-  main_window.input =
-      &editor_window_level_editor_input_update; // handle editor modes
-  main_window.draw = &pe_editor_draw;              // Main loop draw in window
-  main_window.finish = &editor_render_finish;
-
-  array_add(&engine_windows, &main_window);
-  window_editor_main = array_pop(&engine_windows);
-
   // Send window initialization to the render thread
 
   PEThreadCommand thread_commad;
-#ifdef DESKTOP
-    //thread_commad.command = &window_manager_init_window;
+  // thread_commad.data = window_editor_main;
+  thread_commad.done = false;
+  thread_commad.type = POINTER;
+  array_add(&render_thread_commads, &thread_commad);
 
-#endif
-    thread_commad.data = window_editor_main;
-    thread_commad.done = false;
-    thread_commad.type = POINTER;
-    array_add(&render_thread_commads, &thread_commad);
 }
 
 void pe_editor_render_thread_configure_and_start() {
@@ -530,19 +514,9 @@ void pe_editor_init() {//executed in main thread from main()
     edit_server_init();
 #endif
 
-    //need to uncommed to use oldmain()
-
-     //pe_editor_window_configure();
-
-     //pe_editor_render_thread_configure_and_start();
-
-    //end old main
-    
-    //init_modeling(); 
 
     editor_render_init();
 
-    game_window->char_parser = pe_editor_parse_cmd_char;
    
     LOG("[OK]Editor initialized\n");
 }

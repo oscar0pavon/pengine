@@ -39,7 +39,6 @@ void pe_game_window_init();
 
 void pe_game_create(PGame*);
 
-EngineWindow* game_window;
 PGame* game;
 
 #endif //PAVON_MOBILE_GAME_H

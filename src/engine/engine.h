@@ -78,9 +78,6 @@ void engine_loop();
 
 void init_game_engine();
 
-void pe_program_main_loop(void (*program_loop)(void),
-                          EngineWindow *program_window);
-
 void add_action_function(void (*f)(void));
 
 /* Draw array of engine elements,
@@ -103,6 +100,8 @@ void load_model_to_array(Array *array, const char *path_model,
                          const char *color_texture_path);
 
 int load_and_initialize_simple_model(const char *model_gltf_path);
+
+void pe_program_main_loop(void (*program_loop)(void));
 
 // Transform
 void update_translation(vec3 translation);
