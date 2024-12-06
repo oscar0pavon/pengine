@@ -53,6 +53,8 @@ void pe_wm_create_window(EngineWindow *, EngineWindow *share_window,
 
 void pe_wm_window_init(EngineWindow *window);
 
+void pe_wm_create_x11_window();
+
 void window_initialize_windows();
 
 void window_manager_create_editor_windows_data();

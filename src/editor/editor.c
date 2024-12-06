@@ -472,7 +472,7 @@ void editor_data_init() {
 
   strcpy(editor_mode_show_text, "Default");
 
-  camera_velocity = 0.60;
+  camera_velocity = 4.60;
 }
 
 void editor_render_init() {

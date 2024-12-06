@@ -5,6 +5,19 @@
 #include <engine/log.h>
 #include <engine/text_renderer.h>
 
+#include <X11/Xlib.h>
+#include <GL/glx.h>
+
+Display                 *display;
+Window                  root_window;
+GLint                   attributes[] = { GLX_RGBA, GLX_DEPTH_SIZE, 24, GLX_DOUBLEBUFFER, None };
+XVisualInfo             *visual_info;
+Colormap                color_map;
+XSetWindowAttributes    set_window_attributes;
+Window                  window;
+GLXContext              gl_context;
+XWindowAttributes       window_attributes;
+
 void window_manager_error_callback(int error, const char* description)
 {
       printf("GLFW error: %s\n",description);
@@ -48,6 +61,35 @@ void windows_manager_init(){
 
 void pe_wm_make_context(EngineWindow*window){
   glfwMakeContextCurrent(window->window);
+}
+
+void pe_wm_create_x11_window(){
+
+    display = XOpenDisplay(NULL);
+
+    visual_info = glXChooseVisual(display,0,attributes);
+    
+    root_window = XDefaultRootWindow(display);
+    
+    color_map = XCreateColormap(display, root_window, visual_info->visual, AllocNone);
+
+    set_window_attributes.colormap = color_map;
+    set_window_attributes.event_mask = ExposureMask | KeyPressMask;
+    
+    window = XCreateWindow(display, root_window, 0, 0, 
+        800, 600, 0,
+        visual_info->depth, InputOutput, visual_info->visual,
+        CWColormap | CWEventMask, &set_window_attributes);
+    
+    XStoreName(display, window, "pengine");
+   
+    XMapWindow(display, window);
+    XFlush(display);
+
+    while(1){
+
+    }
+
 }
 
 void pe_wm_create_window(EngineWindow *win, EngineWindow *share_window,

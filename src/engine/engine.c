@@ -22,6 +22,8 @@
 
 #include <engine/renderer/render_thread.h>
 
+#include <engine/base.h>
+
 Array engine_elements;
 Array engine_textures;
 
