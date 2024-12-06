@@ -52,8 +52,8 @@ echo "#define file_font \"${WORKDIR}/content/DejaVuSerif.ttf\"" >> ${FILE}
 #chess
 
 
-echo "#define file_peon_glb\"${WORKDIR}/demos/chess/peon.glb\"" >> ${FILE}
-echo "#define file_reina_glb\"${WORKDIR}/demos/chess/reina.glb\"" >> ${FILE}
+echo "#define file_peon_glb \"${WORKDIR}/demos/chess/peon.glb\"" >> ${FILE}
+echo "#define file_reina_glb \"${WORKDIR}/demos/chess/reina.glb\"" >> ${FILE}
 
 
 
