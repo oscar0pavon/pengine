@@ -511,24 +511,23 @@ void pe_program_main_loop(void (*program_loop)(void)) {
   //Main loop 
   //TODO window should close
   while (1) {
-    time_start();
     
+    pe_wm_events_update();
     pe_wm_input_update();
     pe_game_input();
-    if (pe_renderer_type == PEWMOPENGLES2) {
-      pe_wm_context_current();
-    }
+    
+    program_loop();
+
+    time_start();
+
     render_frame_time += time_delta;
 
-
     pe_game_draw();
-    program_loop();
 
     if (pe_renderer_type == PEWMOPENGLES2) {
       pe_wm_swap_buffers();
     }
-    pe_wm_events_update();
-    
+
     //********* Timing **********
     time_end();
 
@@ -542,5 +541,6 @@ void pe_program_main_loop(void (*program_loop)(void)) {
       frames++;
     }
     //********* End timing ********
+    
   }
 }

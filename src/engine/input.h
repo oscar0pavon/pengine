@@ -109,4 +109,7 @@ bool mouse_navigate_control;
 void pe_input_init();
 
 void mouse_movement_control(float xpos, float ypos);
+
+void pe_wm_poll_events_x11();
+
 #endif

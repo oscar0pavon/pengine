@@ -8,6 +8,8 @@
 
 #include <engine/camera.h>
 
+#include <X11/Xlib.h>
+
 typedef enum PERendererType { PEWMVULKAN, PEWMOPENGLES2 } PERendererType;
 
 
@@ -51,5 +53,7 @@ PERendererType pe_renderer_type;
 bool pe_is_window_init;
 
 bool pe_is_window_terminate;
+
+Display                 *display;
 
 #endif // !ENGINE_WINDOWS_MANAGER_H

@@ -1,4 +1,5 @@
 #include "window_manager.h"
+#include <X11/X.h>
 #include <engine/log.h>
 
 #include <stdio.h>
@@ -7,13 +8,11 @@
 #include <engine/log.h>
 #include <engine/text_renderer.h>
 
-#include <X11/Xlib.h>
 #include <GL/glx.h>
 
 #include <engine/game.h>
 #include <engine/input.h>
 
-Display                 *display;
 Window                  root_window;
 GLint                   attributes[] = { GLX_RGBA, GLX_DEPTH_SIZE, 24, GLX_DOUBLEBUFFER, None };
 XVisualInfo             *visual_info;
@@ -198,12 +197,16 @@ bool is_wm_swapped(){
 	return true;
 }
 
+
+
 void pe_wm_events_update() {
 #ifdef ANDROID
   pe_android_poll_envents();
 #endif
+#ifdef LINUX
+	pe_wm_poll_events_x11();
+#endif
 }
-
 
 void windows_manager_init(){
   pe_is_window_init = true;

@@ -22,8 +22,7 @@ animation_src := $(wildcard ./animation/*.c)
 animation_objs := $(animation_src:%.c=%.o)
 
 
-
-$(OBJS): %.o : %.c 
+%.o : %.c 
 	$(CC) $(CFLAGS) $(GLOBAL_DEFINE) $(CINCLUDES) -c $<
 
 ./components/%.o : ./components/%.c

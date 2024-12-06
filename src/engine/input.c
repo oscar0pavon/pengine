@@ -9,10 +9,25 @@
 
 #include <engine/engine.h>
 
+#include <X11/Xlib.h>
+
 bool left_click = false;
 float actual_mouse_position_x;
 float actual_mouse_position_y;
 
+void pe_wm_poll_events_x11(){
+	XEvent general_event = {};
+	XNextEvent(display,&general_event);
+
+	switch (general_event.type) {
+		case KeyPress:
+		case KeyRelease:
+			{
+				LOG("key pressed2\n");
+			}
+	}
+
+}
 
 void mouse_movement_control(float xpos, float ypos){   
 
