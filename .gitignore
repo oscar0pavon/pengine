@@ -1,4 +1,5 @@
 src/engine/files.h
+compile_commands.json
 # Prerequisites
 *.d
 

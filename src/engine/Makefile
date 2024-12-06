@@ -1,6 +1,6 @@
 
 
-include $(WORKDIR)/include.make
+include ../../include.make
 
 .PHONY: all clean install
 
