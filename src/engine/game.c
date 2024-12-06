@@ -11,7 +11,6 @@
 #include "camera.h"
 
 #include "engine.h"
-#include "platforms/windows_manager.h"
 
 #include <dlfcn.h>
 #include <engine/base.h>

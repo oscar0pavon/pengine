@@ -17,7 +17,6 @@
 #include <engine/renderer/vulkan/shader_module.h>
 #include <engine/renderer/vulkan/swap_chain.h>
 #include <engine/renderer/vulkan/uniform_buffer.h>
-#include <engine/windows_manager.h>
 #include <stdint.h>
 #include <string.h>
 #include <vulkan/vulkan.h>

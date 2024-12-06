@@ -41,16 +41,13 @@ $(OBJS): %.o : %.c
 ../ThirdParty/parson.o: ../ThirdParty/parson.c
 	$(CC) $(CFLAGS) $(GLOBAL_DEFINE) $(CINCLUDES) -c $< -o $@
 
-./platforms/windows_manager.o: ./platforms/windows_manager.c
-	$(CC) $(CFLAGS) $(GLOBAL_DEFINE) $(CINCLUDES) -c $< -o $@
-
 ./Collision/collision.o: ./Collision/collision.c
 	$(CC) $(CFLAGS) $(GLOBAL_DEFINE) $(CINCLUDES) -c $< -o $@
 
 ./renderer/vulkan/%.o: ./renderer/vulkan/%.c
 	$(CC) $(CFLAGS) $(GLOBAL_DEFINE) $(CINCLUDES) -c $< -o $@
 
-ALL_OBJS := $(OBJS) $(components_objs) $(opengl_obj) $(renderer_objs) $(animation_objs) ./Collision/collision.o ./platforms/windows_manager.o ../ThirdParty/parson.o $(vulkan_objs)
+ALL_OBJS := $(OBJS) $(components_objs) $(opengl_obj) $(renderer_objs) $(animation_objs) ./Collision/collision.o ../ThirdParty/parson.o $(vulkan_objs)
 
 
 engine.a: $(ALL_OBJS)

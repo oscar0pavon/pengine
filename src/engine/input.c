@@ -2,7 +2,7 @@
 #include "camera.h"
 #include <string.h>
 #include <engine/log.h>
-#include <engine/windows_manager.h>
+
 #include <engine/input.h>
 
 #include <editor/commands.h>

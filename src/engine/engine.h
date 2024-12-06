@@ -45,8 +45,6 @@
 #include "audio/audio_engine.h"
 #endif
 
-#include "windows_manager.h"
-
 #include "game.h"
 
 #include "threads.h"

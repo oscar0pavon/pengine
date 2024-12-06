@@ -4,10 +4,11 @@
 #include <string.h>
 #include <engine/macros.h>
 #include "debug.h"
-#include <engine/windows_manager.h>
 #include <engine/renderer/vulkan/vulkan.h>
-#include <engine/windows_manager.h>
+
 #include <engine/renderer/vulkan/images_view.h>
+
+#include <engine/window_manager.h>
 
 typedef struct PE_VK_SWCH_SupportDetails{
   VkSurfaceCapabilitiesKHR capabilities;

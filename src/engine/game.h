@@ -6,7 +6,8 @@
 #define PAVON_MOBILE_GAME_H
 
 #include "model.h"
-#include "windows_manager.h"
+
+#include <engine/window_manager.h>
 
 typedef struct PGame{
 	char* name;
