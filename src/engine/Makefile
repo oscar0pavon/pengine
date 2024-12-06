@@ -4,7 +4,7 @@ include $(WORKDIR)/include.make
 
 .PHONY: all clean install
 
-all: engine.a
+all: libengine.a
 
 components_src := $(shell find ./components -name '*.c')
 components_objs := $(components_src:%.c=%.o)
@@ -17,6 +17,7 @@ vulkan_objs := $(vulkan_src:%.c=%.o)
 
 renderer_src := $(wildcard ./renderer/*.c)
 renderer_objs := $(renderer_src:%.c=%.o)
+
 animation_src := $(wildcard ./animation/*.c)
 animation_objs := $(animation_src:%.c=%.o)
 
@@ -24,7 +25,6 @@ animation_objs := $(animation_src:%.c=%.o)
 
 $(OBJS): %.o : %.c 
 	$(CC) $(CFLAGS) $(GLOBAL_DEFINE) $(CINCLUDES) -c $<
-
 
 ./components/%.o : ./components/%.c
 	$(CC) $(CFLAGS) $(GLOBAL_DEFINE) $(CINCLUDES) -c $< -o $@
@@ -50,7 +50,7 @@ $(OBJS): %.o : %.c
 ALL_OBJS := $(OBJS) $(components_objs) $(opengl_obj) $(renderer_objs) $(animation_objs) ./Collision/collision.o ../ThirdParty/parson.o $(vulkan_objs)
 
 
-engine.a: $(ALL_OBJS)
+libengine.a: $(ALL_OBJS)
 	ar rcs libengine.a *.o $^
 
 

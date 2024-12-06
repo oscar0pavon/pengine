@@ -1,7 +1,7 @@
 #ifndef TEXTURES_RENDER_H
 #define TEXTURES_RENDER_H
 
-#include "../../engine/model.h"
+#include <engine/model.h>
 
 typedef struct{
     unsigned char* data;

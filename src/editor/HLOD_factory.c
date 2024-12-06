@@ -3,7 +3,7 @@
 
 #include <editor/gizmos.h>
 #include <engine/Math/math.h>
-#include "Textures/texture_factory.h"
+#include "texture_factory.h"
 
 #include <editor/project_manager.h>
 

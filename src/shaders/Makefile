@@ -12,7 +12,6 @@ vert_spv := $(vert:.vert=.spv)
 	glslc $< -o $@
 
 shaders: $(frag_spv) $(vert_spv)
-	#./vk_compile.sh
 
 clean:
 	rm -f *.spv

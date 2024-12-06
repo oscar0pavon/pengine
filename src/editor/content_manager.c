@@ -1,6 +1,6 @@
 #include "content_manager.h"
 #include "project_manager.h"
-#include "Textures/texture_factory.h"
+#include "texture_factory.h"
 #include "editor.h"
 #include <string.h>
 #include "path.h"

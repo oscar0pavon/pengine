@@ -18,7 +18,7 @@
 
 #include "geometry.h"
 
-#include "Textures/texture_factory.h"
+#include "texture_factory.h"
 
 #include "HLOD_factory.h"
 
