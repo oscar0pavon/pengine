@@ -6,8 +6,8 @@ void pe_end(){
 }
 
 void pe_init() {
-    LOG("Initializing Pavon Engine\n");
-    init_engine_memory(); // VERY IMPORTANT
+    LOG("Initializing pengine\n");
+    pe_init_memory(); //VERY IMPORTANT
 
     pe_init_arrays();
 
@@ -16,13 +16,11 @@ void pe_init() {
     pe_change_background_color(1, 0, 0, 1);
 
     pe_th_main_id = pthread_self();
-#ifdef LINUX
+
     pe_vk_initialized = false;
     // pe_audio_init();
     // pe_phy_init();
-    pe_input_init();
+    ZERO(input);
 
-#endif
-    pe_wm_init();
-    LOG("Pavon Engine initialized");
+    LOG("pengine initialized\n");
 }

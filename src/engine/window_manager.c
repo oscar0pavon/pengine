@@ -151,13 +151,6 @@ void pe_wm_input_update() {
 
 }
 
-void pe_wm_init(){
-
-#ifdef DESKTOP
-windows_manager_init();
-#endif
-}
-
 
 void window_update_viewport(int width, int height){
 		glViewport(0,0,width,height);
@@ -205,10 +198,6 @@ void pe_wm_events_update() {
 #ifdef LINUX
 	pe_wm_poll_events_x11();
 #endif
-}
-
-void windows_manager_init(){
-  pe_is_window_init = true;
 }
 
 

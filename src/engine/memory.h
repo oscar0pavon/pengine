@@ -22,7 +22,7 @@ typedef struct PoolMemory{
     void* memory;
 }PoolMemory;
 
-void init_engine_memory();
+void pe_init_memory();
 void* allocate_memory(int size);
 void clear_engine_memory();
 void engine_memory_free_to_marker(int);

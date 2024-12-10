@@ -7,7 +7,7 @@
 bool memory_lock;
 
 // VERY IMPORTANT
-void init_engine_memory(){
+void pe_init_memory(){
     engine_memory = malloc(INIT_MEMORY);
     memset(engine_memory,0,INIT_MEMORY);
     actual_free_memory = INIT_MEMORY;
