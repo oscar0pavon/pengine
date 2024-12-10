@@ -14,10 +14,9 @@ int main(int argc , char* argv[]){
   editor.input = &editor_window_level_editor_input_update; // handle editor modes
   editor.loop = &aloop;
   editor.draw = &pe_editor_draw;
-  game = &editor;
-
 
   pe_renderer_type = PEWMOPENGLES2;
-  pe_game_create(game);
+
+  pengine_run(&editor);
 
 }

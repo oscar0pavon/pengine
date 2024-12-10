@@ -10,7 +10,7 @@ void pe_input_thread() {
   }
 }
 
-void pe_program_main_loop(void (*program_loop)(void)) {
+void pe_main_loop(void (*game_update)(void)) {
 
   pe_init();
 
@@ -29,7 +29,7 @@ void pe_program_main_loop(void (*program_loop)(void)) {
   //Main loop 
   while (1) { //TODO: window should close
     
-    program_loop();
+    game_update();
 
     time_start();
 

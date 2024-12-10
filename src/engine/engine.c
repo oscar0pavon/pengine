@@ -481,3 +481,10 @@ void pe_init_global_variables() {
 #endif
 }
 
+
+void pengine_run(PGame* created_game){
+    game = created_game; 
+
+    pe_main_loop(game->loop);
+
+}

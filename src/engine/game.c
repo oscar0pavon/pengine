@@ -47,19 +47,6 @@ void pe_game_input(){
 
 }
 
-void pe_game_create(PGame * created_game){
-    LOG("Creating Pavon Engine game...\n");
-    game = created_game; 
-
-
-    LOG("game created\n");
-
-    pe_program_main_loop(game->loop);
-
-}
-
-
-
 
 int load_gamplay_code(){
     

@@ -101,8 +101,6 @@ void load_model_to_array(Array *array, const char *path_model,
 
 int load_and_initialize_simple_model(const char *model_gltf_path);
 
-void pe_program_main_loop(void (*program_loop)(void));
-
 // Transform
 void update_translation(vec3 translation);
 void update_scale(vec3 translation);
@@ -128,6 +126,9 @@ void pe_init_arrays();
 
 void update_mvp(mat4 model, mat4 mvp_out);
 
+
+void pengine_run(PGame*);
+void pe_main_loop(void (*game_update)(void));
 //
 // Global variables
 //
