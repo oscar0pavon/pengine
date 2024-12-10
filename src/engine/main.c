@@ -19,11 +19,13 @@ void pe_main_loop() {
 
   game->init();
 
-  render_thread_init();
+  pe_render_thread_init();
 
   pthread_t input_thread;
   pthread_create(&input_thread,NULL,&pe_input_thread,NULL);
 
+
+  pengine_initialized = true;
 
   //Main loop 
   while (1) { //TODO: window should close
@@ -33,7 +35,8 @@ void pe_main_loop() {
     time_start();//frame time
 
     pe_frame_draw();
-    pe_game_draw();
+
+    game->draw();
 
     if (pe_renderer_type == PEWMOPENGLES2) {
       pe_wm_swap_buffers();

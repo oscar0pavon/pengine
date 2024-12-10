@@ -135,7 +135,7 @@ void pe_main_loop();
 
 bool engine_running;
 
-bool engine_initialized;
+bool pengine_initialized;
 
 bool should_close;
 

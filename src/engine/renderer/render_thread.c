@@ -42,15 +42,12 @@ void pe_frame_clean() {
   // end clean frame
 }
 
-void render_thread_init() {
-  pe_thread_control(
-      &render_thread_commads); // for execute program_ini() from application
-
+void pe_render_thread_init() {
   
   if(pe_renderer_type == PEWMOPENGLES2){
 
     pe_shader_compile_std();
-    
+
     glEnable(GL_MULTISAMPLE);
 
     glEnable(GL_DEPTH_TEST);
@@ -58,7 +55,6 @@ void render_thread_init() {
   }
 
 
-  engine_initialized = true;
 
   if(pe_renderer_type == PEWMVULKAN){
     #if VULKAN
@@ -72,7 +68,6 @@ void render_thread_init() {
     text_renderer_init();
   }
 
-  LOG("Render thread init\n");
 }
 
 void pe_render_draw() {
