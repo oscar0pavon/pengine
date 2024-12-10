@@ -179,15 +179,15 @@ void draw_directory_file_type(unsigned short int type)
 
 void draw_engine_memory()
 {
-  text_render_in_screen_space(pe_editor_text_size, "Memory:", 800, 0);
+  text_render_in_screen_space(pe_editor_text_size, "Memory:", 900, 0);
   char buf[10];
   ZERO(buf);
   float total_memory_in_kb = INIT_MEMORY / 1024.f;
-//gcvt(total_memory_in_kb, 6, buf);
+  gcvt(total_memory_in_kb, 6, buf);
   text_render_in_screen_space(pe_editor_text_size, buf, 1020, 0);
   
 	float free_memory = actual_free_memory / 1024.f;
- // gcvt(free_memory, 6, buf);
+  gcvt(free_memory, 6, buf);
 	
   text_render_in_screen_space(pe_editor_text_size, "/", 1095, 0);
   text_render_in_screen_space(pe_editor_text_size, buf, 1110, 0);
@@ -195,21 +195,21 @@ void draw_engine_memory()
 
 void draw_frame_time()
 {
-	text_render_in_screen_space(pe_editor_text_size,"Frame",700,0);
+	text_render_in_screen_space(pe_editor_text_size,"Frame",600,0);
   char buf[16];
   ZERO(buf);
 
-  //gcvt(frame_time, 6, buf);
-	text_render_in_screen_space(pe_editor_text_size,buf,750,0);
-	text_render_in_screen_space(pe_editor_text_size,"ms",795,0);
+  gcvt(frame_time, 6, buf);
+	text_render_in_screen_space(pe_editor_text_size,buf,700,0);
+	text_render_in_screen_space(pe_editor_text_size,"ms",780,0);
 }
 
 void draw_FPS(){
-	text_render_in_screen_space(pe_editor_text_size,"FPS",600,0);
+	text_render_in_screen_space(pe_editor_text_size,"FPS",500,0);
   char buf[16];
   ZERO(buf);
-  //gcvt(FPS, 6, buf);
-	text_render_in_screen_space(pe_editor_text_size,buf,650,0);
+  gcvt(FPS, 6, buf);
+	text_render_in_screen_space(pe_editor_text_size,buf,550,0);
 }
 
 void draw_count_of_draw_call() {
@@ -217,19 +217,19 @@ void draw_count_of_draw_call() {
   char buf[10];
   ZERO(buf);
   float count = editor_stats_draw_calls;
-  // gcvt(count, 6, buf);
+   gcvt(count, 6, buf);
   if (count != 0)
     text_render_in_screen_space(pe_editor_text_size, buf, 100, 0);
 }
 
 void draw_stats_triangles() {
-  text_render_in_screen_space(pe_editor_text_size, "Tris", 500, 0);
+  text_render_in_screen_space(pe_editor_text_size, "Tris", 200, 0);
   char buf[10]; 
   ZERO(buf);
   float count = editor_stats_triangles;
-  //gcvt(count, 7, buf);
+  gcvt(count, 7, buf);
   if(count != 0)
-	text_render_in_screen_space(pe_editor_text_size,buf,540,0);
+	text_render_in_screen_space(pe_editor_text_size,buf,240,0);
 }
 
 void pe_editor_draw_command_line() {
