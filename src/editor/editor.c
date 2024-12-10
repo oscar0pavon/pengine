@@ -462,8 +462,6 @@ void pe_editor_init() {
   edit_server_init();
 #endif
 
-  editor_render_init();
-
   glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 
   menus_init();

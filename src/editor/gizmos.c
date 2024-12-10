@@ -21,6 +21,35 @@ bool can_draw_box = true;
 
 Grid new_grid;
 
+void init_line_vertices(DebugLine *line) {
+  array_init(&line->vertex_array, sizeof(PVertex), 2);
+
+  struct Vertex vert = {{line->start[0], line->start[1], line->start[2]},
+                        {0, 0}};
+  struct Vertex vert2 = {{line->end[0], line->end[1], line->end[2]}, {0, 0}};
+
+  array_add(&line->vertex_array, &vert);
+  array_add(&line->vertex_array, &vert2);
+
+  init_static_gpu_vertex_buffer(&line->vertex_array, &line->vertex_buffer_id);
+}
+
+void update_line_vertices(DebugLine *line) {
+  struct Vertex vert = {{line->start[0], line->start[1], line->start[2]},
+                        {0, 0}};
+  struct Vertex vert2 = {{line->end[0], line->end[1], line->end[2]}, {0, 0}};
+
+  PVertex *vertices = array_get(&line->vertex_array, 0);
+  memcpy(&vertices[0], &vert, sizeof(struct Vertex));
+  memcpy(&vertices[1], &vert2, sizeof(struct Vertex));
+}
+
+void init_line(DebugLine *line) {
+  init_line_vertices(line);
+  line->shader = create_engine_shader(standart_vertex_shader,
+                                      shader_source_color_fragment_shader);
+  glm_vec4_copy((vec4){1, 1, 1, 1}, line->color);
+}
 void add_debug_line(vec3 start, vec3 end) {
   DebugLine new_line;
   memset(&new_line, 0, sizeof(DebugLine));
@@ -28,6 +57,9 @@ void add_debug_line(vec3 start, vec3 end) {
   DebugLine *pnew_line = array_get(&debug_objects, debug_objects.count - 1);
   glm_vec3_copy(start, pnew_line->start);
   glm_vec3_copy(end, pnew_line->end);
+
+  init_line(pnew_line);
+  pnew_line->initialized = true;
 }
 
 int create_bounding_vertices() {
@@ -111,70 +143,7 @@ void draw_bounding_box() {
   init_selected_object_bounding_box_vertices();
 }
 
-void init_line_vertices(DebugLine *line) {
-  array_init(&line->vertex_array, sizeof(PVertex), 2);
 
-  struct Vertex vert = {{line->start[0], line->start[1], line->start[2]},
-                        {0, 0}};
-  struct Vertex vert2 = {{line->end[0], line->end[1], line->end[2]}, {0, 0}};
-
-  array_add(&line->vertex_array, &vert);
-  array_add(&line->vertex_array, &vert2);
-
-  init_static_gpu_vertex_buffer(&line->vertex_array, &line->vertex_buffer_id);
-}
-
-void update_line_vertices(DebugLine *line) {
-  struct Vertex vert = {{line->start[0], line->start[1], line->start[2]},
-                        {0, 0}};
-  struct Vertex vert2 = {{line->end[0], line->end[1], line->end[2]}, {0, 0}};
-
-  PVertex *vertices = array_get(&line->vertex_array, 0);
-  memcpy(&vertices[0], &vert, sizeof(struct Vertex));
-  memcpy(&vertices[1], &vert2, sizeof(struct Vertex));
-}
-
-void init_line(DebugLine *line) {
-  init_line_vertices(line);
-  line->shader = create_engine_shader(standart_vertex_shader,
-                                      shader_source_color_fragment_shader);
-  glm_vec4_copy((vec4){1, 1, 1, 1}, line->color);
-}
-
-void draw_axis_lines() {
-  for (int i = 0; i < debug_objects.count; i++) {
-    DebugLine *line = array_get(&debug_objects, i);
-    if (line->initialized == true) {
-      mat4 model;
-      glm_mat4_identity(model);
-      mat4 mvp;
-      update_mvp(model, mvp);
-      update_draw_vertices(line->shader, line->vertex_buffer_id, mvp);
-      glLineWidth(1);
-      GLint uniform_color = glGetUniformLocation(line->shader, "color");
-
-      glUniform4fv(uniform_color, 1, line->color);
-      GLenum error;
-      error = glGetError();
-      if (error != GL_NO_ERROR) {
-        //        LOG("[X] Send uniform error, Error %08x \n", error);
-      }
-      glDrawArrays(GL_LINES, 0, line->vertex_array.count);
-      continue;
-    }
-    init_line(line);
-    line->initialized = true;
-  }
-  DebugLine *line;
-  line = array_get(&debug_objects, 0);
-  glm_vec4_copy((vec4){0, 0, 1, 1}, line->color);
-
-  line = array_get(&debug_objects, 2);
-  glm_vec4_copy((vec4){1, 0, 0, 1}, line->color);
-
-  line = array_get(&debug_objects, 1);
-  glm_vec4_copy((vec4){0, 1, 0, 1}, line->color);
-}
 void draw_camera_direction() {
   if (selected_element != NULL) {
     vec3 direction;
@@ -304,52 +273,33 @@ void gizmos_boanding_sphere_draw(Sphere *sphere, vec4 color) {
   actual_model_array = prev_model_array;
 }
 
-void gizmos_init() {
-  array_init(&gizmos, sizeof(PModel), 10);
-
-  array_init(&bounding_boxes, sizeof(PModel), 10);
-
-  array_init(&debug_objects, sizeof(DebugLine), 300);
-
-  load_model_to_array(
-      &gizmos, file_translate_glb,
-      file_transform_jpg);
-  selected_model->mesh.vertex_buffer_id = selected_model->vertex_buffer_id;
-  selected_model->mesh.index_buffer_id = selected_model->index_buffer_id;
-
-  selected_model->mesh.vertex_array.count = selected_model->vertex_array.count;
-  selected_model->mesh.index_array.count = selected_model->index_array.count;
-
-  load_model_to_array(&gizmos,
-                      file_rotate_glb,
-                      file_rotate_png);
-  load_model_to_array(
-      &gizmos, file_scale_glb,
-      file_transform_jpg);
-  load_model_to_array(&gizmos,
-                      file_camera_gltf,
-                      file_camera_jpg);
-  load_model_to_array(
-      &gizmos, file_player_start_glb,
-      file_player_start_jpg);
-
-  can_draw_gizmos = true;
-  can_draw_skeletal_bones = false;
-  can_draw_bounding_box_in_select_element = false;
-
-  draw_translate_gizmo = false;
-  draw_rotate_gizmo = false;
-
-  add_debug_line((vec3){0, 0, 5}, (vec3){0, 0, -5});
-  add_debug_line((vec3){0, 5, 0}, (vec3){0, -5, 0});
-  add_debug_line((vec3){5, 0, 0}, (vec3){-5, 0, 0});
-
-  init_grid_greometry();
-}
 
 inline static void gizmos_update_transform(mat4 in, mat4 out) {
   glm_mat4_copy(in, out);
   glm_scale(out, VEC3(1, 1, 1));
+}
+
+void draw_axis_lines() {
+  for (int i = 0; i < debug_objects.count; i++) {
+    DebugLine *line = array_get(&debug_objects, i);
+    if (line->initialized == true) {
+      mat4 model;
+      glm_mat4_identity(model);
+      mat4 mvp;
+      update_mvp(model, mvp);
+      update_draw_vertices(line->shader, line->vertex_buffer_id, mvp);
+      glLineWidth(1);
+      GLint uniform_color = glGetUniformLocation(line->shader, "color");
+
+      glUniform4fv(uniform_color, 1, line->color);
+      GLenum error;
+      error = glGetError();
+      if (error != GL_NO_ERROR) {
+        //        LOG("[X] Send uniform error, Error %08x \n", error);
+      }
+      glDrawArrays(GL_LINES, 0, line->vertex_array.count);
+    }
+  }
 }
 
 void draw_gizmos() {
@@ -466,4 +416,58 @@ void draw_gizmos() {
       }
     }
   }
+}
+
+
+void gizmos_init() {
+  array_init(&gizmos, sizeof(PModel), 10);
+
+  array_init(&bounding_boxes, sizeof(PModel), 10);
+
+  array_init(&debug_objects, sizeof(DebugLine), 300);
+
+  load_model_to_array(
+      &gizmos, file_translate_glb,
+      file_transform_jpg);
+  selected_model->mesh.vertex_buffer_id = selected_model->vertex_buffer_id;
+  selected_model->mesh.index_buffer_id = selected_model->index_buffer_id;
+
+  selected_model->mesh.vertex_array.count = selected_model->vertex_array.count;
+  selected_model->mesh.index_array.count = selected_model->index_array.count;
+
+  load_model_to_array(&gizmos,
+                      file_rotate_glb,
+                      file_rotate_png);
+  load_model_to_array(
+      &gizmos, file_scale_glb,
+      file_transform_jpg);
+  load_model_to_array(&gizmos,
+                      file_camera_gltf,
+                      file_camera_jpg);
+  load_model_to_array(
+      &gizmos, file_player_start_glb,
+      file_player_start_jpg);
+
+  can_draw_gizmos = true;
+  can_draw_skeletal_bones = false;
+  can_draw_bounding_box_in_select_element = false;
+
+  draw_translate_gizmo = false;
+  draw_rotate_gizmo = false;
+
+  add_debug_line((vec3){0, 0, 5}, (vec3){0, 0, -5});
+  add_debug_line((vec3){0, 5, 0}, (vec3){0, -5, 0});
+  add_debug_line((vec3){5, 0, 0}, (vec3){-5, 0, 0});
+  
+  DebugLine *line;
+  line = array_get(&debug_objects, 0);
+  glm_vec4_copy((vec4){0, 0, 1, 1}, line->color);
+
+  line = array_get(&debug_objects, 2);
+  glm_vec4_copy((vec4){1, 0, 0, 1}, line->color);
+
+  line = array_get(&debug_objects, 1);
+  glm_vec4_copy((vec4){0, 1, 0, 1}, line->color);
+
+  init_grid_greometry();
 }

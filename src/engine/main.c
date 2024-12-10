@@ -16,10 +16,11 @@ void pe_main_loop() {
 
   pe_wm_create_x11_window();
   pe_init_x11_keys();//after window creation
+  
+  pe_render_thread_init();
 
   game->init();
 
-  pe_render_thread_init();
 
   pthread_t input_thread;
   pthread_create(&input_thread,NULL,&pe_input_thread,NULL);
