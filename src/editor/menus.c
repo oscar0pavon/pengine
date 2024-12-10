@@ -405,9 +405,9 @@ void menus_init() {
   native_elemets.draw_text_funtion = &menu_action_draw_native_editor_elments;
   native_elemets.execute_function = &menu_action_add_editor_native_element;
   native_elemets.open_key = &input.I;
-#ifdef DESKTOP
-  native_elemets.mods_key = GLFW_MOD_SHIFT;
-#endif
+  
+  //native_elemets.mods_key = GLFW_MOD_SHIFT;
+ 
   native_elemets.editor_mode = EDITOR_DEFAULT_MODE;
   menu_new_from_data("NativeElements", &native_elemets);
 
@@ -439,9 +439,9 @@ void menus_init() {
   PETextMenu loaded_textures;
   ZERO(loaded_textures);
   loaded_textures.open_key = &input.T;
-#ifdef DESKTOP
-  loaded_textures.mods_key = GLFW_MOD_SHIFT;
-#endif
+
+  //loaded_textures.mods_key = GLFW_MOD_SHIFT;
+
   loaded_textures.editor_mode = EDITOR_DEFAULT_MODE;
   loaded_textures.draw_text_funtion = &pe_menu_loaded_tex_draw;
   loaded_textures.execute_function = &pe_menu_loaded_tex_exec;

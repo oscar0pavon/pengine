@@ -7,6 +7,8 @@
 #include <editor/skeletal_editor.h>
 #include <engine/text_renderer.h>
 
+#include <GL/gl.h>
+
 void engine_draw_elements(Array *elements) {
   for (size_t i = 0; i < elements->count; i++) {
     PModel *draw_model = array_get_pointer(elements, i);
@@ -48,12 +50,8 @@ void render_thread_init() {
   if(pe_renderer_type == PEWMOPENGLES2){
 
     pe_shader_compile_std();
-  //int max;
-  //glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &max);
-  // LOG("########## Maximun vertex attributes: %i",max);
-  #ifdef DESKTOP
+    
     glEnable(GL_MULTISAMPLE);
-  #endif
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);

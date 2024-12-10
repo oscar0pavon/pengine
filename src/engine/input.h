@@ -10,15 +10,6 @@
 	#include "../editor/input.h"
 #endif
 
-#ifdef LINUX
-	#include <GLFW/glfw3.h>
-void pe_input_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
-void pe_input_mouse_movement_callback(GLFWwindow* window, double xpos, double ypos);
-void pe_input_mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
-
-void pe_input_character_callback(GLFWwindow*,unsigned int); 
-#endif
-
 #include <stdbool.h>
 
 typedef struct Key{
