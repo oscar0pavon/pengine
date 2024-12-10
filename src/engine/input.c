@@ -1,5 +1,9 @@
 #include "input.h"
 #include "camera.h"
+#include "engine/window_manager.h"
+#include <X11/X.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <engine/log.h>
 
@@ -10,23 +14,54 @@
 #include <engine/engine.h>
 
 #include <X11/Xlib.h>
+#include <X11/Xutil.h>
 
 bool left_click = false;
 float actual_mouse_position_x;
 float actual_mouse_position_y;
+uint8_t input_key_size;
 
-void pe_wm_poll_events_x11(){
-	XEvent general_event = {};
-	XNextEvent(display,&general_event);
+void pe_init_x11_keys(){
+    input_key_size = sizeof(Input) / sizeof(Key);
+    input.V.key_code = XKeysymToKeycode(display, XK_V);
+}
 
-	switch (general_event.type) {
-		case KeyPress:
-		case KeyRelease:
-			{
-				LOG("key pressed2\n");
-			}
-	}
+void pe_parse_key_event(unsigned int key_code, uint8_t type){
 
+    Key* this_input = (Key*)&input;
+
+
+    for(uint8_t i = 0; i < input_key_size ; i++){
+        Key* key = &this_input[i];
+        if(key->key_code == key_code){
+            if(type == KeyPress){
+                key->pressed = true;
+                LOG("found key\n");
+                return;
+            }else{//Released
+                key->Released = true;
+                key->pressed = false;
+                return;
+            }
+            
+        }
+    }
+
+    LOG("not key code\n");
+
+}
+
+void pe_wm_poll_events_x11() {
+  XEvent general_event = {};
+  XNextEvent(display, &general_event);
+
+  if (general_event.type == KeyPress) {
+    XKeyPressedEvent *key_event = (XKeyPressedEvent *)&general_event;
+    pe_parse_key_event(key_event->keycode, KeyPress);
+  } else { // KeyRelease
+    XKeyReleasedEvent *key_event = (XKeyReleasedEvent *)&general_event;
+    pe_parse_key_event(key_event->keycode, KeyRelease);
+  }
 }
 
 void mouse_movement_control(float xpos, float ypos){   

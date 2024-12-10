@@ -24,6 +24,7 @@ void pe_input_character_callback(GLFWwindow*,unsigned int);
 typedef struct Key{
 	bool pressed;
 	bool Released;
+	unsigned int key_code;
 	int mods;
 }Key;
 
@@ -107,6 +108,8 @@ float verticalAngle;
 bool mouse_navigate_control;
 
 void pe_input_init();
+
+void pe_init_x11_keys();
 
 void mouse_movement_control(float xpos, float ypos);
 

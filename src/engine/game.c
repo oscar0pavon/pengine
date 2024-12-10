@@ -36,12 +36,12 @@ void pe_game_draw(){
     if(game->draw)
         game->draw();
 }
+
 void pe_game_create_window(){
 
-    LOG("Creating window for game\n");
-    pe_wm_create_x11_window();
 
 }
+
 void pe_game_input(){
   game->input();
 

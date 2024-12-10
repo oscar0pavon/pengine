@@ -486,8 +486,9 @@ void pe_program_main_loop(void (*program_loop)(void)) {
 
   pe_init();
 
-  LOG("########## PE renderizer GO");
-  pe_game_create_window();
+  //pe_game_create_window();
+  pe_wm_create_x11_window();
+  pe_init_x11_keys();//after window creation
 
   pe_game_render_init(); // editor init
   pe_game_render_config();
