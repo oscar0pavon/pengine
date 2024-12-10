@@ -51,8 +51,8 @@ int load_file(const char* path, File* output){
     long file_size = ftell(file);
     rewind (file);
 
-    void* file_buffer = malloc(file_size);
-    memset(file_buffer,0,file_size);
+    void* file_buffer = malloc(file_size+1);
+    memset(file_buffer,0,file_size+1);
 
     fread(file_buffer,1, file_size, file);
     output->data = file_buffer;
