@@ -22,8 +22,10 @@ float actual_mouse_position_y;
 uint8_t input_key_size;
 
 void pe_init_x11_keys(){
+    XSelectInput(display, window, KeyPressMask | KeyReleaseMask );
     input_key_size = sizeof(Input) / sizeof(Key);
     input.V.key_code = XKeysymToKeycode(display, XK_V);
+    input.Q.key_code = XKeysymToKeycode(display, XK_Q);
 }
 
 void pe_parse_key_event(unsigned int key_code, uint8_t type){
@@ -36,7 +38,6 @@ void pe_parse_key_event(unsigned int key_code, uint8_t type){
         if(key->key_code == key_code){
             if(type == KeyPress){
                 key->pressed = true;
-                LOG("found key\n");
                 return;
             }else{//Released
                 key->Released = true;
@@ -55,13 +56,14 @@ void pe_wm_poll_events_x11() {
   XEvent general_event = {};
   XNextEvent(display, &general_event);
 
-  if (general_event.type == KeyPress) {
-    XKeyPressedEvent *key_event = (XKeyPressedEvent *)&general_event;
-    pe_parse_key_event(key_event->keycode, KeyPress);
-  } else { // KeyRelease
+  if (general_event.type == KeyRelease) { // KeyRelease
     XKeyReleasedEvent *key_event = (XKeyReleasedEvent *)&general_event;
     pe_parse_key_event(key_event->keycode, KeyRelease);
   }
+  if (general_event.type == KeyPress) {
+    XKeyPressedEvent *key_event = (XKeyPressedEvent *)&general_event;
+    pe_parse_key_event(key_event->keycode, KeyPress);
+  } 
 }
 
 void mouse_movement_control(float xpos, float ypos){   

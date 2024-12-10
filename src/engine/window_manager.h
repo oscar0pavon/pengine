@@ -55,5 +55,6 @@ bool pe_is_window_init;
 bool pe_is_window_terminate;
 
 Display                 *display;
+Window                  window;
 
 #endif // !ENGINE_WINDOWS_MANAGER_H

@@ -18,7 +18,6 @@ GLint                   attributes[] = { GLX_RGBA, GLX_DEPTH_SIZE, 24, GLX_DOUBL
 XVisualInfo             *visual_info;
 Colormap                color_map;
 XSetWindowAttributes    set_window_attributes;
-Window                  window;
 GLXContext              gl_context;
 XWindowAttributes       window_attributes;
 
