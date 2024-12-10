@@ -481,6 +481,14 @@ void pe_init_global_variables() {
 #endif
 }
 
+void pe_input_thread() {
+
+  for (;;) {
+    pe_wm_events_update();
+    pe_wm_input_update();
+    pe_game_input();
+  }
+}
 
 void pe_program_main_loop(void (*program_loop)(void)) {
 
@@ -494,6 +502,9 @@ void pe_program_main_loop(void (*program_loop)(void)) {
   pe_game_render_config();
   // pe_render_thread_start_and_draw();
   render_thread_init();
+
+  pthread_t input_thread;
+  pthread_create(&input_thread,NULL,&pe_input_thread,NULL);
 
   //*********  Timing ******
   float render_frame_time = 0;
@@ -513,9 +524,6 @@ void pe_program_main_loop(void (*program_loop)(void)) {
   //TODO window should close
   while (1) {
     
-    pe_wm_events_update();
-    pe_wm_input_update();
-    pe_game_input();
     
     program_loop();
 
