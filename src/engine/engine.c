@@ -494,42 +494,24 @@ void pe_program_main_loop(void (*program_loop)(void)) {
 
   pe_init();
 
-  //pe_game_create_window();
   pe_wm_create_x11_window();
   pe_init_x11_keys();//after window creation
 
   pe_game_render_init(); // editor init
   pe_game_render_config();
-  // pe_render_thread_start_and_draw();
+
   render_thread_init();
 
   pthread_t input_thread;
   pthread_create(&input_thread,NULL,&pe_input_thread,NULL);
 
-  //*********  Timing ******
-  float render_frame_time = 0;
-  float disired_frame_time = 0.016f;
-
-  u8 frames = 0;
-  float frame_second = 0;
-
-  while (!engine_initialized) {
-  } // wait for initilization
-
-#ifdef ANDROID
-  pe_wm_check(program_window);
-#endif
 
   //Main loop 
-  //TODO window should close
-  while (1) {
-    
+  while (1) { //TODO: window should close
     
     program_loop();
 
     time_start();
-
-    render_frame_time += time_delta;
 
     pe_game_draw();
 
@@ -537,19 +519,7 @@ void pe_program_main_loop(void (*program_loop)(void)) {
       pe_wm_swap_buffers();
     }
 
-    //********* Timing **********
     time_end();
 
-    frame_second += time_elapsed_time;
-
-    if (frame_second >= 1000) {
-      FPS = frames * (1000.f / frame_second);
-      frames = 0;
-      frame_second = 0;
-    } else {
-      frames++;
-    }
-    //********* End timing ********
-    
   }
 }

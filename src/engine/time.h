@@ -2,6 +2,7 @@
 #define ENGINE_TIME_H
 
 #include <time.h>
+#include <engine/types.h>
 
 float time_delta;
 double time_elapsed_time;
@@ -11,6 +12,12 @@ void time_update_delta();
 void time_start();
 
 float time_end();
+
+extern float render_frame_time;
+extern float disired_frame_time;
+
+extern u8 frames;
+extern float frame_second;
 
 static struct timespec time_diffence(struct timespec start, struct timespec end)
 {
