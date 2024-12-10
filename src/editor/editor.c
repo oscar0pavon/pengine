@@ -453,72 +453,37 @@ void editor_data_init() {
   camera_velocity = 4.60;
 }
 
-void editor_render_init() {
+void pe_editor_init() {
+  editor_data_init();
+
+  editor_command_queue_init();
 
 #ifdef DESKTOP
-  if (pe_renderer_type == PEWMVULKAN) {
-    //pe_vk_init();
-  }
-
-  glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
+  edit_server_init();
 #endif
 
-  editor_text_init();
+  editor_render_init();
+
+  glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
+
+  menus_init();
+
   camera_init(&main_camera);
+
   init_vec3(-10, 0, 3, main_camera.position);
+
   camera_update(&main_camera);
 
   editor_standard_fragment_shader = compile_shader(
       editor_standard_fragment_shader_source, GL_FRAGMENT_SHADER);
 
-  //pe_editor_load_native_model();
+  // pe_editor_load_native_model();
 
   gizmos_init();
 
   editor_running = true;
-}
 
-void pe_editor_window_configure() {
-
-  // Send window initialization to the render thread
-
-  PEThreadCommand thread_commad;
-  // thread_commad.data = window_editor_main;
-  thread_commad.done = false;
-  thread_commad.type = POINTER;
-  array_add(&render_thread_commads, &thread_commad);
-
-}
-
-void pe_editor_render_thread_configure_and_start() {
-
-  render_thread_definition.init = &editor_render_init;
-  render_thread_definition.draw = &editor_main_render_thread;
-  render_thread_definition.end = &editor_finish;
-
-#ifdef DESKTOP
-  if (pe_renderer_type == PEWMVULKAN) {
-
-    render_thread_definition.end = &pe_vk_end;
-  }
-#endif
-  pe_render_thread_start_and_draw();
-}
-
-void pe_editor_init() {//executed in main thread from main()
-    editor_data_init();
-
-    editor_command_queue_init();
-
-#ifdef DESKTOP
-    edit_server_init();
-#endif
-
-
-    editor_render_init();
-
-   
-    LOG("[OK]Editor initialized\n");
+  LOG("peditor initialized\n");
 }
 
 void pe_editor_draw() {

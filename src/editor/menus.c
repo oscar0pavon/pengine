@@ -384,6 +384,8 @@ void menus_init() {
   ZERO(menu_add_texture);
   ZERO(menu_editor_element_list);
 
+  mark_id = 0;
+
   /*Text Menu functions */
   add_element_menu.execute_function = &menu_action_add_element;
   add_element_menu.type = MENU_TYPE_ADD_MODEL;

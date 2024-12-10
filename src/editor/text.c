@@ -258,8 +258,3 @@ void text_renderer_loop() {
     
 }
 
-void editor_text_init(){
-    mark_id = 0;
-
-    menus_init();
-}
