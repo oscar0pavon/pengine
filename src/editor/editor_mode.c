@@ -2,9 +2,10 @@
 
 #include "../engine/game.h"
 #include "../engine/camera.h"
+#include "engine/input.h"
 
 void change_to_editor_sub_mode(EditorMode mode) {
-  ZERO(input);
+  pe_input_clean();
   switch (editor_mode) {
   case EDITOR_DEFAULT_MODE:
 
@@ -50,7 +51,7 @@ void change_to_editor_sub_mode(EditorMode mode) {
 }
 
 void change_to_editor_mode(EditorMode mode) {
-  ZERO(input);
+  pe_input_clean();
 
   if (editor_sub_mode != EDITOR_SUB_MODE_NULL){
     change_to_editor_sub_mode(EDITOR_SUB_MODE_NULL);
@@ -111,5 +112,5 @@ void change_to_editor_mode(EditorMode mode) {
   default:
     break;
   }
-  ZERO(input);
+  pe_input_clean();
 }

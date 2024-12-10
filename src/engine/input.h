@@ -15,7 +15,7 @@
 typedef struct Key{
 	bool pressed;
 	bool Released;
-	unsigned int key_code;
+	unsigned char key_code;
 	int mods;
 }Key;
 
@@ -105,5 +105,7 @@ void pe_init_x11_keys();
 void mouse_movement_control(float xpos, float ypos);
 
 void pe_wm_poll_events_x11();
+
+void pe_input_clean();
 
 #endif

@@ -18,8 +18,44 @@ uint8_t input_key_size;
 void pe_init_x11_keys(){
     XSelectInput(display, window, KeyPressMask | KeyReleaseMask );
     input_key_size = sizeof(Input) / sizeof(Key);
-    input.V.key_code = XKeysymToKeycode(display, XK_V);
+
+    input.A.key_code = XKeysymToKeycode(display, XK_A);
+    input.B.key_code = XKeysymToKeycode(display, XK_B);
+    input.C.key_code = XKeysymToKeycode(display, XK_C);
+    input.D.key_code = XKeysymToKeycode(display, XK_D);
+    input.E.key_code = XKeysymToKeycode(display, XK_E);
+    input.F.key_code = XKeysymToKeycode(display, XK_F);
+    input.G.key_code = XKeysymToKeycode(display, XK_G);
+    input.H.key_code = XKeysymToKeycode(display, XK_H);
+    input.I.key_code = XKeysymToKeycode(display, XK_I);
+    input.J.key_code = XKeysymToKeycode(display, XK_J);
+    input.K.key_code = XKeysymToKeycode(display, XK_K);
+    input.L.key_code = XKeysymToKeycode(display, XK_L);
+    input.M.key_code = XKeysymToKeycode(display, XK_M);
+    input.N.key_code = XKeysymToKeycode(display, XK_N);
+    input.O.key_code = XKeysymToKeycode(display, XK_O);
+    input.P.key_code = XKeysymToKeycode(display, XK_P);
     input.Q.key_code = XKeysymToKeycode(display, XK_Q);
+    input.R.key_code = XKeysymToKeycode(display, XK_R);
+    input.S.key_code = XKeysymToKeycode(display, XK_S);
+    input.T.key_code = XKeysymToKeycode(display, XK_T);
+    input.U.key_code = XKeysymToKeycode(display, XK_U);
+    input.V.key_code = XKeysymToKeycode(display, XK_V);
+    input.W.key_code = XKeysymToKeycode(display, XK_W);
+    input.X.key_code = XKeysymToKeycode(display, XK_X);
+    input.Y.key_code = XKeysymToKeycode(display, XK_Y);
+    input.Z.key_code = XKeysymToKeycode(display, XK_Z);
+
+    input.KEY_0.key_code = XKeysymToKeycode(display, XK_0);
+    input.KEY_1.key_code = XKeysymToKeycode(display, XK_1);
+    input.KEY_2.key_code = XKeysymToKeycode(display, XK_2);
+    input.KEY_3.key_code = XKeysymToKeycode(display, XK_3);
+    input.KEY_4.key_code = XKeysymToKeycode(display, XK_4);
+    input.KEY_5.key_code = XKeysymToKeycode(display, XK_5);
+    input.KEY_6.key_code = XKeysymToKeycode(display, XK_6);
+    input.KEY_7.key_code = XKeysymToKeycode(display, XK_7);
+    input.KEY_8.key_code = XKeysymToKeycode(display, XK_8);
+    input.KEY_9.key_code = XKeysymToKeycode(display, XK_9);
 }
 
 void pe_parse_key_event(unsigned int key_code, uint8_t type){
@@ -60,5 +96,16 @@ void pe_wm_poll_events_x11() {
 
 void pe_input_init(){
     ZERO(input);
+}
+
+void pe_input_clean(){
+
+    Key* this_input = (Key*)&input;
+
+    for(uint8_t i = 0; i < input_key_size ; i++){
+        Key* key = &this_input[i];
+        key->Released = false;
+        key->pressed = false;
+    }
 }
 
