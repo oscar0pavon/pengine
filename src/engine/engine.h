@@ -128,7 +128,7 @@ void update_mvp(mat4 model, mat4 mvp_out);
 
 
 void pengine_run(PGame*);
-void pe_main_loop(void (*game_update)(void));
+void pe_main_loop();
 //
 // Global variables
 //

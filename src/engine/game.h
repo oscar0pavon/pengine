@@ -12,7 +12,7 @@
 typedef struct PGame{
 	char* name;
 	void(*init)(void);
-	void(*loop)(void);
+	void(*update)(void);
 	void(*end)(void);
 	void(*input)(void);
 	void(*draw)(void);
@@ -31,9 +31,6 @@ bool loaded_gamplay_library;
 void* dynamic_lib_handle;
 void(*loop_fuction_dynamic_loaded)(void*); 
 void close_dynamic_game_play();
-
-
-void pe_game_render_config();
 
 void pe_game_window_init();
 

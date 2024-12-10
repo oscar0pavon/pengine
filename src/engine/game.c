@@ -19,22 +19,11 @@
 
 static vec4 backcolor= {0.1,0.2,0.4,1};
 
-//referenced from render_thread_definition 
-void pe_game_render_init(){
-    
-  LOG("render game init\n");
-  game->init();
-}
 
-void pe_game_render_config(){
+void pe_game_draw() {
 
-}
-
-void pe_game_draw(){
-
-  pe_frame_draw();
-    if(game->draw)
-        game->draw();
+  if (game->draw)
+    game->draw();
 }
 
 void pe_game_create_window(){

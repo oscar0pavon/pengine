@@ -10,15 +10,14 @@ void pe_input_thread() {
   }
 }
 
-void pe_main_loop(void (*game_update)(void)) {
+void pe_main_loop() {
 
   pe_init();
 
   pe_wm_create_x11_window();
   pe_init_x11_keys();//after window creation
 
-  pe_game_render_init(); // editor init
-  pe_game_render_config();
+  game->init();
 
   render_thread_init();
 
@@ -29,10 +28,11 @@ void pe_main_loop(void (*game_update)(void)) {
   //Main loop 
   while (1) { //TODO: window should close
     
-    game_update();
+    game->update();
 
-    time_start();
+    time_start();//frame time
 
+    pe_frame_draw();
     pe_game_draw();
 
     if (pe_renderer_type == PEWMOPENGLES2) {
