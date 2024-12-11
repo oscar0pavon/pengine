@@ -1,7 +1,7 @@
 
 WORKDIR := $(shell pwd)
 
-all: ./src/engine/files.h ./bin/
+all: ./src/engine/files.h ./bin/ ./lib/
 	make -C ./src/engine WORKDIR=$(WORKDIR)
 	make -C ./src/editor WORKDIR=$(WORKDIR)
 	make -C ./src/shaders
@@ -17,6 +17,9 @@ compile_commands:
 
 ./bin/:
 	mkdir -p $(WORKDIR)/bin
+
+./lib/:
+	mkdir -p $(WORKDIR)/lib
 
 clean:
 	rm -f ./src/engine/files.h
