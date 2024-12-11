@@ -418,6 +418,14 @@ void draw_gizmos() {
   }
 }
 
+void pe_update_select_model_mesh_data(){
+  selected_model->mesh.vertex_buffer_id = selected_model->vertex_buffer_id;
+  selected_model->mesh.index_buffer_id = selected_model->index_buffer_id;
+
+  selected_model->mesh.vertex_array.count = selected_model->vertex_array.count;
+  selected_model->mesh.index_array.count = selected_model->index_array.count;
+
+}
 
 void gizmos_init() {
   array_init(&gizmos, sizeof(PModel), 10);
@@ -429,24 +437,31 @@ void gizmos_init() {
   load_model_to_array(
       &gizmos, file_translate_glb,
       file_transform_jpg);
-  selected_model->mesh.vertex_buffer_id = selected_model->vertex_buffer_id;
-  selected_model->mesh.index_buffer_id = selected_model->index_buffer_id;
-
-  selected_model->mesh.vertex_array.count = selected_model->vertex_array.count;
-  selected_model->mesh.index_array.count = selected_model->index_array.count;
+  pe_update_select_model_mesh_data();
 
   load_model_to_array(&gizmos,
                       file_rotate_glb,
                       file_rotate_png);
+  pe_update_select_model_mesh_data();
+
+
   load_model_to_array(
       &gizmos, file_scale_glb,
       file_transform_jpg);
+  pe_update_select_model_mesh_data();
+
+
   load_model_to_array(&gizmos,
                       file_camera_gltf,
                       file_camera_jpg);
+  pe_update_select_model_mesh_data();
+
+
   load_model_to_array(
       &gizmos, file_player_start_glb,
       file_player_start_jpg);
+  pe_update_select_model_mesh_data();
+
 
   can_draw_gizmos = true;
   can_draw_skeletal_bones = false;
