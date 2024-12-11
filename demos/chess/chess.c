@@ -1,11 +1,14 @@
 #include "chess.h"
 #include "ThirdParty/cglm/mat4.h"
 #include "engine/elements.h"
+#include "engine/game.h"
+#include "engine/window_manager.h"
 #include <editor/skeletal_editor.h>
 #include <engine/animation/node.h>
 #include <engine/shader.h>
 
 #include <engine/files.h>
+
 
 vec4 color1 = {0, 0.2, 0, 1};
 vec4 color2 = {1, 0.5, 1, 1};
@@ -82,7 +85,7 @@ void chess_piece_movement(int x, int y) {
 void chess_board_create() {
 
   // add_element_with_model_path("/home/pavon/PavonEngine/NativeContent/Editor/cube.glb");
-  add_element_with_model_path("/sdcard/Download/NativeContent/Editor/cube.glb");
+  add_element_with_model_path("cube.glb");
 
   StaticMeshComponent *mesh =
       get_component_from_element(selected_element, STATIC_MESH_COMPONENT);
@@ -199,7 +202,7 @@ void chess_piece_set_mesh(PMesh mesh) {
 }
 void chess_create_leaders() {
 
-  add_element_with_model_path(file_reina_glb);
+  add_element_with_model_path("queen.glb");
   chess_piece_set_pos(VEC2(7, 4));
   chess_piece_init_scale();
   pe_element_rotate(selected_element, 90, VEC3(1, 0, 0));
@@ -215,7 +218,7 @@ void chess_create_leaders() {
   chess_piece_init_scale();
   pe_element_rotate(selected_element, 90, VEC3(1, 0, 0));
 
-  add_element_with_model_path("/sdcard/Download/chess/rey.glb");
+  add_element_with_model_path("king.glb");
   PMesh king = chess_get_mesh();
 
   chess_move_piece(VEC2(7, 3));
@@ -233,7 +236,7 @@ void chess_create_leaders() {
 
 void chess_create_knight() {
 
-  add_element_with_model_path("/sdcard/Download/chess/caballo.glb");
+  add_element_with_model_path("knight.glb");
 
   chess_piece_set_pos(VEC2(0, 1));
   chess_piece_init_scale();
@@ -268,7 +271,7 @@ void chess_create_knight() {
 
 void chess_create_bishop() {
 
-  add_element_with_model_path("/sdcard/Download/chess/alfil.glb");
+  add_element_with_model_path("bishop.glb");
 
   chess_piece_set_pos(VEC2(0, 2));
   chess_piece_init_scale();
@@ -311,7 +314,7 @@ void chess_create_bishop() {
 
 void chess_create_pawn() {
 
-  add_element_with_model_path(file_peon_glb);
+  add_element_with_model_path("pawn.glb");
 
   chess_piece_set_pos(VEC2(1, 0));
   chess_piece_init_scale();
@@ -356,7 +359,7 @@ void chess_piece_new(float x, float y, PMaterial material, PMesh mesh) {
 }
 void chess_create_rooks() {
 
-  add_element_with_model_path("/sdcard/Download/chess/torre.glb");
+  add_element_with_model_path("rook.glb");
   chess_piece_set_pos(VEC2(7, 7));
   chess_piece_init_scale();
   pe_element_rotate(selected_element, 90, VEC3(1, 0, 0));
@@ -407,9 +410,9 @@ void chess_camera_init() {
 void chess_human_create() {
   LOG("###########HUman created and selected_element ");
 
-  // add_element_with_model_path("/sdcard/Download/chess_human2.glb");
-  add_element_with_model_path(
-      "/home/pavon/PavonEngine/NativeContent/Editor/simple_skeletal.glb");
+  add_element_with_model_path("chess_human.glb");
+  // add_element_with_model_path(
+  //     "/home/pavon/PavonEngine/NativeContent/Editor/simple_skeletal.glb");
 
   // pe_element_set_position(selected_element,VEC3(10,4,-10));
   // pe_element_rotate(selected_element, -90, VEC3(0,0,1));
@@ -493,7 +496,7 @@ void chess_draw() {
       LOG("#### Not model getted from knight model");
     }
 
-    pe_skeletal_update_draw_vertices(human_skin_component);
+    //pe_skeletal_update_draw_vertices(human_skin_component);
     pe_anim_nodes_update(human_skin_component);
   }
 }
@@ -501,11 +504,25 @@ void chess_draw() {
 PGame *chess_main(PGame *chess) {
 
   chess->name = "Chess";
-  chess->loop = &chess_loop;
+  chess->update = &chess_loop;
   chess->init = &chess_init;
   chess->draw = &chess_draw;
   chess->input = &chess_input;
   game = chess; // need for egl context creation
 
   return chess;
+}
+
+int main(){
+  PGame chess;
+  chess.update = &chess_loop;
+  chess.init = &chess_init;
+  chess.draw = &chess_draw;
+  chess.input = &chess_input;
+
+  pe_renderer_type = PEWMOPENGLES2; 
+
+  pengine_run(&chess);
+  
+  return 0; 
 }
