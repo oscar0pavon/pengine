@@ -276,6 +276,12 @@ void load_model_to_array(Array *array, const char *path_model,
   selected_model->texture.id = new_texture.id;
 
   actual_model_array = prev_model_array;
+  
+  selected_model->mesh.vertex_buffer_id = selected_model->vertex_buffer_id;
+  selected_model->mesh.index_buffer_id = selected_model->index_buffer_id;
+
+  selected_model->mesh.vertex_array.count = selected_model->vertex_array.count;
+  selected_model->mesh.index_array.count = selected_model->index_array.count;
 }
 
 void update_translation(vec3 translation) {
