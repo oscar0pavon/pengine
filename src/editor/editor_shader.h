@@ -12,19 +12,6 @@ precision mediump float; \
 
 
 
-static const char*  editor_standard_fragment_shader_source = "#version 100 \n\
-precision mediump float; \
-   uniform sampler2D texture_sampler;\
-   varying vec2 v_TexCoord;                     \
-   uniform vec4 color; \
-    void main()\
-    {\
-        gl_FragColor = texture2D(texture_sampler, v_TexCoord) * color;\
-    }\
-//end";
-
-
 GLuint skeletal_blue_shader;
-GLuint editor_standard_fragment_shader;
 
 #endif // !EDITOR_SHADER_H

@@ -472,9 +472,6 @@ void pe_editor_init() {
 
   camera_update(&main_camera);
 
-  editor_standard_fragment_shader = compile_shader(
-      editor_standard_fragment_shader_source, GL_FRAGMENT_SHADER);
-
   // pe_editor_load_native_model();
 
   gizmos_init();
