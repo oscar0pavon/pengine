@@ -10,6 +10,7 @@ Game Engine for GNU/Linux
 
 ## Build
 ```
-cd source/engine
-make
+git clone https://github.com/oscarpavon/pengine
+cd pengine
+make -j8
 ```
