@@ -2,7 +2,6 @@
 Game Engine for GNU/Linux
 ![peditor](peditor.jpg)
 ## Dependencies
-- GLFW3
 - make
 - gcc
 - glslc
