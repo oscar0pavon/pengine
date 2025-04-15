@@ -23,6 +23,7 @@ animation_objs := $(animation_src:%.c=%.o)
 
 
 %.o : %.c 
+	@echo "Compiling $@"
 	$(CC) $(CFLAGS) $(GLOBAL_DEFINE) $(CINCLUDES) -c $<
 
 ./components/%.o : ./components/%.c
@@ -59,3 +60,4 @@ clean:
 	rm -f $(ALL_OBJS)
 	
 	
+$(LOG).SILENT:

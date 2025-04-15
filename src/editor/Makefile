@@ -5,6 +5,7 @@ include ../../include.make
 all: $(WORKDIR)/bin/peditor
 
 $(OBJS): %.o : %.c
+	@echo "Compiling $@"
 	$(CC) $(CFLAGS) $(GLOBAL_DEFINE) $(CINCLUDES) -c $<
 
 textures_src := $(wildcard ./Textures/*.c)
@@ -22,3 +23,5 @@ $(WORKDIR)/bin/peditor: $(OBJS) $(textures_objs) $(WORKDIR)/lib/libpengine.a
 	
 clean:
 	rm -f *.o
+
+$(LOG).SILENT:

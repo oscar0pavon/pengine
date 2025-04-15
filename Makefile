@@ -5,6 +5,7 @@ all: ./src/engine/files.h ./bin/ ./lib/
 	make -C ./src/engine WORKDIR=$(WORKDIR)
 	make -C ./src/editor WORKDIR=$(WORKDIR)
 	make -C ./src/shaders
+	@echo "[OK] You have peditor"
 
 
 compile_commands:
@@ -27,3 +28,5 @@ clean:
 	make -C ./src/engine WORKDIR=$(WORKDIR) clean
 	make -C ./src/shaders clean
 	rm -f ./bin/peditor
+
+$(LOG).SILENT:
