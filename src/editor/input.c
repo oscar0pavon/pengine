@@ -2,9 +2,6 @@
 
 #include "../engine/utils.h"
 
-#ifdef DESKTOP
-#include <GLFW/glfw3.h>
-#endif 
 
 #include <stdlib.h>
 
@@ -500,31 +497,32 @@ void default_mode() {
     }
   }
 
-#ifdef DESKTOP
-  if (key__released(&input.D, GLFW_MOD_SHIFT)) {
-    duplicate_selected_element(1, selected_element);
-    LOG("duplicated \n");
-    return;
-  }
-  if (key__released(&input.A, GLFW_MOD_ALT)) {
-    LOG("deselect all \n");
-    deselect_all();
-    return;
-  }
+// #ifdef DESKTOP
+//   if (key__released(&input.D, GLFW_MOD_SHIFT)) {
+//     duplicate_selected_element(1, selected_element);
+//     LOG("duplicated \n");
+//     return;
+//   }
+//   if (key__released(&input.A, GLFW_MOD_ALT)) {
+//     LOG("deselect all \n");
+//     deselect_all();
+//     return;
+//   }
+//
+//   if (key__released(&input.P, GLFW_MOD_SHIFT)) {
+//     LOG("editor play mode \n");
+//     change_to_editor_mode(EDITOR_PLAY_MODE);
+//     return;
+//   }
+//
+//   if (key__released(&input.P, GLFW_MOD_CONTROL)) {
+//     // TODO: open game in new window
+//     LOG("playing \n");
+//     play_game_standalone();
+//     return;
+//   }
+// #endif
 
-  if (key__released(&input.P, GLFW_MOD_SHIFT)) {
-    LOG("editor play mode \n");
-    change_to_editor_mode(EDITOR_PLAY_MODE);
-    return;
-  }
-
-  if (key__released(&input.P, GLFW_MOD_CONTROL)) {
-    // TODO: open game in new window
-    LOG("playing \n");
-    play_game_standalone();
-    return;
-  }
-#endif
   if (key_released(&input.X)) {
     remove_selected_element();
     return;
@@ -663,11 +661,12 @@ void input_gui_editor(){
         //array_clean(actual_buttons_array);
     }
         
-#ifdef DESKTOP 
-    if(key__released(&input.A,GLFW_MOD_SHIFT)){
-        new_empty_button();
-    }
-#endif
+// #ifdef DESKTOP 
+//     if(key__released(&input.A,GLFW_MOD_SHIFT)){
+//         new_empty_button();
+//     }
+// #endif
+
     if(key_released(&input.G)){
         change_to_editor_sub_mode(EDITOR_SUB_MODE_GRAB);
     }
