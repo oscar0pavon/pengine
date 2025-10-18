@@ -15,8 +15,8 @@ textures_objs := $(textures_src:%.c=%.o)
 	$(CC) $(CFLAGS) $(GLOBAL_DEFINE) $(CINCLUDES) -c $< -o $@
 
 
-ld:
-	ld $(LIBC) *.o -L../engine -lengine $(LIBRARIES) -o $(WORKDIR)/bin/peditor
+# ld:
+# 	ld $(LIBC) *.o -L../engine -lengine $(LIBRARIES) -o $(WORKDIR)/bin/peditor
 
 $(WORKDIR)/bin/peditor: $(OBJS) $(textures_objs) $(WORKDIR)/lib/libpengine.a
 	cc *.o $(textures_objs) -o $(WORKDIR)/bin/peditor -L$(WORKDIR)/lib/ $(LIBRARIES) -lpengine

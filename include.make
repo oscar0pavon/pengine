@@ -1,3 +1,4 @@
+CC := cc
 
 SRCS := $(wildcard *.c)
 OBJS := $(SRCS:c=o)
