@@ -19,7 +19,7 @@ textures_objs := $(textures_src:%.c=%.o)
 # 	ld $(LIBC) *.o -L../engine -lengine $(LIBRARIES) -o $(WORKDIR)/bin/peditor
 
 $(WORKDIR)/bin/peditor: $(OBJS) $(textures_objs) $(WORKDIR)/lib/libpengine.a
-	cc *.o $(textures_objs) -o $(WORKDIR)/bin/peditor -L$(WORKDIR)/lib/ $(LIBRARIES) -lpengine
+	cc *.o $(textures_objs) -o $(WORKDIR)/bin/peditor -L$(WORKDIR)/lib/ -L/usr/local/lib $(LIBRARIES) -lpengine -lpway
 	
 clean:
 	rm -f *.o

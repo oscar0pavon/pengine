@@ -17,6 +17,7 @@ void pe_wm_init();
 void window_update_viewport(int width, int height);
 bool is_wm_swapped();
 
+void pe_create_window();
 
 void pe_wm_create_x11_window();
 

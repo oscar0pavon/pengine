@@ -13,6 +13,9 @@
 #include <engine/game.h>
 #include <engine/input.h>
 
+#include <pway/pway.h>
+
+
 Window                  root_window;
 GLint                   attributes[] = { GLX_RGBA, GLX_DEPTH_SIZE, 24, GLX_DOUBLEBUFFER, None };
 XVisualInfo             *visual_info;
@@ -200,6 +203,10 @@ void pe_wm_events_update() {
 #endif
 }
 
+void pe_create_window(){
+
+  pway = pway_init();
+}
 
 void pe_wm_create_x11_window(){
 

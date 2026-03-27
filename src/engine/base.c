@@ -6,21 +6,32 @@ void pe_end(){
 }
 
 void pe_init() {
-    LOG("Initializing pengine\n");
-    pe_init_memory(); //VERY IMPORTANT
+  LOG("Initializing pengine\n");
+  pe_init_memory(); //VERY IMPORTANT
 
-    pe_init_arrays();
+  pe_init_arrays();
 
-    pe_init_global_variables();
+  pe_init_global_variables();
 
-    pe_change_background_color(1, 0, 0, 1);
+  pe_change_background_color(1, 0, 0, 1);
 
-    pe_th_main_id = pthread_self();
+  pe_th_main_id = pthread_self();
 
-    pe_vk_initialized = false;
-    // pe_audio_init();
-    // pe_phy_init();
-    ZERO(input);
+  pe_vk_initialized = false;
+  // pe_audio_init();
+  // pe_phy_init();
+  ZERO(input);
 
-    LOG("pengine initialized\n");
+  LOG("pengine initialized\n");
+
+ 
+  pe_create_window();
+
+  pway_create_window("peditor");
+
+  //pe_wm_create_x11_window();
+  //pe_init_x11_keys();//after window creation
+  
+  pe_render_thread_init();
+
 }
