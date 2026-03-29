@@ -1,3 +1,4 @@
+#include "engine/window_manager.h"
 #include <engine/engine.h>
 
 
@@ -14,9 +15,6 @@ void pe_main_loop() {
 
   pe_init();
 
-  pe_wm_create_x11_window();
-  pe_init_x11_keys();//after window creation
-  
   pe_render_thread_init();
 
   game->init();

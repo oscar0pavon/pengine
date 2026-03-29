@@ -180,7 +180,8 @@ void pe_wm_swap_buffers() {
 #endif
 
 #ifdef LINUX
-	glXSwapBuffers(display, window);
+
+  pway_swap_buffers();
 
 #endif
 }
@@ -199,13 +200,17 @@ void pe_wm_events_update() {
   pe_android_poll_envents();
 #endif
 #ifdef LINUX
-	pe_wm_poll_events_x11();
+	//pe_wm_poll_events_x11();
+  pway_handle_events();
 #endif
 }
 
 void pe_create_window(){
 
   pway = pway_init();
+
+  pway_create_window("peditor", 1280, 720);
+  pway_init_egl();
 }
 
 void pe_wm_create_x11_window(){
