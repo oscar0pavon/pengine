@@ -1,7 +1,7 @@
 #include "commands.h"
 #include <engine/macros.h>
-#include <engine/renderer/vulkan/vulkan.h>
-#include <engine/renderer/vulkan/framebuffer.h>
+#include <engine/renderer/vulkan.h>
+#include <engine/renderer/framebuffer.h>
 #include <vulkan/vulkan_core.h>
 #include "render_pass.h"
 

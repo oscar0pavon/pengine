@@ -1,4 +1,4 @@
-#include <engine/renderer/vulkan/vulkan.h>
+#include <engine/renderer/vulkan.h>
 #include <engine/array.h>
 
 VkCommandPool pe_vk_commands_pool;
