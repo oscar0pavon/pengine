@@ -6,7 +6,7 @@
 #endif 
 
 #ifdef VULKAN
-	#include <engine/renderer/vulkan.h>
+	#include <engine/renderer/vulkan/vulkan.h>
 #endif
 
 #include "render_thread.h"
