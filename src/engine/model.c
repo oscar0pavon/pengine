@@ -3,7 +3,7 @@
 #include "engine/components/skinned_mesh_component.h"
 
 #define CGLTF_IMPLEMENTATION
-#include "../ThirdParty/cglm/vec3.h"
+#include <cglm/vec3.h>
 #include "../ThirdParty/cgltf.h"
 #include "stdio.h"
 

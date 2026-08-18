@@ -1,7 +1,7 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#include "../ThirdParty/cglm/vec3.h"
+#include <cglm/vec3.h>
 
 
 #define ZERO(s) memset(&s,0,sizeof(s))

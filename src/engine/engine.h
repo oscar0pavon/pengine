@@ -14,7 +14,7 @@
 
 #include "vertex.h"
 
-#include "../ThirdParty/cglm/cglm.h"
+#include <cglm/cglm.h>
 #include "model.h"
 #include "types.h"
 

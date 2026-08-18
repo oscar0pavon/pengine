@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 
-#include "../ThirdParty/cglm/types.h"
+#include <cglm/types.h>
 #include "array.h"
 #include "numbers.h"
 

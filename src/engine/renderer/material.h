@@ -1,7 +1,7 @@
 #ifndef PRENDERER_MATERIAL
 #define PRENDERER_MATERIAL
 
-#include <ThirdParty/cglm/cglm.h>
+#include <cglm/cglm.h>
 
 typedef struct PMaterial{
   int shader;

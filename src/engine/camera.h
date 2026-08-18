@@ -5,7 +5,7 @@
 #ifndef CAMERA_H
 #define CAMERA_H 
 
-#include "../ThirdParty/cglm/cglm.h"
+#include <cglm/cglm.h>
 
 #include "components/components.h"
 

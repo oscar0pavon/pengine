@@ -1,7 +1,7 @@
 #ifndef ENGINE_MATH_SPHERE_H
 #define ENGINE_MATH_SPHERE_H
 
-#include "../../ThirdParty/cglm/cglm.h"
+#include <cglm/cglm.h>
 #include "math.h"
 
 typedef struct Sphere{

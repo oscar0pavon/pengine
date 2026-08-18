@@ -1,7 +1,7 @@
 #ifndef EDITOR_EDITOR
 #define EDITOR_EDITOR
 
-#include "../ThirdParty/cglm/cglm.h"
+#include <cglm/cglm.h>
 
 #include "../engine/engine.h"
 #include "data.h"

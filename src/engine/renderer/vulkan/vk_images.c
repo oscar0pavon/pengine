@@ -7,7 +7,7 @@
 #include "vk_buffer.h"
 #include "vk_memory.h"
 #include "vulkan.h"
-#include <ThirdParty/cglm/cglm.h>
+#include <cglm/cglm.h>
 #include <engine/log.h>
 #include <engine/macros.h>
 #include <math.h>

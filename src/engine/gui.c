@@ -3,7 +3,7 @@
 //
 
 #include "gui.h"
-#include "../ThirdParty/cglm/cglm.h"
+#include <cglm/cglm.h>
 #include "camera.h"
 
 #include "input.h"

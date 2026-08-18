@@ -1,7 +1,4 @@
 #include "uniform_buffer.h"
-#include "ThirdParty/cglm/affine.h"
-#include "ThirdParty/cglm/types.h"
-#include "ThirdParty/cglm/vec4.h"
 #include "engine/components/skinned_mesh_component.h"
 #include "engine/types.h"
 #include "vk_buffer.h"

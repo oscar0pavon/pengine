@@ -1,5 +1,5 @@
 #include "animation.h"
-#include "ThirdParty/cglm/mat4.h"
+#include <cglm/mat4.h>
 #include "engine/array.h"
 #include <engine/engine.h>
 

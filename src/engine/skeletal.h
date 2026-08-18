@@ -2,7 +2,7 @@
 #define PAVON_ENGINE_SKELETAL_H
 
 
-#include "../ThirdParty/cglm/cglm.h"
+#include <cglm/cglm.h>
 
 #include "array.h"
 #include "model.h"

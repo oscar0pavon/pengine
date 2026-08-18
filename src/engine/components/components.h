@@ -4,7 +4,7 @@
 typedef struct Element Element;
 #include <engine/array.h>
 #include <engine/types.h>
-#include "../../ThirdParty/cglm/cglm.h"
+#include <cglm/cglm.h>
 #include "static_mesh_component.h"
 #include <engine/model.h>
 
