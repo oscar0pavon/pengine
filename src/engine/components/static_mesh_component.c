@@ -2,9 +2,6 @@
 #include <engine/engine.h>
 #include "components.h"
 
-#ifdef EDITOR
-#include "../../editor/editor.h"
-#endif
 
 void pe_comp_static_mesh_update(ComponentDefinition *element_component) {
 
@@ -76,9 +73,7 @@ void pe_comp_static_mesh_texture_fill(StaticMeshComponent* mesh_component,int i)
       if (texture)
         selected_model->texture.id = texture->id;
     } else {
-    #ifdef EDITOR
-      selected_model->texture.id = editor_texture_checker.id;
-    #endif
+
     }
 }
 

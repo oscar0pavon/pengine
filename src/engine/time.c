@@ -1,53 +1,72 @@
 #include "time.h"
-#include "engine.h"
+#include <stdio.h>
 
-#include <sys/time.h>
+#include <time.h>
+#include <unistd.h>
 
-struct timeval time_measured_01, time_measured_02;
+#define NSEC_PER_SEC 1000000000L
+#define TARGET_FPS 30.0f
+#define TARGET_FRAME_TIME_NSEC (NSEC_PER_SEC / TARGET_FPS)
 
-float render_frame_time = 0;
-float disired_frame_time = 0.016f;
 
-u8 frames = 0;
-float frame_second = 0;
+typedef struct timespec PTime;
+static PTime frame_start_time;
+static PTime frame_start_time_input;
+PTime delta_time_counter;
 
-void time_update_delta(){
+double delta_time;
 
+
+void start_frame_timer(PTime time) {
+    clock_gettime(CLOCK_MONOTONIC, &time);
 }
 
-void time_start(){
-    gettimeofday(&time_measured_01, NULL);
-   
-    render_frame_time += time_delta;
-}
+static void delay_for_frame(PTime time) {
+    PTime frame_end_time;
+    clock_gettime(CLOCK_MONOTONIC, &frame_end_time);
 
-float time_end(){
-    gettimeofday(&time_measured_02, NULL);
-  
+    long elapsed_nsec = (frame_end_time.tv_sec - time.tv_sec) * NSEC_PER_SEC +
+                       (frame_end_time.tv_nsec - time.tv_nsec);
 
-    //compute
-    time_elapsed_time = (time_measured_02.tv_sec - time_measured_01.tv_sec) * 1000.0;
-    time_elapsed_time += (time_measured_02.tv_usec - time_measured_01.tv_usec) / 1000.0;
+    if (elapsed_nsec < TARGET_FRAME_TIME_NSEC) {
+        PTime sleep_time;
+        long remaining_nsec = TARGET_FRAME_TIME_NSEC - elapsed_nsec;
 
-    //convert to seconds
-    time_delta = time_elapsed_time /1000;
+        sleep_time.tv_sec = remaining_nsec / NSEC_PER_SEC;
+        sleep_time.tv_nsec = remaining_nsec % NSEC_PER_SEC;
 
-    float diffirence2 = (time_measured_02.tv_sec - time_measured_01.tv_sec) * (long)1e9 + (time_measured_02.tv_usec - time_measured_01.tv_usec) ;
-    
-    
-    //frame per second
-
-    frame_time= diffirence2 / 1000;
-
-    frame_second += time_elapsed_time;
-
-    if (frame_second >= 1000) {
-      FPS = frames * (1000.f / frame_second);
-      frames = 0;
-      frame_second = 0;
-    } else {
-      frames++;
+        nanosleep(&sleep_time, NULL);
     }
+}
 
-    return 0;
+void calculate_delta_time(PTime last_frame_time) {
+  PTime current_time;
+  clock_gettime(CLOCK_MONOTONIC, &current_time);
+  delta_time =
+      (double)(current_time.tv_sec - last_frame_time.tv_sec) +
+      (double)(current_time.tv_nsec - last_frame_time.tv_nsec) / NSEC_PER_SEC;
+
+  last_frame_time = current_time;
+}
+
+void update_delta_time(){
+    calculate_delta_time(delta_time_counter);
+}
+
+void start_delta_time(){
+    start_frame_timer(delta_time_counter);
+}
+
+void start_render_time(){
+    start_frame_timer(frame_start_time);
+}
+void delay_render_time(){
+    delay_for_frame(frame_start_time);
+}
+
+void start_input_time(){
+    start_frame_timer(frame_start_time_input);
+}
+void delay_input_time(){
+    delay_for_frame(frame_start_time_input);
 }

@@ -7,9 +7,6 @@
 #include "array.h"
 #include "numbers.h"
 
-#ifdef EDITOR
-#include "../editor/types.h"
-#endif
 #ifdef ANDROID
 struct android_app *app;
 #endif

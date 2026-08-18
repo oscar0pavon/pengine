@@ -1,6 +1,5 @@
 #include "files_parser.h"
 
-#include <editor/data.h>
 #include <engine/engine.h>
 
 #include "ThirdParty/parson.h"

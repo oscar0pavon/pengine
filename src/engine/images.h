@@ -1,10 +1,11 @@
 #ifndef IMAGES_H
 #define IMAGES_H
 
-#include <GLES2/gl2.h>
 
 #include "numbers.h"
-#include <engine/types.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include "renderer/vulkan.h"
 
 typedef struct PImage{
   unsigned short int width;
@@ -13,14 +14,20 @@ typedef struct PImage{
 }PImage;
 
 typedef struct PTexture{
-    PImage image;
     unsigned int id;
 		int format;
 		bool gpu_loaded;
+    VkImage image;
+    VkDeviceMemory memory;
+    u32 mip_level;
+    VkSampler sampler;
+    VkImageView image_view;
+    int memory_file_descriptor;
+    uint32_t width;
+    uint32_t heigth;
 }PTexture;
 
 int pe_load_image(const char* path, PImage* image);
-int pe_load_image_with_format(const char* path, GLint format, PImage* out_image);
 void free_image(PImage*);
 
 int pe_load_texture(const char* path, PTexture*);

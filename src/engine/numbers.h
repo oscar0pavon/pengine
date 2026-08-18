@@ -1,8 +1,10 @@
 #ifndef ENGINE_NUMBERS
 #define ENGINE_NUMBERS
 
-typedef unsigned short int u8;
-typedef unsigned int u32;
-typedef unsigned long int u64;
+#include <stdint.h>
+typedef uint8_t u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint64_t u64;
 
 #endif

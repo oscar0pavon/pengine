@@ -101,9 +101,9 @@ void pe_tex_to_gpu(PTexture *texture) {
     format = GL_RGBA;
   }
 
-  glTexImage2D(GL_TEXTURE_2D, 0, format, texture->image.width,
-               texture->image.heigth, 0, format, GL_UNSIGNED_BYTE,
-               texture->image.pixels_data);
+  // glTexImage2D(GL_TEXTURE_2D, 0, format, texture->width,
+  //              texture->heigth, 0, format, GL_UNSIGNED_BYTE,
+  //              texture->pixels_data);
 
   free_image(&texture->image);
 
@@ -172,7 +172,7 @@ void pe_render_skinned_model(PSkinnedMeshComponent *skin) {
     return;
   }
 
-  glUseProgram(new_model->shader);
+  glUseProgram(new_model->shader_id);
   /*
     if(new_model->texture_count == 2) {
 
@@ -206,7 +206,7 @@ void pe_render_skinned_model(PSkinnedMeshComponent *skin) {
   */
 
   glBindTexture(GL_TEXTURE_2D, new_model->texture.id);
-  pe_skinned_send_matrices(skin, new_model->shader,
+  pe_skinned_send_matrices(skin, new_model->shader_id,
                            new_model->mesh.vertex_buffer_id,
                            new_model->model_mat);
 
@@ -235,14 +235,14 @@ void update_draw_vertices(GLuint shader, GLuint buffer, mat4 matrix) {
   glEnableVertexAttribArray(2);
   glEnableVertexAttribArray(3);
 
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(struct Vertex),
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(struct PVertex),
                         (void *)0);
-  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(struct Vertex),
-                        (void *)offsetof(struct Vertex, uv));
-  glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(struct Vertex),
-                        (void *)offsetof(struct Vertex, color));
-  glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(struct Vertex),
-                        (void *)offsetof(struct Vertex, normal));
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(struct PVertex),
+                        (void *)offsetof(struct PVertex, uv));
+  glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(struct PVertex),
+                        (void *)offsetof(struct PVertex, color));
+  glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(struct PVertex),
+                        (void *)offsetof(struct PVertex, normal));
 
   GLint mvp_uniform = get_uniform_location(shader, "MVP");
 
@@ -251,7 +251,7 @@ void update_draw_vertices(GLuint shader, GLuint buffer, mat4 matrix) {
 }
 
 void draw_vertices_like(GLenum mode, PModel *model, vec4 color) {
-  update_draw_vertices(model->shader, model->vertex_buffer_id,
+  update_draw_vertices(model->shader_id, model->vertex_buffer_id,
                        model->model_mat);
   // send_color_to_shader(model->shader,color);
   glDrawArrays(GL_POINTS, 0, model->vertex_array.count);
@@ -269,12 +269,12 @@ void pe_render_2d(DrawData *data, vec2 position, vec2 size, vec4 color) {
   glBindBuffer(GL_ARRAY_BUFFER, data->vertex);
 
   glEnableVertexAttribArray(0);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(struct Vertex),
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(struct PVertex),
                         (void *)0);
 
   glEnableVertexAttribArray(1);
-  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(struct Vertex),
-                        (void *)offsetof(struct Vertex, uv));
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(struct PVertex),
+                        (void *)offsetof(struct PVertex, uv));
 
   if (color != NULL) {
     send_color_to_shader(data->shader, color);
@@ -286,10 +286,10 @@ void pe_render_2d(DrawData *data, vec2 position, vec2 size, vec4 color) {
 }
 
 void draw_model_with_color(PModel *model, GLenum mode, vec4 color) {
-  update_draw_vertices(model->shader, model->vertex_buffer_id,
+  update_draw_vertices(model->shader_id, model->vertex_buffer_id,
                        model->model_mat);
 
-  send_color_to_shader(model->shader, color);
+  send_color_to_shader(model->shader_id, color);
 
   check_error("color matrix error");
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, model->index_buffer_id);
@@ -298,7 +298,7 @@ void draw_model_with_color(PModel *model, GLenum mode, vec4 color) {
 }
 
 void draw_model_like(PModel *model, GLenum mode) {
-  update_draw_vertices(model->shader, model->vertex_buffer_id,
+  update_draw_vertices(model->shader_id, model->vertex_buffer_id,
                        model->model_mat);
 
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, model->index_buffer_id);
@@ -310,20 +310,20 @@ void draw_simgle_model(PModel *new_model) {
   mat4 mvp;
   update_mvp(new_model->model_mat, mvp);
 
-  update_draw_vertices(new_model->shader, new_model->mesh.vertex_buffer_id,
+  update_draw_vertices(new_model->shader_id, new_model->mesh.vertex_buffer_id,
                        mvp);
 
   glBindBuffer(GL_ARRAY_BUFFER, new_model->mesh.vertex_buffer_id);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, new_model->mesh.index_buffer_id);
 
-  GLint model_mat_uniform = get_uniform_location(new_model->shader, "uModel");
+  GLint model_mat_uniform = get_uniform_location(new_model->shader_id, "uModel");
 
   check_send_matrix_error("Model Matrix");
 
   glUniformMatrix4fv(model_mat_uniform, 1, GL_FALSE,
                      &new_model->model_mat[0][0]);
 
-  send_color_to_shader(new_model->shader, new_model->material.color);
+  send_color_to_shader(new_model->shader_id, new_model->material.color);
 
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, new_model->mesh.index_buffer_id);
 

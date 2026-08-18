@@ -6,6 +6,19 @@
 
 bool memory_lock;
 
+int memory_used;
+int memory_marker;
+int previous_marker;
+int actual_free_memory;
+
+void* engine_memory;
+
+
+StackMemory vertex_memory;
+StackMemory engine_stack_memory;
+
+PoolMemory arrays_memory;
+
 // VERY IMPORTANT
 void pe_init_memory(){
     engine_memory = malloc(INIT_MEMORY);

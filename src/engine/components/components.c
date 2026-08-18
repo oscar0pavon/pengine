@@ -3,9 +3,6 @@
 
 #include "../../engine/model.h"
 #include "../animation/animation.h"
-#ifdef EDITOR
-#include "../../editor/editor.h"
-#endif
 
 #include "skinned_mesh_component.h"
 #include "static_mesh_component.h"
@@ -33,7 +30,7 @@ void init_sphere_component(SphereComponent *component) {
   actual_model_array = previous_models_array;
   PModel *sphere_model = array_get(&engine_native_models, 0);
   memcpy(selected_model, sphere_model, sizeof(PModel));
-  selected_model->shader =
+  selected_model->shader_id =
       create_engine_shader(standart_vertex_shader, standart_fragment_shader);
   component->model = selected_model;
 }
@@ -45,7 +42,7 @@ void init_cube_component(CubeComponent *component) {
   actual_model_array = previous_models_array;
   PModel *cube_model = array_get(&engine_native_models, 1);
   memcpy(selected_model, cube_model, sizeof(PModel));
-  selected_model->shader =
+  selected_model->shader_id =
       create_engine_shader(standart_vertex_shader, standart_fragment_shader);
   component->model = selected_model;
 }
@@ -57,7 +54,7 @@ void init_camera_component(CameraComponent *component) {
   actual_model_array = previous_models_array;
   PModel *camera_model = array_get(&engine_native_models, 2);
   memcpy(selected_model, camera_model, sizeof(PModel));
-  selected_model->shader =
+  selected_model->shader_id =
       create_engine_shader(standart_vertex_shader, standart_fragment_shader);
   component->camera_gizmo = selected_model;
 

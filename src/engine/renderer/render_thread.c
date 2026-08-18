@@ -4,7 +4,6 @@
 #include <engine/threads.h>
 #include <engine/types.h>
 
-#include <editor/skeletal_editor.h>
 #include <engine/text_renderer.h>
 
 #include <GL/gl.h>

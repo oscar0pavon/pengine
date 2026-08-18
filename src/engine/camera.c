@@ -1,12 +1,27 @@
 //
 
 #include "camera.h"
+#include <cglm/cam.h>
+#include <cglm/types.h>
+#include "renderer/vulkan.h"
 #include "utils.h"
+//#include "window.h"
 bool first_camera_rotate = true;
 
 vec3 init_front;
 
-void camera_init(CameraComponent* camera){
+float camera_height_screen;
+float camera_width_screen;
+versor camera_rotation;
+
+bool move_camera_input;
+
+float camera_rotate_angle;
+
+void camera_init(Camera* camera){
+    camera_width_screen = WINDOW_WIDTH;
+    camera_height_screen = WINDOW_HEIGHT;
+
     camera_rotate_angle = 0;
 
     glm_mat4_identity(camera->view);
@@ -21,19 +36,29 @@ void camera_init(CameraComponent* camera){
 
     glm_lookat(camera->position, look_pos, camera->front , camera->view);
 
-    glm_perspective(45.f, camera_width_screen / camera_heigth_screen, 0.001f,
+    glm_perspective(45.f, camera_width_screen / camera_height_screen, 0.001f,
                     5000.f, camera->projection);
+
+
+    camera->projection[1][1] *= -1;//In Vulkan the Z is up down
 }
 
-void camera_update(CameraComponent* camera){
+void camera_set_position(Camera* camera, vec3 position){
+
+  init_vec3(position[0], position[1], position[2], camera->position);
+  camera_update(camera);
+
+}
+
+void camera_update(Camera* camera){
     vec3 look_pos;
     glm_vec3_add(camera->position, camera->front, look_pos);
 
     glm_lookat(camera->position, look_pos, camera->up , camera->view);
 }
 
-void pe_camera_look_at(CameraComponent* camera, vec3 position){
-  
+void pe_camera_look_at(Camera* camera, vec3 position){
+    glm_lookat(camera->position, position, camera->up, camera->view); 
 }
 
 void camera_rotate_control(float yaw, float pitch){
@@ -55,7 +80,7 @@ void camera_rotate_control(float yaw, float pitch){
 
 }
 
-void camera_update_aspect_ratio(CameraComponent* camera){
-  glm_perspective(45.f, camera_width_screen / camera_heigth_screen, 0.001f,
+void camera_update_aspect_ratio(Camera* camera){
+  glm_perspective(45.f, camera_width_screen / camera_height_screen, 0.001f,
                   5000.f, camera->projection);
 }

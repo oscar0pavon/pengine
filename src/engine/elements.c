@@ -74,7 +74,7 @@ void pe_element_duplicate(int current_count, Element *original) {
         new_empty_model();
         PModel*original_model = array_get_pointer(&original_mesh->models_p,i);
         duplicate_model_data(selected_model, original_model);
-        selected_model->shader = create_engine_shader(standart_vertex_shader,
+        selected_model->shader_id = create_engine_shader(standart_vertex_shader,
                                                       standart_fragment_shader);
         array_add(&new_mesh.models_p, selected_model);
       }
@@ -119,7 +119,7 @@ void duplicate_selected_element(int current_count, Element* original){
                 u8* original_model_id = array_get(&original_mesh->meshes,i);
                 PModel* original_model = array_get(actual_model_array,*original_model_id);
                 duplicate_model_data(selected_model,original_model);
-                selected_model->shader = create_engine_shader(standart_vertex_shader,standart_fragment_shader);                
+                selected_model->shader_id = create_engine_shader(standart_vertex_shader,standart_fragment_shader);                
                 u8 new_id = actual_model_array->count -1;
                 array_add(&new_mesh.meshes, &new_id);
             }  

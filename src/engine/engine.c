@@ -18,11 +18,11 @@
 
 #include <engine/animation/animation.h>
 
-#include <editor/skeletal_editor.h>
-
 #include <engine/renderer/render_thread.h>
 
 #include <engine/base.h>
+
+#include "time.h"
 
 Array engine_elements;
 Array engine_textures;
@@ -128,8 +128,7 @@ void pe_mesh_tex_fill_ids(PTexture *texture) {
     return;
   }
 
-  skin_component->mesh->textures[skin_component->mesh->texture_count] =
-      *texture;
+  skin_component->mesh->texture = *texture;
 
   skin_component->mesh->texture_count++;
 
@@ -227,19 +226,19 @@ int add_element_with_model_path(const char *model_gltf_path) {
   Array *prev_array = actual_model_array;
   actual_model_array = &array_models_loaded;
 
-  int models_loaded = pe_loader_model(model_gltf_path);
-  if (models_loaded == -1) {
-    LOG("No model loaded from pe_loader_model()");
-    return -1;
-  } else {
-    LOG("********* %i Models loaded", models_loaded);
-  }
-  if (prev_array != NULL)
-    actual_model_array = prev_array;
-
-  array_add(&pe_arr_models_paths, model_gltf_path); // needed for saved level
-
-  pe_comp_add(models_loaded);
+  // int models_loaded = pe_load_model_path(model_gltf_path);
+  // if (models_loaded == -1) {
+  //   LOG("No model loaded from pe_loader_model()");
+  //   return -1;
+  // } else {
+  //   LOG("********* %i Models loaded", models_loaded);
+  // }
+  // if (prev_array != NULL)
+  //   actual_model_array = prev_array;
+  //
+  // array_add(&pe_arr_models_paths, model_gltf_path); // needed for saved level
+  //
+  // pe_comp_add(models_loaded);
 }
 
 void set_element_position(Element *element, vec3 position) {
@@ -263,10 +262,10 @@ void load_model_to_array(Array *array, const char *path_model,
 
   pe_loader_model(path_model);
 
-  selected_model->shader =
+  selected_model->shader_id =
       create_engine_shader(standart_vertex_shader, standart_fragment_shader);
 
-  glUseProgram(selected_model->shader);
+  glUseProgram(selected_model->shader_id);
 
   PTexture new_texture;
   pe_load_texture(color_texture_path, &new_texture);
@@ -289,7 +288,7 @@ void update_translation(vec3 translation) {
   if (!transform)
     return;
   vec3 translation_per_frame;
-  glm_vec3_scale(translation, time_delta, translation_per_frame);
+  glm_vec3_scale(translation, delta_time , translation_per_frame);
   glm_translate(transform->model_matrix, translation_per_frame);
   glm_vec3_copy(transform->model_matrix[3], transform->position);
 
@@ -481,10 +480,6 @@ void pe_init_global_variables() {
 
   engine_running = true;
 
-#ifdef DEBUG
-  pe_bool_can_draw_skeletal = false;
-  update_vertex_bones_gizmos = false;
-#endif
 }
 
 

@@ -2,26 +2,32 @@
 #define MODEL_H
 
 
-#include <GLES2/gl2.h>
 
-#include "images.h"
-
+#include <engine/images.h>
 #include "array.h"
 
-#include <vulkan/vulkan.h>
+#include <cglm/vec3.h>
 
-#include <engine/renderer/material.h>
+#include "renderer/shaders.h"
+#include "renderer/vulkan.h"
+
+
 #include <vulkan/vulkan_core.h>
+#include "renderer/vk_buffer.h"
 
+#include <GL/gl.h>
+
+#include "renderer/material.h"
 
 typedef struct PMesh{
-  GLuint vertex_buffer_id;
-  GLuint index_buffer_id;
   Array vertex_array;
   Array index_array;
 
   VkBuffer vertex_buffer;
   VkBuffer index_buffer;
+    
+  GLuint vertex_buffer_id;
+  GLuint index_buffer_id;
 }PMesh;
 
 typedef struct PModel{
@@ -34,19 +40,20 @@ typedef struct PModel{
     vec3 min;
     vec3 max;
     
-    GLuint vertex_buffer_id;
-    GLuint index_buffer_id;
 
     mat4 model_mat;
-    GLuint shader;
 
     PTexture texture;
-    PTexture textures[4];
+    // PTexture textures[4];
 
     PMaterial material;
 
-    VkBuffer vertex_buffer;
-    VkBuffer index_buffer;
+
+    GLuint vertex_buffer_id;
+    GLuint index_buffer_id;
+
+    PBuffer vertex_buffer;
+    PBuffer index_buffer;
 
     Array uniform_buffers;
     Array uniform_buffers_memory;
@@ -56,6 +63,12 @@ typedef struct PModel{
     vec3 position;
     PMesh mesh;
 	  bool gpu_ready;
+
+    PShader shader;
+    
+    GLuint shader_id;
+
+    PUniformBufferObject uniform_buffer_object;
 }PModel;
 
 typedef struct DrawData{
@@ -65,10 +78,12 @@ typedef struct DrawData{
     u32 index;
 }DrawData;
 
-PModel* pe_vk_model_load(char* path);
+static int pe_data_loader_models_loaded_count;
 
-int pe_loader_model(const char* path);
+void pe_clean_model(PModel* model);
 
-int pe_data_loader_models_loaded_count;
+PModel *pe_vk_load_model(PModel* model, const char *path);
+
+int pe_load_model_path(PModel* model, const char *path);
 
 #endif // !MODEL_H

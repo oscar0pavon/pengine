@@ -75,7 +75,7 @@ void two_dimension_screen_space_send_matrix(GLuint shader_id, vec2 size,
   mat4 projection;
   glm_mat4_identity(projection);
 
-  glm_ortho(0, camera_width_screen, camera_heigth_screen, 0, 0, 1, projection);
+  glm_ortho(0, camera_width_screen, camera_height_screen, 0, 0, 1, projection);
 
   glm_scale(scale, (vec3){size[0], size[1], 0});
 
@@ -112,7 +112,7 @@ void pe_buttons_draw() {
 void create_vertex_buffer() {
   glGenBuffers(1, &UI_plane_vertex_buffer_id);
   glBindBuffer(GL_ARRAY_BUFFER, UI_plane_vertex_buffer_id);
-  glBufferData(GL_ARRAY_BUFFER, gui_vertex_array.count * sizeof(struct Vertex),
+  glBufferData(GL_ARRAY_BUFFER, gui_vertex_array.count * sizeof(struct PVertex),
                gui_vertex_array.data, GL_STATIC_DRAW);
   engine_memory_free_to_marker(previous_marker);
   // free(gui_vertex_array.vertices);
@@ -129,9 +129,9 @@ void init_button(Button *button, float position_x, float position_y,
   button->position[0] = position_x;
 
   float reasigned_size_x = camera_width_screen / 1280;
-  float reasigned_size_y = camera_heigth_screen / 720;
+  float reasigned_size_y = camera_height_screen / 720;
 
-  float aspect_ratio = camera_width_screen / camera_heigth_screen;
+  float aspect_ratio = camera_width_screen / camera_height_screen;
   float new_size_x = size_x * (reasigned_size_x + aspect_ratio);
   float new_size_y = size_y * (reasigned_size_y + aspect_ratio);
 
@@ -140,8 +140,8 @@ void init_button(Button *button, float position_x, float position_y,
 
   button->original_position[0] = position_x;
   if (button->relative_to == POSITION_RELATIVE_LEFT_BOTTON) {
-    button->original_position[1] = camera_heigth_screen - position_y;
-    button->position[1] = camera_heigth_screen - position_y;
+    button->original_position[1] = camera_height_screen - position_y;
+    button->position[1] = camera_height_screen - position_y;
   } else {
     button->original_position[1] = position_y;
     button->position[1] = position_y;
@@ -149,22 +149,22 @@ void init_button(Button *button, float position_x, float position_y,
 }
 
 void init_gui_element_geometry() {
-  struct Vertex vert1;
+  struct PVertex vert1;
   init_vec3(-1.0F, 1.0, 0.0, vert1.position);
   vert1.uv[0] = 0;
   vert1.uv[1] = 1;
 
-  struct Vertex vert2;
+  struct PVertex vert2;
   init_vec3(-1.0F, -1.0F, 0.0, vert2.position);
   vert2.uv[0] = 0;
   vert2.uv[1] = 0;
 
-  struct Vertex vert3;
+  struct PVertex vert3;
   init_vec3(1.0, 1.0, 0.0, vert3.position);
   vert3.uv[0] = 1;
   vert3.uv[1] = 1;
 
-  struct Vertex vert4;
+  struct PVertex vert4;
   init_vec3(1.0, -1.0F, 0.0, vert4.position);
   vert4.uv[0] = 1;
   vert4.uv[1] = 0;
@@ -203,7 +203,7 @@ void draw_logo_image() {
 
   load_screen_button.relative_to = 400;
   init_button(&load_screen_button, camera_width_screen / 2,
-              camera_heigth_screen / 2, 250, 250);
+              camera_height_screen / 2, 250, 250);
 
   Button *button = &load_screen_button;
 
@@ -218,12 +218,12 @@ void draw_logo_image() {
   glBindBuffer(GL_ARRAY_BUFFER, UI_plane_vertex_buffer_id);
 
   glEnableVertexAttribArray(0);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(struct Vertex),
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(struct PVertex),
                         (void *)0);
 
   glEnableVertexAttribArray(1);
-  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(struct Vertex),
-                        (void *)offsetof(struct Vertex, uv));
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(struct PVertex),
+                        (void *)offsetof(struct PVertex, uv));
 
   glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
@@ -304,7 +304,7 @@ void draw_gui() {
 void new_empty_button() {
   Button new_button;
   ZERO(new_button);
-  init_button(&new_button, camera_width_screen / 2, camera_heigth_screen / 2,
+  init_button(&new_button, camera_width_screen / 2, camera_height_screen/ 2,
               15, 15);
 
   new_button.action_function_id = 0;

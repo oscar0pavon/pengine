@@ -5,11 +5,6 @@
 #include <engine/platforms/android/input.h>
 #endif
 
-    
-#ifdef EDITOR
-	#include "../editor/input.h"
-#endif
-
 #include <stdbool.h>
 
 typedef struct Key{

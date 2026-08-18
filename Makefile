@@ -3,9 +3,8 @@ WORKDIR := $(shell pwd)
 
 all: ./src/engine/files.h ./bin/ ./lib/
 	make -C ./src/engine WORKDIR=$(WORKDIR)
-	make -C ./src/editor WORKDIR=$(WORKDIR)
 	make -C ./src/shaders
-	@echo "[OK] You have peditor"
+	@echo "[OK] You have pengine"
 
 
 compile_commands:
@@ -24,7 +23,6 @@ compile_commands:
 
 clean:
 	rm -f ./src/engine/files.h
-	make -C ./src/editor WORKDIR=$(WORKDIR) clean
 	make -C ./src/engine WORKDIR=$(WORKDIR) clean
 	make -C ./src/shaders clean
 	rm -f ./bin/peditor

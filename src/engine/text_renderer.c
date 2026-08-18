@@ -1,6 +1,7 @@
 
 #include "text_renderer.h"
 #include "engine.h"
+#include "engine/camera.h"
 
 #include <freetype/freetype.h>
 #include <ft2build.h>
@@ -174,12 +175,12 @@ void text_renderer_init() {
   glGenBuffers(1, &text_draw_data.vertex);
 
   pixel_size_x = 2.0 / camera_width_screen;
-  pixel_size_y = 2.0 / camera_heigth_screen;
+  pixel_size_y = 2.0 / camera_height_screen;
 }
 
 void text_renderer_update_pixel_size() {
   pixel_size_x = 2.0 / camera_width_screen;
-  pixel_size_y = 2.0 / camera_heigth_screen;
+  pixel_size_y = 2.0 / camera_height_screen;
 }
 
 void text_render_in_screen_space_with_data(const char *text,
@@ -187,7 +188,7 @@ void text_render_in_screen_space_with_data(const char *text,
   float text_position_x =
       (-(camera_width_screen / 2) + data->position[0]) * pixel_size_x;
   float text_position_y =
-      (((camera_heigth_screen / 2) - data->size) + data->position[1]) *
+      (((camera_height_screen/ 2) - data->size) + data->position[1]) *
       pixel_size_y;
 
   FT_Set_Pixel_Sizes(face, 0, data->size);
@@ -199,7 +200,7 @@ void text_render_in_screen_space(int text_size, const char *text, int x,
                                  int y) {
   float text_position_x = (-(camera_width_screen / 2) + x) * pixel_size_x;
   float text_position_y =
-      (((camera_heigth_screen / 2) - text_size) + y) * pixel_size_y;
+      (((camera_height_screen/ 2) - text_size) + y) * pixel_size_y;
 
   FT_Set_Pixel_Sizes(face, 0, text_size);
   text_render(text, text_position_x, text_position_y, pixel_size_x,

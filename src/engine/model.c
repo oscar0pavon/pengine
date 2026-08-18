@@ -1,34 +1,29 @@
 #include "model.h"
 #include "engine/array.h"
-#include "engine/components/skinned_mesh_component.h"
+#include "renderer/vulkan.h"
+#include <vulkan/vulkan_core.h>
 
 #define CGLTF_IMPLEMENTATION
-#include <cglm/vec3.h>
-#include "../ThirdParty/cgltf.h"
+#include <cgltf.h>
+
 #include "stdio.h"
 
+#include <cglm/vec3.h>
 #include "file_loader.h"
 
-#include "engine.h"
+#include "engine/camera.h"
 
 #include "vertex.h"
 
-#include <engine/renderer/vulkan/vk_vertex.h>
+#include "renderer/vk_vertex.h"
+#include "renderer/descriptor_set.h"
+#include "renderer/uniform_buffer.h"
 
 cgltf_data *current_data;
-cgltf_animation *current_animation;
-cgltf_animation_channel *current_channel;
-cgltf_animation_sampler *current_sampler;
-bool copy_nodes = false;
-int nodes_counter = 0;
 
-Array *actual_vertex_array;
-Array *actual_index_array;
-Array *current_array;
 
-int models_parsed = 0;
-
-void pe_loader_mesh_read_accessor_indices(cgltf_accessor *accessor) {
+void pe_loader_mesh_read_accessor_indices(Array *index_array,
+                                          cgltf_accessor *accessor) {
   switch (accessor->component_type) {
   case cgltf_component_type_r_8:
     break;
@@ -36,26 +31,25 @@ void pe_loader_mesh_read_accessor_indices(cgltf_accessor *accessor) {
     break;
   case cgltf_component_type_r_8u:
 
-    array_init(actual_index_array, sizeof(u8), accessor->count);
+    array_init(index_array, sizeof(u8), accessor->count);
     break;
   case cgltf_component_type_r_16u:
 
-    array_init(actual_index_array, sizeof(unsigned short), accessor->count);
+    array_init(index_array, sizeof(unsigned short), accessor->count);
     break;
   case cgltf_component_type_r_32f:
     break;
   case cgltf_component_type_r_32u:
-    array_init(actual_index_array, sizeof(unsigned int), accessor->count);
+    array_init(index_array, sizeof(unsigned int), accessor->count);
     break;
   }
   for (size_t i = 0; i < accessor->count; i++) {
     size_t index = cgltf_accessor_read_index(accessor, i);
-    array_add(actual_index_array, &index);
+    array_add(index_array, &index);
   }
 }
 
-/*Read accessor and allocate data in current_array or actual_vertex_array */
-void pe_loader_read_accessor(cgltf_accessor *accessor, float *out) {
+void pe_loader_read_accessor(Array* array, cgltf_accessor *accessor, float *out) {
   switch (accessor->type) {
   case cgltf_type_vec2: {
 
@@ -87,11 +81,10 @@ void pe_loader_read_accessor(cgltf_accessor *accessor, float *out) {
   }
   case cgltf_type_scalar: {
 
-    LOG("### Scalar");
     for (int i = 0; i < accessor->count; i++) {
       float number;
       cgltf_accessor_read_float(accessor, i, &number, 1);
-      array_add(current_array, &number);
+      array_add(array, &number);
     }
 
     break;
@@ -107,59 +100,25 @@ void pe_loader_read_accessor(cgltf_accessor *accessor, float *out) {
     break;
   }
 }
-void pe_debug_accesor_type(char *message, cgltf_accessor *accessor) {
 
-  switch (accessor->type) {
-  case cgltf_type_vec2: {
-
-    LOG("######## %s data is VEC2\n", message);
-    break;
-  }
-  case cgltf_type_vec3: {
-    LOG("######## %s data is VEC3\n", message);
-    break;
-  }
-  case cgltf_type_vec4: {
-
-    LOG("######## %s data is VEC4\n", message);
-    break;
-  }
-  case cgltf_type_scalar: {
-
-    LOG("######## %s data is scalar\n", message);
-    break;
-  }
-
-  case cgltf_type_mat4: {
-
-    LOG("######## %s data is MAT4\n", message);
-    break;
-  }
-  default:
-    break;
-  }
-}
-
-void pe_loader_attribute(cgltf_attribute *attribute) {
+void pe_load_attribute(Array* vertex_array, cgltf_attribute *attribute) {
   switch (attribute->type) {
   case cgltf_attribute_type_position: {
     LOG("#### Vertex count: %i\n", (int)attribute->data->count);
     vec3 vertices_position[attribute->data->count];
     ZERO(vertices_position);
 
-    if (actual_vertex_array == NULL) {
-      LOG("Actual vertex array is NULL\n");
-    }
+    array_init(vertex_array, sizeof(PVertex), attribute->data->count);
 
-    array_init(actual_vertex_array, sizeof(PVertex), attribute->data->count);
-
-    pe_loader_read_accessor(attribute->data, vertices_position);
+    pe_loader_read_accessor(
+        vertex_array, attribute->data,
+        (float *)vertices_position); // TODO maybe here we broke something
 
     for (int i = 0; i < attribute->data->count; i++) {
       PVertex vertex;
       ZERO(vertex);
       glm_vec3_copy(vertices_position[i], vertex.position);
-      array_add(actual_vertex_array, &vertex);
+      array_add(vertex_array, &vertex);
     }
     break;
   }
@@ -168,10 +127,10 @@ void pe_loader_attribute(cgltf_attribute *attribute) {
     vec2 uvs[attribute->data->count];
     ZERO(uvs);
 
-    pe_loader_read_accessor(attribute->data, uvs);
+    pe_loader_read_accessor(vertex_array, attribute->data, (float*)uvs);
 
     for (int i = 0; i < attribute->data->count; i++) {
-      PVertex *vertex = array_get(actual_vertex_array, i);
+      PVertex *vertex = array_get(vertex_array, i);
       vertex->uv[0] = uvs[i][0];
       vertex->uv[1] = uvs[i][1];
     }
@@ -183,217 +142,51 @@ void pe_loader_attribute(cgltf_attribute *attribute) {
     vec3 normals[attribute->data->count];
     ZERO(normals);
 
-    pe_loader_read_accessor(attribute->data, normals);
+    //pe_loader_read_accessor(attribute->data, normals);TODO normals
 
     for (int i = 0; i < attribute->data->count; i++) {
-      PVertex *vertex = array_get(actual_vertex_array, i);
+      PVertex *vertex = array_get(vertex_array, i);
       glm_vec3_copy(normals[i], vertex->normal);
     }
 
     break;
   }
 
-  case cgltf_attribute_type_joints: {
-    vec4 joints[attribute->data->count];
-    ZERO(joints);
-    // pe_debug_accesor_type("Joints", attribute->data);
-    pe_loader_read_accessor(attribute->data, joints);
-    for (int i = 0; i < attribute->data->count; i++) {
-      PVertex *vertex = array_get(actual_vertex_array, i);
-      glm_vec4_copy(joints[i], vertex->joint);
-      // LOG("#### Vertex Joint attribute %f, %f , %f ,%f\n", vertex->joint[0],
-      //    vertex->joint[1], vertex->joint[2], vertex->joint[3]);
-    }
-    // LOG("##### Joint load\n");
 
-    break;
-  }
-
-  case cgltf_attribute_type_weights: {
-    vec4 weights[attribute->data->count];
-    ZERO(weights);
-
-    // pe_debug_accesor_type("Weight", attribute->data);
-
-    pe_loader_read_accessor(attribute->data, weights);
-
-    for (int i = 0; i < attribute->data->count; i++) {
-      PVertex *vertex = array_get(actual_vertex_array, i);
-      glm_vec4_copy(weights[i], vertex->weight);
-      // LOG("## Weight in vertex\n");
-      // LOG("Vertex weight %f %f %f %f\n", vertex->weight[0],
-      // vertex->weight[1],
-      //    vertex->weight[2], vertex->weight[3]);
-
-      // LOG("## Weights array\n");
-      // LOG("######array %f %f %f %f\n", weights[i][0], weights[i][1],
-      //     weights[i][2], weights[i][3]);
-    }
-
-    // LOG("##### Weighs load\n");
-    break;
-  }
 
   } // end switch
 
   if (attribute->data->has_min) {
 
-    glm_vec3_copy(attribute->data->min, selected_model->min);
+    //glm_vec3_copy(attribute->data->min, selected_model->min);
   }
   if (attribute->data->has_max) {
 
-    glm_vec3_copy(attribute->data->max, selected_model->max);
+    //glm_vec3_copy(attribute->data->max, selected_model->max);
   }
 }
 
-void pe_loader_mesh_load_primitive(cgltf_primitive *primitive) {
+void pe_loader_mesh_load_primitive(Array *vertex_array, Array *index_array,
+                                   cgltf_primitive *primitive) {
 
   for (int i = 0; i < primitive->attributes_count; i++) {
-    pe_loader_attribute(&primitive->attributes[i]);
+    pe_load_attribute(vertex_array, &primitive->attributes[i]);
   }
 
-  pe_loader_mesh_read_accessor_indices(primitive->indices);
+  pe_loader_mesh_read_accessor_indices(index_array, primitive->indices);
 }
 
-void pe_loader_mesh(cgltf_mesh *mesh) {
+void pe_load_mesh(PModel *model, cgltf_mesh *mesh) {
 
   for (int i = 0; i < mesh->primitives_count; i++) {
-    new_empty_model();
-    actual_vertex_array = &selected_model->vertex_array;
-    actual_index_array = &selected_model->index_array;
-    pe_loader_mesh_load_primitive(&mesh->primitives[i]);
-    // pe_th_exec_in(pe_th_render_id, &GPU_buffers_create_for_model,
-    //               selected_model);
-    GPU_buffers_create_for_model(selected_model);
-    while (!selected_model->gpu_ready) {
-    };
-    models_parsed++;
+    pe_loader_mesh_load_primitive(&model->vertex_array, &model->index_array,
+                                  &mesh->primitives[i]);
   }
+  
 }
 
-void check_LOD_names(cgltf_node *node) {
-  int node_name_size = strlen(node->name);
-  char name[node_name_size];
-  strcpy(name, node->name);
+int pe_node_load(PModel* model, cgltf_node *in_cgltf_node) {
 
-  for (int n = 0; n < node_name_size; n++) {
-    if (name[n] == '_') {
-      if (strcmp("LOD0", &name[n] + 1) == 0) {
-        LOG("Found LOD0\n");
-        break;
-      }
-      if (strcmp("LOD1", &name[n] + 1) == 0) {
-        LOG("Found LOD1\n");
-        break;
-      }
-
-      if (strcmp("LOD2", &name[n] + 1) == 0) {
-        LOG("Found LOD2\n");
-        break;
-      }
-    }
-  }
-}
-
-void load_current_sampler_to_channel(AnimationChannel *channel) {
-  AnimationSampler sampler;
-  memset(&sampler, 0, sizeof(AnimationSampler));
-  array_init(&sampler.inputs, sizeof(float), current_sampler->input->count);
-
-  current_array = &sampler.inputs;
-
-  float inputs[current_sampler->input->count];
-  pe_loader_read_accessor(current_sampler->input, inputs);
-
-  if (channel->path_type == PATH_TYPE_ROTATION) {
-    array_init(&sampler.outputs, sizeof(float) * 4,
-               current_sampler->output->count);
-    vec4 outputs[current_sampler->output->count];
-    pe_loader_read_accessor(current_sampler->output, outputs);
-    memcpy(sampler.outputs.data, outputs, sizeof(outputs));
-  } else if (channel->path_type == PATH_TYPE_TRANSLATION) {
-    vec3 outputs[current_sampler->output->count];
-    array_init(&sampler.outputs, sizeof(float) * 3,
-               current_sampler->output->count);
-    pe_loader_read_accessor(current_sampler->output, outputs);
-    memcpy(sampler.outputs.data, outputs, sizeof(outputs));
-  }
-
-  sampler.outputs.count = current_sampler->output->count;
-  current_array = NULL;
-  memcpy(&channel->sampler, &sampler, sizeof(AnimationSampler));
-}
-
-void load_current_channel_to_animation(Animation *animation) {
-  AnimationChannel channel;
-  memset(&channel, 0, sizeof(AnimationChannel));
-  channel.node = pe_node_by_name(&pe_curr_skin_loading->joints,
-                                 current_channel->target_node->name);
-  switch (current_channel->target_path) {
-  case cgltf_animation_path_type_rotation:
-    channel.path_type = PATH_TYPE_ROTATION;
-    break;
-  case cgltf_animation_path_type_translation:
-    channel.path_type = PATH_TYPE_TRANSLATION;
-    break;
-
-  default:
-    break;
-  }
-
-  current_sampler = current_channel->sampler;
-  load_current_sampler_to_channel(&channel);
-
-  array_add(&animation->channels, &channel);
-}
-
-void load_current_animation() {
-  Animation new_animation;
-  memset(&new_animation, 0, sizeof(Animation));
-  strcpy(new_animation.name, current_animation->name);
-  LOG("Loading animation: %s\n", current_animation->name);
-  array_init(&new_animation.channels, sizeof(AnimationChannel),
-             current_animation->channels_count);
-  for (int i = 0; i < current_animation->channels_count; i++) {
-    current_channel = &current_animation->channels[i];
-    load_current_channel_to_animation(&new_animation);
-  }
-
-  float max = 0;
-  for (int i = 0; i < new_animation.channels.count; i++) {
-    AnimationChannel *channel = array_get(&new_animation.channels, i);
-    float *max_from_channel =
-        array_get(&channel->sampler.inputs, channel->sampler.inputs.count - 1);
-    if (*max_from_channel > max) {
-      max = *max_from_channel;
-    }
-  }
-  new_animation.end = max;
-
-  array_add(&pe_curr_skin_loading->animations, &new_animation);
-}
-
-int pe_node_load(Node *parent, cgltf_node *in_cgltf_node) {
-
-  if (copy_nodes) {
-    if (nodes_counter > 1) {
-
-      Node new_node;
-      ZERO(new_node);
-
-      if (in_cgltf_node->parent && parent != NULL) {
-        new_node.parent = parent;
-      }
-
-      strcpy(new_node.name, in_cgltf_node->name);
-
-      glm_vec3_copy(in_cgltf_node->translation, new_node.translation);
-      // glm_vec4_copy(new_node.rotation, in_cgltf_node->rotation);
-
-      array_add(&pe_curr_skin_loading->joints, &new_node);
-    }
-    nodes_counter++;
-  }
 
   if (in_cgltf_node->mesh == NULL) {
 
@@ -401,48 +194,26 @@ int pe_node_load(Node *parent, cgltf_node *in_cgltf_node) {
   }
 
   if (in_cgltf_node->mesh != NULL) {
-    // LOG("Loading GLTF mesh\n");
+    LOG("Loading GLTF mesh\n");
     // check_LOD_names(in_cgltf_node);
-    pe_loader_mesh(in_cgltf_node->mesh);
+    pe_load_mesh(model, in_cgltf_node->mesh);
   }
 
   if (in_cgltf_node->skin != NULL) {
-    current_loaded_component_type = COMPONENT_SKINNED_MESH;
-    // pe_debug_accesor_type("Inverse bind matrix",
-    //                       in_cgltf_node->skin->inverse_bind_matrices);
 
-    // LOG("Inverse bind matrix count %i\n",
-    //     in_cgltf_node->skin->inverse_bind_matrices->count);
-
-    int inverse_bind_matrices_count =
-        in_cgltf_node->skin->inverse_bind_matrices->count;
-
-    array_init(&pe_curr_skin_loading->inverse_bind_matrices, sizeof(mat4),
-               inverse_bind_matrices_count);
-
-    array_resize(&pe_curr_skin_loading->inverse_bind_matrices,
-                 inverse_bind_matrices_count);
-
-    pe_loader_read_accessor(in_cgltf_node->skin->inverse_bind_matrices,
-                            pe_curr_skin_loading->inverse_bind_matrices.data);
   }
 
-  Node *loaded_parent = NULL;
-
-  if (pe_curr_skin_loading) {
-    loaded_parent = array_pop(&pe_curr_skin_loading->joints);
-  }
 
   if (in_cgltf_node->children_count == 0 && in_cgltf_node->mesh == NULL) {
     return 1;
   }
 
   for (int i = 0; i < in_cgltf_node->children_count; i++) {
-    pe_node_load(loaded_parent, in_cgltf_node->children[i]);
+    pe_node_load(model, in_cgltf_node->children[i]);
   }
 }
 
-cgltf_result pe_loader_model_from_memory(void *gltf_data, u32 size,
+cgltf_result pe_loader_model_from_memory(PModel* model, void *gltf_data, u32 size,
                                          const char *path) {
   cgltf_options options = {0};
   cgltf_data *data = NULL;
@@ -461,43 +232,20 @@ cgltf_result pe_loader_model_from_memory(void *gltf_data, u32 size,
     return cgltf_result_invalid_options;
   }
 
-  current_loaded_component_type = STATIC_MESH_COMPONENT;
 
   if (data->skins_count >= 1) {
-    PSkinnedMeshComponent skin;
-    ZERO(skin);
-    LOG("Creating skin mesh joints\n");
 
-    array_init(&skin.joints, sizeof(Node), data->nodes_count);
-    // ZERO(skin.joints.data);
-
-    LOG("nodes count: %zu \n", data->nodes_count);
-
-    array_add(&pe_arr_skin_loaded, &skin);
-    pe_curr_skin_loading = array_pop(&pe_arr_skin_loaded);
-
-    copy_nodes = true;
-    current_loaded_component_type = COMPONENT_SKINNED_MESH;
   }
 
   //  LOG("******************Loading nodes");
 
   for (int i = 0; i < data->scene->nodes_count; i++) {
-    pe_node_load(NULL, data->scene->nodes[i]);
+    pe_node_load(model, data->scene->nodes[i]);
   }
 
-  /* NULL vertex/index array because not needed anymore */
-  actual_vertex_array = NULL;
-  actual_index_array = NULL;
 
   if (data->animations_count >= 1) {
-    LOG("Loding animation\n");
-    array_init(&pe_curr_skin_loading->animations, sizeof(Animation),
-               data->animations_count);
-    for (int i = 0; i < data->animations_count; i++) {
-      current_animation = &data->animations[i];
-      load_current_animation();
-    }
+
   }
 
   cgltf_free(data);
@@ -506,26 +254,47 @@ cgltf_result pe_loader_model_from_memory(void *gltf_data, u32 size,
   return result;
 }
 
-PModel *pe_vk_model_load(char *path) {
+PModel *pe_vk_load_model(PModel* model, const char *path) {
 
-  actual_model_array = &array_models_loaded;
-  pe_loader_model(path);
-  PModel *model = selected_model;
-#ifdef LINUX
-  model->vertex_buffer =
-      pe_vk_vertex_create_buffer(&selected_model->vertex_array);
-  model->index_buffer =
-      pe_vk_vertex_create_index_buffer(&selected_model->index_array);
-#endif
+  pe_load_model_path(model, path);
+
+  model->vertex_buffer = pe_vk_create_buffer(model->vertex_array.bytes_size,
+                                             model->vertex_array.data,
+                                             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+  model->index_buffer = pe_vk_create_buffer(model->index_array.bytes_size,
+                                            model->index_array.data,
+                                            VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+
+  pe_vk_create_uniform_buffers(model);
+  pe_vk_descriptor_pool_create(model);
+ 
+  //init model matrix
+  glm_mat4_identity(model->model_mat);
+  //setup Uniform Buffer Object
+  glm_mat4_copy(model->model_mat,model->uniform_buffer_object.model);
+  glm_mat4_copy(main_camera.projection, model->uniform_buffer_object.projection);
+  glm_mat4_copy(main_camera.view, model->uniform_buffer_object.view);
+
   return model;
 }
 
-/*
- Load model from gltf and can used by "selected_model"
- pointer, return count of models loaded
-*/
+void pe_clean_model(PModel* model){
+  for(int i = 0; i < model->uniform_buffers_memory.count; i++){
+    VkDeviceMemory* memory = array_get(&model->uniform_buffers_memory, i);
+    //printf("Freeying uniform buffermemory %p\n", *memory);
+    vkFreeMemory(vk_device, *memory, NULL);
+  }
 
-int pe_loader_model(const char *path) {
+  vkDestroyDescriptorPool(vk_device, model->descriptor_pool, NULL);
+
+  pe_vk_clean_shader(&model->shader);
+
+  vkFreeMemory(vk_device,model->index_buffer.memory, NULL); 
+  vkFreeMemory(vk_device,model->vertex_buffer.memory, NULL); 
+
+}
+
+int pe_load_model_path(PModel* model, const char *path) {
   File new_file;
 
   if (load_file(path, &new_file) == -1) {
@@ -534,7 +303,7 @@ int pe_loader_model(const char *path) {
   }
 
   cgltf_result result =
-      pe_loader_model_from_memory(new_file.data, new_file.size_in_bytes, path);
+      pe_loader_model_from_memory(model, new_file.data, new_file.size_in_bytes, path);
 
   if (result != cgltf_result_success) {
     LOG("Model no loaded: %s \n", new_file.path);
@@ -549,8 +318,5 @@ int pe_loader_model(const char *path) {
 
   // LOG("glTF2 loaded: %s. \n",path);
 
-  int model_result = models_parsed;
-  models_parsed = 0;
-  nodes_counter = 0;
-  return model_result;
+  return 1;//TODO
 }

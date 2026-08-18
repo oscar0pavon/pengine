@@ -132,7 +132,7 @@ void pe_shader_new(PEShaderCreation *creation) {
 }
 
 void pe_shader_create(PEShaderCreation* creation){
-    creation->model->shader =
+    creation->model->shader_id =
         create_engine_shader(creation->vertex, creation->pixel);
     thread_main.wait = false;
     LOG("shader created\n");

@@ -1,5 +1,6 @@
 #include "LOD_system.h"
 #include "../engine/engine.h"
+#include "engine/camera.h"
 void LOD_system_calculate_AABB_on_screen(StaticMeshComponent* mesh_component, vec2 box[2], vec2 center){
     mat4 projection_view;
     glm_mul(main_camera.projection,main_camera.view,projection_view);
@@ -24,13 +25,13 @@ void LOD_system_calculate_AABB_on_screen(StaticMeshComponent* mesh_component, ve
     max_mat[3][0] = ( (max_mat[3][0] + 1.f) / 2.f ) * camera_width_screen;
     
     
-    min_mat[3][1] = ( (1.f - min_mat[3][1]) / 2.f ) * camera_heigth_screen;
-    max_mat[3][1] = ( (1.f - max_mat[3][1]) / 2.f ) * camera_heigth_screen;
+    min_mat[3][1] = ( (1.f - min_mat[3][1]) / 2.f ) * camera_height_screen;
+    max_mat[3][1] = ( (1.f - max_mat[3][1]) / 2.f ) * camera_height_screen;
 
 
         //Center
     center_mat[3][0] = ( (center_mat[3][0] + 1.f) / 2.f ) * camera_width_screen;
-    center_mat[3][1] = ( (1.f - center_mat[3][1]) / 2.f ) * camera_heigth_screen;
+    center_mat[3][1] = ( (1.f - center_mat[3][1]) / 2.f ) * camera_height_screen;
 
 
 
@@ -58,7 +59,7 @@ void LOD_check_distance_static_mesh_component_and_add_to_draw_elements(StaticMes
     PModel* model = array_get(actual_model_array,0);
     if(!model)
         return;
-    new_draw.shader = model->shader;
+    new_draw.shader = model->shader_id;
     //draw_two_dimention_element(&new_draw,center,(vec2){20,20},(vec4){1,0,0,1});
     
     float distaces[3] = {0,24,40};

@@ -1,4 +1,5 @@
 #include "window_manager.h"
+#include "engine/camera.h"
 #include <X11/X.h>
 #include <engine/log.h>
 
@@ -245,7 +246,7 @@ void pe_wm_create_x11_window(){
     
     glEnable(GL_DEPTH_TEST); 
 
-    camera_heigth_screen = INIT_WINDOW_SIZE_Y;
+    camera_height_screen = INIT_WINDOW_SIZE_Y;
     camera_width_screen = INIT_WINDOW_SIZE_X;
     window_update_viewport(INIT_WINDOW_SIZE_X, INIT_WINDOW_SIZE_Y);
 }

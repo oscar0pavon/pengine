@@ -26,7 +26,6 @@ void pe_init_memory();
 void* allocate_memory(int size);
 void clear_engine_memory();
 void engine_memory_free_to_marker(int);
-void* engine_memory;
 
 int engine_memory_mark();
 
@@ -35,17 +34,17 @@ void free_stack_to_market(StackMemory* stack);
 
 void* allocate_stack_memory_alignmed(int bytes_size, int alignment);
 
-int memory_used;
-int memory_marker;
-int previous_marker;
+extern int memory_used;
+extern int memory_marker;
+extern int previous_marker;
+extern int actual_free_memory;
 
-int actual_free_memory;
+extern void* engine_memory;
 
 
+extern StackMemory vertex_memory;
+extern StackMemory engine_stack_memory;
 
-StackMemory vertex_memory;
-StackMemory engine_stack_memory;
-
-PoolMemory arrays_memory;
+extern PoolMemory arrays_memory;
 
 #endif

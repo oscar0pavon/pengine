@@ -6,10 +6,12 @@
 #endif 
 
 #ifdef VULKAN
-	#include <engine/renderer/vulkan/vulkan.h>
+	#include <engine/renderer/vulkan.h>
 #endif
 
 #include "render_thread.h"
 #include "material.h"
+
+bool is_drm_rendering;
 
 #endif

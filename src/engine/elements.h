@@ -11,9 +11,6 @@ typedef struct Element{
     bool selected;
     Array components;
     TransformComponent* transform;
-    #ifdef EDITOR
-    ElementEditorData editor_data;
-    #endif
 }Element;
 
 void pe_element_set_material(PMaterial material);
