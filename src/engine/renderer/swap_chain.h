@@ -12,10 +12,16 @@ extern VkSwapchainKHR pe_vk_swap_chain;
 extern VkFormat pe_vk_swch_format;
 extern VkExtent2D pe_vk_swch_extent;
 
+//INFO minImageCount is a floor, not the answer: the driver is free to hand
+//back more images than were asked for, and vkAcquireNextImageKHR then returns
+//indices up to its own count. these arrays have to hold whatever it made
+#define PE_VK_MAX_SWAPCHAIN_IMAGES 8
+
+//how many images the swapchain actually has, not how many were requested
 extern u32 pe_vk_swapchain_image_count;
 
-extern VkImage pe_vk_swch_images[4];
-extern PTexture pe_vk_exportable_images[4];
-extern int pe_vk_exportable_images_id[4];
+extern VkImage pe_vk_swch_images[PE_VK_MAX_SWAPCHAIN_IMAGES];
+extern PTexture pe_vk_exportable_images[PE_VK_MAX_SWAPCHAIN_IMAGES];
+extern int pe_vk_exportable_images_id[PE_VK_MAX_SWAPCHAIN_IMAGES];
 
 #endif

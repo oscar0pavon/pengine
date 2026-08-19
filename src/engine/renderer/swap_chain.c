@@ -26,9 +26,9 @@ VkExtent2D pe_vk_swch_extent;
 u32 pe_vk_swapchain_image_count;
 
 //TODO we use four images buffer we can use less
-VkImage pe_vk_swch_images[4];
-PTexture pe_vk_exportable_images[4];
-int pe_vk_exportable_images_id[4];
+VkImage pe_vk_swch_images[PE_VK_MAX_SWAPCHAIN_IMAGES];
+PTexture pe_vk_exportable_images[PE_VK_MAX_SWAPCHAIN_IMAGES];
+int pe_vk_exportable_images_id[PE_VK_MAX_SWAPCHAIN_IMAGES];
 
 typedef struct PSupportDetails {
   VkSurfaceCapabilitiesKHR capabilities;
@@ -148,7 +148,7 @@ void pe_vk_create_swapchain() {
   LOG("Swap chain extent %i, %i\n", pe_vk_swch_extent.width,
       pe_vk_swch_extent.height);
   
-  u32 getting_images_count;
+  u32 getting_images_count = 0;
   
   VKVALID(
       vkGetSwapchainImagesKHR(vk_device, pe_vk_swap_chain, &getting_images_count, NULL),
@@ -156,9 +156,23 @@ void pe_vk_create_swapchain() {
 
   printf("Getting %i swapchain images\n", getting_images_count);
 
+  //the count the driver reports is what the second call writes, and it is not
+  //the minImageCount asked for above - mesa gave 5 here for a requested 4. it
+  //used to be written straight into a four element array, and the two bytes
+  //past the end were pe_vk_swap_chain itself: the handle was overwritten with
+  //an image the moment the swapchain was created, and the next acquire took
+  //the whole process down inside the driver
+  if (getting_images_count > PE_VK_MAX_SWAPCHAIN_IMAGES)
+    getting_images_count = PE_VK_MAX_SWAPCHAIN_IMAGES;
+
   VKVALID(vkGetSwapchainImagesKHR(vk_device, pe_vk_swap_chain, &getting_images_count,
                                   pe_vk_swch_images),
           "Cant't get images from swapchain");
+
+  //everything sized per swapchain image - the image views, the descriptor
+  //pool, the uniform buffers - counts from here, so it has to be the number
+  //that exist rather than the number requested
+  pe_vk_swapchain_image_count = getting_images_count;
 
   if (pe_vk_swch_images[0] == VK_NULL_HANDLE) {
     printf("Swapchain image not valid");
