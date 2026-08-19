@@ -25,9 +25,11 @@ void pe_init() {
   LOG("pengine initialized\n");
 
  
+  //INFO one window, made here. the pway_create_window("peditor") that used to
+  //follow had no prototype in scope - pway.h is included by window_manager.c
+  //and nothing else - so it passed whatever happened to be in the width and
+  //height registers as the size
   pe_create_window();
-
-  pway_create_window("peditor");
 
   //pe_wm_create_x11_window();
   //pe_init_x11_keys();//after window creation

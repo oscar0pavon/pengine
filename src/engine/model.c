@@ -142,7 +142,7 @@ void pe_load_attribute(Array* vertex_array, cgltf_attribute *attribute) {
     vec3 normals[attribute->data->count];
     ZERO(normals);
 
-    //pe_loader_read_accessor(attribute->data, normals);TODO normals
+    pe_loader_read_accessor(vertex_array, attribute->data, (float *)normals);
 
     for (int i = 0; i < attribute->data->count; i++) {
       PVertex *vertex = array_get(vertex_array, i);
@@ -166,14 +166,68 @@ void pe_load_attribute(Array* vertex_array, cgltf_attribute *attribute) {
   }
 }
 
+//the accessor decides whether an index is one, two or four bytes wide
+static u32 pe_loader_index_at(Array *index_array, u32 position) {
+  u32 index = 0;
+  memcpy(&index, array_get(index_array, position),
+         index_array->element_bytes_size);
+  return index;
+}
+
+//INFO NORMAL is optional in gltf, and a file without it asks the client to
+//calculate flat normals. cube.glb - the chess board, and every square copied
+//from it - carries only POSITION and TEXCOORD_0, so without this the normals
+//stay zero, normalize() in the fragment shader answers NaN and the board draws
+//solid black
+static void pe_loader_flat_normals(Array *vertex_array, Array *index_array) {
+
+  if (vertex_array->count == 0 || index_array->count < 3)
+    return;
+
+  for (u32 i = 0; i + 2 < index_array->count; i += 3) {
+
+    u32 index[3];
+    for (int corner = 0; corner < 3; corner++)
+      index[corner] = pe_loader_index_at(index_array, i + corner);
+
+    if (index[0] >= vertex_array->count || index[1] >= vertex_array->count ||
+        index[2] >= vertex_array->count)
+      continue;
+
+    PVertex *corner[3];
+    for (int c = 0; c < 3; c++)
+      corner[c] = array_get(vertex_array, index[c]);
+
+    vec3 edge1, edge2, normal;
+    glm_vec3_sub(corner[1]->position, corner[0]->position, edge1);
+    glm_vec3_sub(corner[2]->position, corner[0]->position, edge2);
+    glm_vec3_cross(edge1, edge2, normal);
+
+    if (glm_vec3_norm(normal) == 0)
+      continue;
+
+    glm_vec3_normalize(normal);
+
+    for (int c = 0; c < 3; c++)
+      glm_vec3_copy(normal, corner[c]->normal);
+  }
+}
+
 void pe_loader_mesh_load_primitive(Array *vertex_array, Array *index_array,
                                    cgltf_primitive *primitive) {
 
+  bool has_normals = false;
+
   for (int i = 0; i < primitive->attributes_count; i++) {
+    if (primitive->attributes[i].type == cgltf_attribute_type_normal)
+      has_normals = true;
     pe_load_attribute(vertex_array, &primitive->attributes[i]);
   }
 
   pe_loader_mesh_read_accessor_indices(index_array, primitive->indices);
+
+  if (!has_normals)
+    pe_loader_flat_normals(vertex_array, index_array);
 }
 
 void pe_load_mesh(PModel *model, cgltf_mesh *mesh) {

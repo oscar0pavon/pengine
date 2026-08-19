@@ -210,8 +210,21 @@ void pe_create_window(){
 
   pway = pway_init();
 
-  pway_create_window("peditor", 1280, 720);
+  pway_create_window("peditor", INIT_WINDOW_SIZE_X, INIT_WINDOW_SIZE_Y);
   pway_init_egl();
+
+  //INFO the camera aspect, the 2D projection and the viewport all read these,
+  //so they come from the window rather than from a constant repeated here. pway
+  //reports the size that was asked for and does not yet follow the compositor's
+  //configure, so a compositor that hands out a different size still gets a
+  //frame drawn for the requested one
+  pe_window_width = pway->width;
+  pe_window_height = pway->height;
+
+  actual_window_width = pway->width;
+  actual_window_height = pway->height;
+
+  window_update_viewport(pway->width, pway->height);
 }
 
 void pe_wm_create_x11_window(){

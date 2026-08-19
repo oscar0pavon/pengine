@@ -82,9 +82,12 @@ void GPU_buffers_create_for_model(PModel *model) {
   glBufferData(GL_ARRAY_BUFFER, vertex_array->count * sizeof(PVertex),
                vertex_array->data, GL_STATIC_DRAW);
 
+  //INFO the index element size is whatever the gltf accessor used - u8, u16 or
+  //u32 - so count * sizeof(u8) uploaded a quarter of a 32 bit index buffer and
+  //half of the u16 one every chess piece has. bytes_size is what the array holds
   glGenBuffers(1, &model->index_buffer_id);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, model->index_buffer_id);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, index_array->count * sizeof(u8),
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, index_array->bytes_size,
                index_array->data, GL_STATIC_DRAW);
 
   model->gpu_ready = true;

@@ -118,6 +118,17 @@ GLuint create_engine_shader(GLuint vertex, GLuint fragment) {
     GLuint new_shader = glCreateProgram();
     glAttachShader(new_shader, vertex);
     glAttachShader(new_shader, fragment);
+
+    //INFO update_draw_vertices() feeds these four attributes by number, but
+    //GLSL ES 100 has no location qualifier, so the numbers were the driver's to
+    //choose. vColor is unused in std_vert, mesa dropped it, and everything below
+    //it shifted up - the normals were being read out of the color field, which
+    //is zero, so every lit surface came out black
+    glBindAttribLocation(new_shader, 0, "vPosition");
+    glBindAttribLocation(new_shader, 1, "vUV");
+    glBindAttribLocation(new_shader, 2, "vColor");
+    glBindAttribLocation(new_shader, 3, "vNormal");
+
     glLinkProgram(new_shader);
     pe_shader_get_error(new_shader, GL_LINK_STATUS, "Link status");
     glUseProgram(new_shader);

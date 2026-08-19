@@ -51,6 +51,12 @@ void pe_render_thread_init() {
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
+    //INFO the engine builds cglm with CGLM_FORCE_LEFT_HANDED, and a left handed
+    //projection mirrors handedness, so a triangle wound counter clockwise in the
+    //model comes out clockwise on screen. with GL's default GL_CCW the front of
+    //every surface was the face being culled - the chess board showed its
+    //underside and drew black
+    glFrontFace(GL_CW);
   }
 
 

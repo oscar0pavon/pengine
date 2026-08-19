@@ -5,6 +5,7 @@
 #include <cglm/types.h>
 #include "renderer/vulkan.h"
 #include "utils.h"
+#include "window_manager.h"
 //#include "window.h"
 bool first_camera_rotate = true;
 
@@ -43,7 +44,11 @@ void camera_init(Camera* camera){
                     5000.f, camera->projection);
 
 
-    camera->projection[1][1] *= -1;//In Vulkan the Z is up down
+    //INFO vulkan's clip space has +Y pointing down where GL has it pointing up,
+    //so this flip belongs to the vulkan renderer alone. applied unconditionally
+    //it turned every GL frame upside down
+    if (pe_renderer_type == PEWMVULKAN)
+      camera->projection[1][1] *= -1;
 }
 
 void camera_set_position(Camera* camera, vec3 position){

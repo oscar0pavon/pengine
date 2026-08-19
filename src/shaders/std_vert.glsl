@@ -13,7 +13,7 @@ varying vec3 Normal;
 
 void main()
 {
-//    FragPosition = vec3(uModel * vec4(vPosition,1));
+    FragPosition = vec3(uModel * vec4(vPosition,1));
     gl_Position = MVP * vec4(vPosition,1);
     v_TexCoord = vUV;
     Normal = vNormal;
