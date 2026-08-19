@@ -87,3 +87,4 @@ freetype
 ./freetype/*
 ./freetype/CMakeLists.txt ./freetype/LICENSE.TXT ./freetype/Makefile ./freetype/README ./freetype/README.git ./freetype/autogen.sh ./freetype/builds ./freetype/config.mk ./freetype/configure ./freetype/devel ./freetype/docs ./freetype/include ./freetype/meson.build ./freetype/meson_options.txt ./freetype/modules.cfg ./freetype/objs ./freetype/src ./freetype/subprojects ./freetype/tests ./freetype/vms_make.com
 token
+demos/chess/pchess

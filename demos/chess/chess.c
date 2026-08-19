@@ -1,9 +1,7 @@
 #include "chess.h"
-#include "ThirdParty/cglm/mat4.h"
 #include "engine/elements.h"
 #include "engine/game.h"
 #include "engine/window_manager.h"
-#include <editor/skeletal_editor.h>
 #include <engine/animation/node.h>
 #include <engine/shader.h>
 
