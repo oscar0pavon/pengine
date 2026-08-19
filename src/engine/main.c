@@ -31,7 +31,7 @@ void pe_main_loop() {
     
     game->update();
 
-    time_start();//frame time
+    start_delta_time();//frame time
 
     pe_frame_draw();
 
@@ -41,7 +41,7 @@ void pe_main_loop() {
       pe_wm_swap_buffers();
     }
 
-    time_end();
+    update_delta_time();
 
   }
 }

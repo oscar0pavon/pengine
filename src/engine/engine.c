@@ -217,6 +217,10 @@ void load_simple_image(const char *path) {
     return;
 }
 
+//INFO the loader takes the model to fill now instead of appending to
+//actual_model_array, so the element and its mesh component are built first and
+//the gltf is read straight into the model the component already points at.
+//pe_comp_add() built the component from the array's tail and does not fit that
 int add_element_with_model_path(const char *model_gltf_path) {
   if (model_gltf_path == NULL || model_gltf_path[0] == '\0') {
     LOG("Error to load, null path (add_editor_element)\n");
@@ -224,21 +228,43 @@ int add_element_with_model_path(const char *model_gltf_path) {
   }
 
   Array *prev_array = actual_model_array;
-  actual_model_array = &array_models_loaded;
 
-  // int models_loaded = pe_load_model_path(model_gltf_path);
-  // if (models_loaded == -1) {
-  //   LOG("No model loaded from pe_loader_model()");
-  //   return -1;
-  // } else {
-  //   LOG("********* %i Models loaded", models_loaded);
-  // }
-  // if (prev_array != NULL)
-  //   actual_model_array = prev_array;
-  //
-  // array_add(&pe_arr_models_paths, model_gltf_path); // needed for saved level
-  //
-  // pe_comp_add(models_loaded);
+  new_empty_element();
+
+  add_transform_component_to_selected_element();
+
+  //leaves the new model in selected_model and points models_p[0] at it
+  pe_comp_static_mesh_add_to_element();
+
+  if (pe_renderer_type == PEWMVULKAN) {
+    pe_vk_load_model(selected_model, model_gltf_path);
+  } else {
+    if (pe_load_model_path(selected_model, model_gltf_path) == -1) {
+      LOG("No model loaded from: %s\n", model_gltf_path);
+      actual_model_array = prev_array;
+      return -1;
+    }
+    GPU_buffers_create_for_model(selected_model);
+  }
+
+  //the loader fills the model's own arrays, but the draw path reads PModel.mesh
+  //- a view onto the same buffers, which is also what chess copies from one
+  //model to another to share a piece's geometry. nothing publishes it for us
+  selected_model->mesh.vertex_array = selected_model->vertex_array;
+  selected_model->mesh.index_array = selected_model->index_array;
+  selected_model->mesh.vertex_buffer_id = selected_model->vertex_buffer_id;
+  selected_model->mesh.index_buffer_id = selected_model->index_buffer_id;
+  selected_model->mesh.vertex_buffer = selected_model->vertex_buffer.buffer;
+  selected_model->mesh.index_buffer = selected_model->index_buffer.buffer;
+
+  array_add(&pe_arr_models_paths, model_gltf_path); // needed for saved level
+
+  pe_element_comp_init();
+
+  if (prev_array != NULL)
+    actual_model_array = prev_array;
+
+  return 0;
 }
 
 void set_element_position(Element *element, vec3 position) {
@@ -260,7 +286,9 @@ void load_model_to_array(Array *array, const char *path_model,
   Array *prev_model_array = actual_model_array;
   actual_model_array = array;
 
-  pe_loader_model(path_model);
+  new_empty_model();
+
+  pe_load_model_path(selected_model, path_model);
 
   selected_model->shader_id =
       create_engine_shader(standart_vertex_shader, standart_fragment_shader);

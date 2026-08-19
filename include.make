@@ -20,4 +20,8 @@ LIBC := /usr/lib/crt1.o /usr/lib/crti.o /usr/lib/libc.so /usr/lib/crtn.o -dynami
 WAYLAND_LIBS := -lEGL -lwayland-client -lwayland-egl
 WAYLAND_LIBS += -lxkbcommon
 
+#INFO libpengine.a calls into pway for the window and lodepng for image
+#decoding, so a program linking the engine needs both. they are here rather
+#than in each consumer's own link line
 LIBRARIES := $(WAYLAND_LIBS) -lvulkan -lm -lpthread -lfreetype -ldl -lX11 -lGL
+LIBRARIES += -lpway -llodepng

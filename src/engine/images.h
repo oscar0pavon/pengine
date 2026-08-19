@@ -36,6 +36,4 @@ int texture_load_from_memory(PTexture* texture,u32 size,void* data);
 
 int image_load_from_memory(PImage* image,void* data, u32 size);
 
-void pe_gpu_load_texture(PTexture* texture);
-
 #endif

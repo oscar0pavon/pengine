@@ -570,7 +570,19 @@ bool pe_vk_import_image(PTexture *new_texture, const PImageImportInfo *info) {
 void pe_vk_create_texture(PTexture* new_texture, const char* path) {
   PImage texture;
   ZERO(texture);
-  pe_load_image(path, &texture);
+  if (pe_load_image(path, &texture) == -1)
+    return;
+
+  pe_vk_create_texture_from_image(new_texture, &texture);
+
+  free_image(&texture);
+}
+
+//INFO the upload half of pe_vk_create_texture, split out so a texture that
+//arrives as bytes rather than a path can reach the same code. the PImage is
+//the caller's to free
+void pe_vk_create_texture_from_image(PTexture* new_texture, PImage* image) {
+  PImage texture = *image;
 
   // new_texture->mip_level =
   //     floor(log2(GLM_MAX(texture.width, texture.heigth))) + 1;
@@ -617,6 +629,4 @@ void pe_vk_create_texture(PTexture* new_texture, const char* path) {
   pe_vk_create_texture_sampler(new_texture);
 
   vkFreeMemory(vk_device, image_buffer.memory, NULL); // Clean the stagin buffer
-
-  free_image(&texture);
 }

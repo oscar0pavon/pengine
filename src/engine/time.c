@@ -17,8 +17,11 @@ PTime delta_time_counter;
 double delta_time;
 
 
-void start_frame_timer(PTime time) {
-    clock_gettime(CLOCK_MONOTONIC, &time);
+//INFO the timer struct is written through, not copied. taking it by value
+//recorded the start time into a local that died with the call, so every
+//interval measured from a zeroed start
+void start_frame_timer(PTime* time) {
+    clock_gettime(CLOCK_MONOTONIC, time);
 }
 
 static void delay_for_frame(PTime time) {
@@ -39,33 +42,33 @@ static void delay_for_frame(PTime time) {
     }
 }
 
-void calculate_delta_time(PTime last_frame_time) {
+void calculate_delta_time(PTime* last_frame_time) {
   PTime current_time;
   clock_gettime(CLOCK_MONOTONIC, &current_time);
   delta_time =
-      (double)(current_time.tv_sec - last_frame_time.tv_sec) +
-      (double)(current_time.tv_nsec - last_frame_time.tv_nsec) / NSEC_PER_SEC;
+      (double)(current_time.tv_sec - last_frame_time->tv_sec) +
+      (double)(current_time.tv_nsec - last_frame_time->tv_nsec) / NSEC_PER_SEC;
 
-  last_frame_time = current_time;
+  *last_frame_time = current_time;
 }
 
 void update_delta_time(){
-    calculate_delta_time(delta_time_counter);
+    calculate_delta_time(&delta_time_counter);
 }
 
 void start_delta_time(){
-    start_frame_timer(delta_time_counter);
+    start_frame_timer(&delta_time_counter);
 }
 
 void start_render_time(){
-    start_frame_timer(frame_start_time);
+    start_frame_timer(&frame_start_time);
 }
 void delay_render_time(){
     delay_for_frame(frame_start_time);
 }
 
 void start_input_time(){
-    start_frame_timer(frame_start_time_input);
+    start_frame_timer(&frame_start_time_input);
 }
 void delay_input_time(){
     delay_for_frame(frame_start_time_input);

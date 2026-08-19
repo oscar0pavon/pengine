@@ -13,7 +13,7 @@ void delay_input_time();
 void start_delta_time();
 void update_delta_time();
 
-void start_frame_timer(PTime time);
+void start_frame_timer(PTime* time);
 
 extern double delta_time;
 #endif
