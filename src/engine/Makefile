@@ -50,8 +50,14 @@ animation_objs := $(animation_src:%.c=%.o)
 ALL_OBJS := $(OBJS) $(components_objs) $(opengl_obj) $(renderer_objs) $(animation_objs) ./Collision/collision.o ../ThirdParty/parson.o $(vulkan_objs)
 
 
+#INFO built from scratch, from $^ alone, with full path member names. *.o
+#passed every top level object a second time, and ar names members by basename,
+#so ./shader.o and ./renderer/opengl/shader.o both wanted to be "shader.o" -
+#one of the two silently lost, and edits to the opengl one stopped reaching the
+#library. P keeps the paths apart
 libpengine.a: $(ALL_OBJS)
-	ar rcs $(WORKDIR)/lib/libpengine.a *.o $^
+	rm -f $(WORKDIR)/lib/libpengine.a
+	ar rcsP $(WORKDIR)/lib/libpengine.a $^
 
 
 clean:
