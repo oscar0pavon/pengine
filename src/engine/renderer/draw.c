@@ -17,6 +17,8 @@
 
 #include "engine/renderer/renderer.h"
 
+void (*pe_vk_draw_scene)(VkCommandBuffer *cmd_buffer, uint32_t index) = NULL;
+
 #include "descriptor_set.h"
 
 void pe_vk_draw_model(PDrawModelCommand *draw_model) {
@@ -79,7 +81,8 @@ void pe_vk_draw_commands(VkCommandBuffer *cmd_buffer, uint32_t index) {
 
   // TODO draw objets here
 
-  swordfish_draw_scene(cmd_buffer,index);
+  if (pe_vk_draw_scene)
+    pe_vk_draw_scene(cmd_buffer, index);
 }
 
 void pe_vk_draw_frame() {

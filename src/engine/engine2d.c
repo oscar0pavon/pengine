@@ -21,7 +21,8 @@ mat4 orthogonal_projection;
 void pe_2d_init(){
   
 
-  glm_ortho(0, WINDOW_WIDTH, 0, WINDOW_HEIGHT, 0.1f, 1000.f, orthogonal_projection);
+  glm_ortho(0, pe_window_width, 0, pe_window_height, 0.1f, 1000.f,
+            orthogonal_projection);
 
   
 }

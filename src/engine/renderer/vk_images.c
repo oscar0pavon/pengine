@@ -465,9 +465,12 @@ void pe_vk_create_depth_resources() {
 }
 
 void pe_vk_clean_image(PTexture* image){
-  
-  vkDestroyImage(vk_device, image->image, NULL);
+
+  //the view first: an image cannot be destroyed while a view of it still
+  //exists, and doing it the other way round is what the validation layer
+  //reports as "can't be called on VkImage ... currently in use by VkImageView"
   vkDestroyImageView(vk_device, image->image_view, NULL);
+  vkDestroyImage(vk_device, image->image, NULL);
   if(image->sampler != VK_NULL_HANDLE) {
     vkDestroySampler(vk_device, image->sampler, NULL);
   }
@@ -493,42 +496,75 @@ void pe_vk_create_exportable_images(){
   }
 }
 
-void pe_vk_import_image(PTexture *new_texture, uint32_t witdh, uint32_t height,
-                        uint32_t file_descriptor, uint64_t modifier) {
+bool pe_vk_import_image(PTexture *new_texture, const PImageImportInfo *info) {
 
-  VkFormat format = VK_FORMAT_B8G8R8A8_UNORM;
-
-  //format = find_compatible_external_format(vk_physical_device);
+  if (info->plane_count == 0 || info->plane_count > PE_MAX_IMAGE_PLANES) {
+    printf("Import: bad plane count %u\n", info->plane_count);
+    return false;
+  }
 
   new_texture->mip_level = 1;
-  VkImageDrmFormatModifierListCreateInfoEXT modifier_list_info = {
-      .sType = VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_LIST_CREATE_INFO_EXT,
+
+  //the exporter's layout, plane by plane. the LIST form of this struct lets
+  //vulkan choose a layout of its own, which is right for an image vulkan
+  //allocates and wrong for one that already exists somewhere else - the client
+  //hands us a row pitch of its own choosing (mesa rounds 800 pixels up to 3328
+  //bytes, not 3200) and reading it back at vulkan's guess skews every row
+  VkSubresourceLayout plane_layouts[PE_MAX_IMAGE_PLANES] = {0};
+
+  for (uint32_t i = 0; i < info->plane_count; i++) {
+    plane_layouts[i].offset = info->offsets[i];
+    plane_layouts[i].rowPitch = info->strides[i];
+  }
+
+  VkImageDrmFormatModifierExplicitCreateInfoEXT modifier_info = {
+      .sType =
+          VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_EXPLICIT_CREATE_INFO_EXT,
       .pNext = NULL,
-      .drmFormatModifierCount = 1,
-      .pDrmFormatModifiers = &modifier,
+      .drmFormatModifier = info->modifier,
+      .drmFormatModifierPlaneCount = info->plane_count,
+      .pPlaneLayouts = plane_layouts,
   };
 
   PImageCreateInfo image_create_info = {
       .is_exportable = false,
       .is_importable = true,
-      .width = witdh,
-      .height = height,
+      .width = info->width,
+      .height = info->height,
       .texture = new_texture,
-      .format = format,
+      .format = info->format,
       .tiling = VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT,
       .usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
       .properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
       .number_of_samples = VK_SAMPLE_COUNT_1_BIT,
-      .import.file_descriptor = file_descriptor, 
-      .pNext = &modifier_list_info};
+      .import.file_descriptor = info->file_descriptor,
+      .pNext = &modifier_info};
 
   pe_vk_create_image(&image_create_info);
 
   pe_vk_create_texture_sampler(new_texture);
 
-  new_texture->image_view = pe_vk_create_image_view(new_texture->image, format,
-                                                    VK_IMAGE_ASPECT_COLOR_BIT,
-                                                    new_texture->mip_level);
+  VkImageViewCreateInfo view_info = {
+      .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+      .image = new_texture->image,
+      .viewType = VK_IMAGE_VIEW_TYPE_2D,
+      .format = info->format,
+      .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+      .subresourceRange.baseMipLevel = 0,
+      .subresourceRange.levelCount = new_texture->mip_level,
+      .subresourceRange.baseArrayLayer = 0,
+      .subresourceRange.layerCount = 1};
+
+  //an X format leaves the fourth byte undefined, so whatever the client left
+  //there would come back as alpha and the quad blends with it
+  if (info->opaque)
+    view_info.components.a = VK_COMPONENT_SWIZZLE_ONE;
+
+  VKVALID(vkCreateImageView(vk_device, &view_info, NULL,
+                            &new_texture->image_view),
+          "Can't create image view for imported buffer");
+
+  return true;
 }
 
 void pe_vk_create_texture(PTexture* new_texture, const char* path) {

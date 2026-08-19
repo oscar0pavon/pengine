@@ -45,7 +45,12 @@ void array_remove_element(Array *array, void *pointer) {
   char original_data[array->bytes_size];
   Array original_array;
   memcpy(&original_array, array, sizeof(Array));
-  memcpy(&original_data, array->data, sizeof(array->bytes_size));
+  //sizeof(array->bytes_size) is 4 - the size of the u32 field, not the size it
+  //holds. every element past the first four bytes was copied out of
+  //uninitialised stack, so removing one element filled the array with garbage
+  //pointers. tasks_for_draw is an array of Task*, so a client disconnecting
+  //left the render loop dereferencing stack noise
+  memcpy(&original_data, array->data, array->bytes_size);
 
   original_array.data = &original_data;
 

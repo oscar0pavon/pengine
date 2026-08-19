@@ -18,9 +18,12 @@ bool move_camera_input;
 
 float camera_rotate_angle;
 
+CameraComponent saved_camera;
+CameraComponent main_camera;
+
 void camera_init(Camera* camera){
-    camera_width_screen = WINDOW_WIDTH;
-    camera_height_screen = WINDOW_HEIGHT;
+    camera_width_screen = pe_window_width;
+    camera_height_screen = pe_window_height;
 
     camera_rotate_angle = 0;
 

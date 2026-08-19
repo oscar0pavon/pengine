@@ -94,8 +94,8 @@ pe_vk_swch_choose_extent(const VkSurfaceCapabilitiesKHR *capabilities) {
       current.width = 1920;
       current.height = 1080;
     } else {
-      current.width = WINDOW_WIDTH;
-      current.height = WINDOW_HEIGHT;
+      current.width = pe_window_width;
+      current.height = pe_window_height;
     }
     return current;
   }

@@ -8,9 +8,7 @@
 #include <cglm/cglm.h>
 #include "engine/components/components.h"
 #include "renderer/vulkan.h"
-
-#define WINDOW_HEIGHT 720
-#define WINDOW_WIDTH 1280
+#include "renderer/renderer.h"
 
 void camera_rotate_control(float yaw, float pitch);
 void camera_init(Camera* camera);
@@ -31,7 +29,7 @@ extern float camera_rotate_angle;
 
 void pe_camera_look_at(Camera* camera, vec3 position);
 
-CameraComponent saved_camera;
-CameraComponent main_camera;
+extern CameraComponent saved_camera;
+extern CameraComponent main_camera;
 
 #endif //CAMERA_H

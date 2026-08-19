@@ -8,6 +8,10 @@ CFLAGS := -g -fPIC -Wno-switch -Wno-implicit-function-declaration -Wno-int-conve
 CINCLUDES := -I$(WORKDIR)/src -I/usr/include/freetype2 -I/usr/local/include
 
 GLOBAL_DEFINE := -D OPENGL_ES2 -D LINUX -D DESKTOP -D VULKAN -D DEBUG -D EDITOR
+#INFO the vulkan renderer expects a 0..1 depth range and a left handed world.
+#swordfish built engine/ and renderer/ with these two and nothing else with
+#them, so they have to be here or every projection matrix comes out different
+GLOBAL_DEFINE += -DCGLM_FORCE_DEPTH_ZERO_TO_ONE -DCGLM_FORCE_LEFT_HANDED
 
 COMPILE := $(CC) $(CFLAGS) $(GLOBAL_DEFINE) $(CINCLUDES)
 

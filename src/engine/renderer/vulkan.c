@@ -36,6 +36,12 @@
 VkInstance vk_instance;
 VkDevice vk_device;
 
+bool is_drm_rendering = false;
+bool is_wayland_window = false;
+
+uint32_t pe_window_width = 1280;
+uint32_t pe_window_height = 720;
+
 
 VkRenderPass pe_vk_render_pass;
 

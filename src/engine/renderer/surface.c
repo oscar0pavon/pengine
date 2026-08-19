@@ -3,7 +3,7 @@
 #include "vulkan.h"
 #include "vk_images.h"
 #include "swap_chain.h"
-//#include "../window.h"
+#include "renderer.h"
 
 #include <pway/pway.h>
 
@@ -22,8 +22,8 @@ void pe_vk_create_surface() {
   //pway owns the wl_surface, vulkan just renders into it. no EGL context is
   //created, the raw wayland objects are all this needs. the other path is
   //is_drm_rendering, which has no surface at all
-  // if (!is_wayland_window)
-  //   return;
+  if (!is_wayland_window)
+    return;
 
   VkWaylandSurfaceCreateInfoKHR surface_create_info = {
       .sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR,
