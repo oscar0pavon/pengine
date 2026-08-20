@@ -60,6 +60,21 @@ void pe_vk_clean_image(PTexture* image);
 void pe_vk_create_image(PImageCreateInfo *info);
 void pe_vk_create_depth_resources();
 
+//the three halves of pe_vk_create_texture_from_image, declared so a caller that
+//has pixels of its own - a wl_shm client's buffer, which is neither a file nor
+//a PImage and is a format of the client's choosing - can put them on the gpu
+//without going through a PNG. all three submit to vk_queue and wait on it, so
+//they belong to whichever thread owns the queue
+void pe_vk_transition_image_layout(VkImage image, VkFormat format,
+                                   VkImageLayout old_layout,
+                                   VkImageLayout new_layout,
+                                   uint32_t mip_level);
+
+void pe_vk_image_copy_buffer(VkBuffer buffer, VkImage image, uint32_t width,
+                             uint32_t height);
+
+void pe_vk_create_texture_sampler(PTexture *new_texture);
+
 void pe_vk_create_exportable_images();
 
 void pe_vk_image_to_color_attacthment(VkImage image);
