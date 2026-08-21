@@ -23,9 +23,11 @@ make LOG=1             # verbose: the Makefiles do `$(LOG).SILENT:`, so any valu
                        # turns the target into `1.SILENT` and command echo comes back
 ```
 
-There are no tests and no lint target. "Does it build" is the only automated check, so
-after touching anything under `src/engine` run a `make clean && make -j24` — incremental
-builds miss header-only breakage because there are no dependency files.
+There are no tests and no lint target. "Does it build" is the only automated check.
+Incremental builds are trustworthy for header changes: the compile rules pass `-MMD -MP`
+and the engine Makefile `-include`s the resulting `.d` files, so editing a header rebuilds
+every object that read it. A `make clean` is still the honest check before claiming a
+change builds, since nothing tracks the Makefiles themselves.
 
 Requires: `cc`, `glslc`, vulkan, wayland, and two of the author's own libraries installed
 under `/usr/local`: **cglm** (headers only, `-I/usr/local/include`) and **pway** (the
@@ -101,6 +103,12 @@ state must run on the render thread — cross-thread work is queued as `PEThread
 slices (`allocate_memory`, `allocate_stack_memory`, marker-based rewind). There is no
 `free()` for individual objects. `Array` (`array.h`) is the one container used everywhere;
 it lives in that arena and stores either values or pointers (`isPointerToPointer`).
+
+The `count` passed to `array_init()` is a starting capacity, not a limit — `array_add()`
+grows past it by taking a bigger block from the arena and copying into it. Because the
+arena has no `free()`, the old block stays allocated, so a good initial guess still saves
+memory. **Growing moves the elements**: a pointer from `array_get()` or `array_get_last()`
+must not be held across an `array_add()` on the same array.
 
 ### Scene model
 
