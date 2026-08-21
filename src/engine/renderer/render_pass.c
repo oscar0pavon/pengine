@@ -71,13 +71,22 @@ void pe_vk_create_render_pass() {
   subpass.pDepthStencilAttachment = &depthAttachmentRef;
   subpass.pResolveAttachments = &colorAttachmentResolveRef;
 
+  //INFO there is one depth image and one multisampled color image, shared by
+  //every framebuffer, so with frames in flight the frame starting here clears
+  //and transitions the very attachments the previous frame is still writing.
+  //srcAccessMask 0 made this execution only and the stage mask left out
+  //LATE_FRAGMENT_TESTS, where depth writes actually finish, so nothing ordered
+  //the two - it only ever held because vkQueueWaitIdle emptied the queue
+  //between frames
   VkSubpassDependency dependency;
   ZERO(dependency);
   dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
   dependency.dstSubpass = 0;
   dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
-                            VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-  dependency.srcAccessMask = 0;
+                            VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
+                            VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+  dependency.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+                             VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
   dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
                             VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;

@@ -87,29 +87,44 @@ void pe_vk_draw_commands(VkCommandBuffer *cmd_buffer, uint32_t index) {
 
 void pe_vk_draw_frame() {
 
-  vkWaitForFences(vk_device, 1, &pe_vk_fence_in_flight, VK_TRUE, UINT64_MAX);
-  vkResetFences(vk_device, 1, &pe_vk_fence_in_flight);
+  VkFence *frame_fence = &pe_vk_fence_in_flight[pe_vk_current_frame];
+
+  //the frame two submissions back, whose semaphores and per frame state this
+  //one is about to reuse
+  vkWaitForFences(vk_device, 1, frame_fence, VK_TRUE, UINT64_MAX);
 
   uint32_t image_index;
 
   vkAcquireNextImageKHR(vk_device, pe_vk_swap_chain, UINT64_MAX,
-                        pe_vk_semaphore_images_available, VK_NULL_HANDLE,
-                        &image_index);
+                        pe_vk_semaphore_images_available[pe_vk_current_frame],
+                        VK_NULL_HANDLE, &image_index);
+
+  //INFO waiting on this frame's own fence says nothing about the image the
+  //acquire handed back. everything the recording below overwrites is indexed by
+  //image_index - the command buffer, and every model's uniform buffer and
+  //descriptor set - so the frame that last rendered into this image has to be
+  //done before any of it is touched
+  if (pe_vk_fence_image_in_flight[image_index] != VK_NULL_HANDLE)
+    vkWaitForFences(vk_device, 1, &pe_vk_fence_image_in_flight[image_index],
+                    VK_TRUE, UINT64_MAX);
+
+  pe_vk_fence_image_in_flight[image_index] = *frame_fence;
+
+  //reset last: a fence that is waited on above must still be signalled there
+  vkResetFences(vk_device, 1, frame_fence);
 
   VkCommandBuffer current_command = pe_vk_start_record_command(image_index);
-
-  VkImage current_swapchain_image = pe_vk_swch_images[image_index];
-
-  pe_vk_image_to_color_attacthment(current_swapchain_image);
 
   pe_vk_start_render_pass(current_command, image_index);//INFO this is where we draw things
 
 
   pe_vk_end_command(current_command);
 
-  VkSemaphore singal_semaphore[] = {pe_vk_semaphore_render_finished};
-  VkSemaphore wait_semaphores[] = {pe_vk_semaphore_images_available};
-  
+  VkSemaphore singal_semaphore[] = {
+      pe_vk_semaphore_render_finished[image_index]};
+  VkSemaphore wait_semaphores[] = {
+      pe_vk_semaphore_images_available[pe_vk_current_frame]};
+
 
   VkPipelineStageFlags wait_stages[] = {
       VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
@@ -125,10 +140,10 @@ void pe_vk_draw_frame() {
                               .signalSemaphoreCount = 1,
                               .pSignalSemaphores = singal_semaphore};
 
-  vkQueueSubmit(vk_queue, 1, &submit_info, pe_vk_fence_in_flight);
+  vkQueueSubmit(vk_queue, 1, &submit_info, *frame_fence);
 
   if(is_drm_rendering){
-    vkWaitForFences(vk_device,1, &pe_vk_fence_in_flight, VK_TRUE, UINT64_MAX);
+    vkWaitForFences(vk_device, 1, frame_fence, VK_TRUE, UINT64_MAX);
   }
 
   VkPresentInfoKHR present_info = {
@@ -142,5 +157,9 @@ void pe_vk_draw_frame() {
 
   VKVALID(vkQueuePresentKHR(vk_queue, &present_info), "Can't present");
 
-  vkQueueWaitIdle(vk_queue);
+  //INFO no vkQueueWaitIdle here. it made every frame end with the queue empty,
+  //which is the whole of what the fences and semaphores above are for; with it
+  //in place PE_VK_FRAMES_IN_FLIGHT could be any number and nothing would ever
+  //overlap
+  pe_vk_current_frame = (pe_vk_current_frame + 1) % PE_VK_FRAMES_IN_FLIGHT;
 }
