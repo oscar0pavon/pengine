@@ -33,6 +33,8 @@
 #include "queues.h"
 #include "surface.h"
 
+#include "render_target.h"
+
 VkInstance vk_instance;
 VkDevice vk_device;
 

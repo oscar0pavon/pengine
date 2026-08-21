@@ -16,8 +16,6 @@
 
 #include "engine/camera.h"
 
-// #include <engine/window_manager.h>
-
 VkSwapchainKHR pe_vk_swap_chain;
 
 VkFormat pe_vk_swch_format;
