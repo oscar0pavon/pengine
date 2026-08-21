@@ -6,42 +6,40 @@ include ../../include.make
 
 all: libpengine.a
 
-components_src := $(shell find ./components -name '*.c')
-components_objs := $(components_src:%.c=%.o)
-
-vulkan_src := $(wildcard ./renderer/vulkan/*.c)
-vulkan_objs := $(vulkan_src:%.c=%.o)
-
 renderer_src := $(wildcard ./renderer/*.c)
 renderer_objs := $(renderer_src:%.c=%.o)
 
 animation_src := $(wildcard ./animation/*.c)
 animation_objs := $(animation_src:%.c=%.o)
 
+#INFO -MMD writes a .d beside each object naming every header that object read,
+#and the -include at the bottom feeds those back as rules. without them make
+#only ever compared a .o against its .c, so editing a header rebuilt nothing
+#and the archive kept objects built against the old declarations. that is how a
+#stale animation/node.o went on including a header that had been deleted
+DEPFLAGS := -MMD -MP
 
-%.o : %.c 
+COMPILE_O = $(CC) $(CFLAGS) $(DEPFLAGS) $(GLOBAL_DEFINE) $(CINCLUDES) -c $< -o $@
+
+%.o : %.c
 	@echo "Compiling $@"
-	$(CC) $(CFLAGS) $(GLOBAL_DEFINE) $(CINCLUDES) -c $<
-
-./components/%.o : ./components/%.c
-	$(CC) $(CFLAGS) $(GLOBAL_DEFINE) $(CINCLUDES) -c $< -o $@
+	$(COMPILE_O)
 
 ./animation/%.o: ./animation/%.c
-	$(CC) $(CFLAGS) $(GLOBAL_DEFINE) $(CINCLUDES) -c $< -o $@
+	$(COMPILE_O)
 
 ./renderer/%.o: ./renderer/%.c
-	$(CC) $(CFLAGS) $(GLOBAL_DEFINE) $(CINCLUDES) -c $< -o $@
+	$(COMPILE_O)
 
 ../ThirdParty/parson.o: ../ThirdParty/parson.c
-	$(CC) $(CFLAGS) $(GLOBAL_DEFINE) $(CINCLUDES) -c $< -o $@
+	$(COMPILE_O)
 
 ./Collision/collision.o: ./Collision/collision.c
-	$(CC) $(CFLAGS) $(GLOBAL_DEFINE) $(CINCLUDES) -c $< -o $@
+	$(COMPILE_O)
 
-./renderer/vulkan/%.o: ./renderer/vulkan/%.c
-	$(CC) $(CFLAGS) $(GLOBAL_DEFINE) $(CINCLUDES) -c $< -o $@
+ALL_OBJS := $(OBJS) $(renderer_objs) $(animation_objs) ./Collision/collision.o ../ThirdParty/parson.o
 
-ALL_OBJS := $(OBJS) $(components_objs) $(renderer_objs) $(animation_objs) ./Collision/collision.o ../ThirdParty/parson.o $(vulkan_objs)
+ALL_DEPS := $(ALL_OBJS:.o=.d)
 
 
 #INFO built from scratch, from $^ alone, with full path member names. *.o
@@ -55,9 +53,14 @@ libpengine.a: $(ALL_OBJS)
 
 
 clean:
-	rm -f *.o
+	rm -f *.o *.d
 	rm -f $(WORKDIR)/lib/libpengine.a
 	rm -f $(ALL_OBJS)
-	
-	
+	rm -f $(ALL_DEPS)
+
+
+#INFO last, and with a leading dash: the .d files do not exist on a first build
+#and make has to carry on without them
+-include $(ALL_DEPS)
+
 $(LOG).SILENT:
