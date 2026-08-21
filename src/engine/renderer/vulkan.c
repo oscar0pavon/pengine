@@ -104,10 +104,10 @@ int pe_vk_init() {
   pe_vk_msaa_samples = VK_SAMPLE_COUNT_4_BIT;
 
   //INFO every buffer pe_vk_create_buffer_memory() makes is registered here so
-  //pe_vk_end() can destroy it, and Array does not reallocate. that is one entry
-  //per model per swap chain image for the uniform buffers alone, so the bound
-  //is objects * images, not objects
-  array_init(&buffers, sizeof(VkBuffer), 8192);
+  //pe_vk_end() can destroy it. that is one entry per model per swap chain image
+  //for the uniform buffers alone, so this is a starting size and not a bound -
+  //it was a bound before Array could grow, and chess ran into it at 512
+  array_init(&buffers, sizeof(VkBuffer), 512);
 
   pe_vk_create_instance();
 

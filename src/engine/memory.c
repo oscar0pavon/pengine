@@ -83,7 +83,15 @@ void* allocate_memory(int size){
 
 void* allocate_stack_memory_alignmed(int bytes_size, int alignment){
     int expanded_size_bytes = bytes_size + alignment;
-    unsigned long int raw_memory = (unsigned long int)allocate_memory(expanded_size_bytes);
+    void* allocated = allocate_memory(expanded_size_bytes);
+
+    //INFO out of memory has to come back out as NULL. aligning a NULL return
+    //instead produced (void*)alignment - a small non-NULL address that every
+    //caller's null check waved through and then wrote to
+    if(allocated == NULL)
+        return NULL;
+
+    unsigned long int raw_memory = (unsigned long int)allocated;
 
     int mask = (alignment - 1);
     unsigned long int misalignment = (raw_memory & mask);
