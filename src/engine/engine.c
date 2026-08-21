@@ -10,9 +10,6 @@
 
 #include "model.h"
 
-#include "LOD_system.h"
-
-#include "elements.h"
 #include "physics.h"
 #include "window_manager.h"
 
@@ -24,7 +21,6 @@
 
 #include "time.h"
 
-Array engine_elements;
 Array engine_textures;
 
 void pe_debug_print_mat4(mat4 mat) {
@@ -58,29 +54,6 @@ void pe_change_background_color(float r, float g, float b, float a) {
   glm_vec4_copy(color, pe_background_color);
 }
 
-void select_last_element() {
-  if (selected_element != NULL)
-    selected_element->selected = false;
-  selected_element = array_get_last(actual_elements_array);
-  selected_element->selected = true;
-}
-
-void new_empty_element() {
-  Element new_element;
-  ZERO(new_element);
-
-  new_element.id = element_id_count;
-  new_element.proccess = true;
-
-  element_id_count++;
-
-  array_init(&new_element.components, sizeof(ComponentDefinition), 6);
-
-  array_add(actual_elements_array, &new_element);
-
-  select_last_element();
-}
-
 void new_empty_model_in_array(Array *array) {
   PModel new_model;
   memset(&new_model, 0, sizeof(PModel));
@@ -104,107 +77,6 @@ void new_empty_model() {
   selected_model->id = actual_model_array->count - 1;
 }
 
-void pe_mesh_data_fill_tex_ids(Array *meshes, Array *textures,
-                               PTexture *texture, u8 path_id) {
-  if (meshes->count >= 1) {
-    array_add(textures, &path_id);
-    for (u8 i = 1; i < meshes->count; i++) {
-      u8 *model_id = array_get(meshes, i);
-      PModel *model = array_get(actual_model_array, *model_id);
-      model->texture.id = texture->id;
-      array_add(textures, &path_id);
-    }
-  }
-  LOG("###### pe_mesh_data_fill_tex_ids");
-}
-
-void pe_mesh_tex_fill_ids(PTexture *texture) {
-  while (!texture->gpu_loaded) {
-  }
-
-  PSkinnedMeshComponent *skin_component = pe_comp_get(COMPONENT_SKINNED_MESH);
-  if (!skin_component) {
-    LOG("######## Not skin_componenet getted from pe_mesh_tex_fill_ids");
-    return;
-  }
-
-  skin_component->mesh->texture = *texture;
-
-  skin_component->mesh->texture_count++;
-
-  return;
-
-  StaticMeshComponent *mesh = pe_comp_get(STATIC_MESH_COMPONENT);
-  if (!mesh) {
-    //				pe_mesh_data_fill_tex_ids(&mesh->meshes,&mesh->textures,texture,path_id);
-    LOG("******* Texture added to StaticMeshComponent");
-    return;
-  }
-
-  /*
-      u8 id = pe_arr_tex_paths.count-1;
-      Texture* last_texturer =
-     array_get(current_textures_array,current_textures_array->count-1);
-      skin_component->mesh->texture.id = last_texturer->id;
-
-                  pe_mesh_data_fill_tex_ids(&skin_component->meshes,&skin_component->textures,texture,path_id);
-  */
-}
-void pe_tex_loaded_to_model(int id) {
-  PTexture *texture = array_get(current_textures_array, id);
-
-  StaticMeshComponent *mesh = pe_comp_get(STATIC_MESH_COMPONENT);
-  if (mesh) {
-    pe_mesh_data_fill_tex_ids(&mesh->meshes, &mesh->textures, texture, id);
-    return;
-  }
-}
-
-void engine_add_texture_from_memory_to_selected_element(void *data, u32 size) {
-  PTexture new_texture;
-  texture_load_from_memory(&new_texture, size, data);
-  array_add(&pe_arr_tex_paths, "from_memory");
-  pe_mesh_tex_fill_ids(&new_texture);
-}
-
-void add_texture_to_selected_element_with_image_path(const char *image_path) {
-
-  if (selected_element == NULL) {
-    LOG("********No element selected\n");
-    return;
-  }
-  if (image_path == NULL) {
-    LOG("*****Error to load, null path (add_editor_texture - 154\n");
-    return;
-  }
-
-  PTexture new_texture;
-  ZERO(new_texture);
-
-  if (!current_textures_array) {
-    LOG("******* Not texture array");
-    return;
-  }
-  array_add(current_textures_array, &new_texture);
-
-  PTexture *texture_loaded = array_pop(current_textures_array);
-  if (!texture_loaded) {
-    LOG("******* texture_loaded is NULL from current_textures_array");
-  }
-  texture_loaded->gpu_loaded = false;
-  if (pe_load_texture(image_path, texture_loaded) == -1) {
-
-    LOG("******* texture_load() error");
-    return;
-  }
-
-  array_add(&pe_arr_tex_paths, image_path);
-
-  pe_mesh_tex_fill_ids(texture_loaded);
-
-  LOG("Texture loaded and assigned to Mesh Component: %s\n", image_path);
-}
-
 void load_simple_image(const char *path) {
 
   PTexture new_texture;
@@ -217,61 +89,6 @@ void load_simple_image(const char *path) {
     return;
 }
 
-//INFO the loader takes the model to fill now instead of appending to
-//actual_model_array, so the element and its mesh component are built first and
-//the gltf is read straight into the model the component already points at.
-//pe_comp_add() built the component from the array's tail and does not fit that
-int add_element_with_model_path(const char *model_gltf_path) {
-  if (model_gltf_path == NULL || model_gltf_path[0] == '\0') {
-    LOG("Error to load, null path (add_editor_element)\n");
-    return -1;
-  }
-
-  Array *prev_array = actual_model_array;
-
-  new_empty_element();
-
-  add_transform_component_to_selected_element();
-
-  //leaves the new model in selected_model and points models_p[0] at it
-  pe_comp_static_mesh_add_to_element();
-
-  if (pe_renderer_type == PEWMVULKAN) {
-    pe_vk_load_model(selected_model, model_gltf_path);
-  } else {
-    if (pe_load_model_path(selected_model, model_gltf_path) == -1) {
-      LOG("No model loaded from: %s\n", model_gltf_path);
-      actual_model_array = prev_array;
-      return -1;
-    }
-    GPU_buffers_create_for_model(selected_model);
-  }
-
-  //the loader fills the model's own arrays, but the draw path reads PModel.mesh
-  //- a view onto the same buffers, which is also what chess copies from one
-  //model to another to share a piece's geometry. nothing publishes it for us
-  selected_model->mesh.vertex_array = selected_model->vertex_array;
-  selected_model->mesh.index_array = selected_model->index_array;
-  selected_model->mesh.vertex_buffer_id = selected_model->vertex_buffer_id;
-  selected_model->mesh.index_buffer_id = selected_model->index_buffer_id;
-  selected_model->mesh.vertex_buffer = selected_model->vertex_buffer.buffer;
-  selected_model->mesh.index_buffer = selected_model->index_buffer.buffer;
-
-  array_add(&pe_arr_models_paths, model_gltf_path); // needed for saved level
-
-  pe_element_comp_init();
-
-  if (prev_array != NULL)
-    actual_model_array = prev_array;
-
-  return 0;
-}
-
-void set_element_position(Element *element, vec3 position) {
-  glm_mat4_identity(element->transform->model_matrix);
-  glm_translate(element->transform->model_matrix, position);
-}
-
 void add_action_function(void (*f)(void)) {
   ActionPointer new_action;
   new_action.id = action_pointer_id_count;
@@ -280,203 +97,17 @@ void add_action_function(void (*f)(void)) {
   action_pointer_id_count++;
 }
 
-void load_model_to_array(Array *array, const char *path_model,
-                         const char *color_texture_path) {
-
-  Array *prev_model_array = actual_model_array;
-  actual_model_array = array;
-
-  new_empty_model();
-
-  pe_load_model_path(selected_model, path_model);
-
-  selected_model->shader_id =
-      create_engine_shader(standart_vertex_shader, standart_fragment_shader);
-
-  glUseProgram(selected_model->shader_id);
-
-  PTexture new_texture;
-  pe_load_texture(color_texture_path, &new_texture);
-
-  GPU_buffers_create_for_model(selected_model);
-
-  selected_model->texture.id = new_texture.id;
-
-  actual_model_array = prev_model_array;
-  
-  selected_model->mesh.vertex_buffer_id = selected_model->vertex_buffer_id;
-  selected_model->mesh.index_buffer_id = selected_model->index_buffer_id;
-
-  selected_model->mesh.vertex_array.count = selected_model->vertex_array.count;
-  selected_model->mesh.index_array.count = selected_model->index_array.count;
-}
-
-void update_translation(vec3 translation) {
-  TransformComponent *transform = pe_comp_get(TRASNFORM_COMPONENT);
-  if (!transform)
-    return;
-  vec3 translation_per_frame;
-  glm_vec3_scale(translation, delta_time , translation_per_frame);
-  glm_translate(transform->model_matrix, translation_per_frame);
-  glm_vec3_copy(transform->model_matrix[3], transform->position);
-
-  for (int i = 0; i < selected_element->components.count; i++) {
-    ComponentDefinition *component =
-        array_get(&selected_element->components, i);
-    update_component(component);
-  }
-  PSkinnedMeshComponent *skin = pe_comp_get(COMPONENT_SKINNED_MESH);
-  if (!skin)
-    return;
-
-  pe_anim_nodes_update(skin);
-}
-
-void update_scale(vec3 translation) {
-  TransformComponent *transform = pe_comp_get(TRASNFORM_COMPONENT);
-  if (!transform)
-    return;
-
-  glm_vec3_add(transform->scale, translation, transform->scale);
-  vec3 identity;
-  glm_vec3_copy(GLM_VEC3_ONE, identity);
-  glm_vec3_add(identity, translation, translation);
-
-  glm_scale(transform->model_matrix, translation);
-
-  for (int i = 0; i < selected_element->components.count; i++) {
-    ComponentDefinition *component =
-        array_get(&selected_element->components, i);
-    update_component(component);
-  }
-}
-
-void rotate_element(Element *element, versor quaternion) {
-  mat4 model_rot_mat;
-  glm_quat_mat4(quaternion, model_rot_mat);
-
-  TransformComponent *transform =
-      get_component_from_element(element, TRASNFORM_COMPONENT);
-  if (transform)
-    glm_mul(transform->model_matrix, model_rot_mat, transform->model_matrix);
-}
-
-void pe_element_rotate(Element *element, float angle, vec3 axis) {
-  TransformComponent *transform =
-      get_component_from_element(element, TRASNFORM_COMPONENT);
-  if (transform == NULL) {
-    LOG("No transfrom pointer in element\n");
-    return;
-  }
-  versor new_rot_quat;
-  glm_quatv(new_rot_quat, glm_rad(angle), axis);
-
-  versor result_quat;
-  glm_quat_mul(transform->rotation, new_rot_quat, result_quat);
-
-  glm_quat_copy(result_quat, transform->rotation);
-
-  mat4 model_rot_mat;
-  glm_quat_mat4(new_rot_quat, model_rot_mat);
-
-  glm_mul(transform->model_matrix, model_rot_mat, transform->model_matrix);
-
-  for (int i = 0; i < selected_element->components.count; i++) {
-    ComponentDefinition *component =
-        array_get(&selected_element->components, i);
-    update_component(component);
-  }
-}
-
-void check_meshes_distance() {
-  for (int i = 0; i < array_static_meshes_pointers_for_test_distance.count;
-       i++) {
-    StaticMeshComponent **ppStaticMesh =
-        array_get(&array_static_meshes_pointers_for_test_distance, i);
-    StaticMeshComponent *mesh_component = ppStaticMesh[0];
-
-    /*Simple LOD */
-    LOD_check_distance_static_mesh_component_and_add_to_draw_elements(
-        mesh_component);
-  }
-
-  for (int i = 0; i < array_skinned_mesh_for_distance_test.count; i++) {
-    PSkinnedMeshComponent **ppSkinComponent =
-        array_get(&array_skinned_mesh_for_distance_test, i);
-    array_add(&frame_draw_skinned_elements, &ppSkinComponent[0]->mesh);
-  }
-}
-
-void test_elements_occlusion() {
-  vec4 frustrum_planes[6];
-  mat4 view_projection_mat;
-  glm_mat4_mul(main_camera.projection, main_camera.view, view_projection_mat);
-  glm_frustum_planes(view_projection_mat, frustrum_planes);
-
-  // this is for gizmos and native elements
-  for (size_t i = 0; i < models_for_test_occlusion.count; i++) {
-    PModel **model = array_get(&models_for_test_occlusion, i);
-    PModel *test_model = model[0];
-
-    vec3 box[2];
-    glm_vec3_copy(test_model->min, box[0]);
-    glm_vec3_copy(test_model->max, box[1]);
-
-    glm_aabb_transform(box, test_model->model_mat, box);
-
-    if (glm_aabb_frustum(box, frustrum_planes) == true) {
-      array_add(&frame_draw_static_elements, &model[0]);
-    }
-  }
-
-  for (int i = 0; i < array_static_meshes_pointers.count; i++) {
-    StaticMeshComponent **static_mesh_component =
-        array_get(&array_static_meshes_pointers, i);
-    if (glm_aabb_frustum(static_mesh_component[0]->bounding_box,
-                         frustrum_planes) == true)
-      array_add(&array_static_meshes_pointers_for_test_distance,
-                &static_mesh_component[0]);
-  }
-
-  for (int i = 0; i < array_skinned_mesh_pointers.count; i++) {
-    PSkinnedMeshComponent **skin_component =
-        array_get(&array_skinned_mesh_pointers, i);
-    // if(glm_aabb_frustum(skin_component[0]->bounding_box,frustrum_planes) ==
-    // true)//TODO: skinned mesh culling
-    array_add(&array_skinned_mesh_for_distance_test, &skin_component[0]);
-  }
-}
-
 void duplicate_model_data(PModel *destination, PModel *source) {
   memcpy(destination, source, sizeof(PModel));
 }
 
 void pe_init_arrays() {
-  actual_elements_array = &engine_elements;
-
-  array_init(&engine_elements, sizeof(Element), 100);
   array_init(&pe_arr_models_paths, sizeof(char[100]), 50);
   array_init(&pe_arr_tex_paths, sizeof(char[20]), 50);
 
   array_init(&array_models_loaded, sizeof(PModel), 100);
-  array_init(&pe_arr_skin_loaded, sizeof(PSkinnedMeshComponent), 100);
-
-  array_init(&engine_native_models, sizeof(PModel), 100);
-
-  array_init(&array_hirarchical_level_of_detail,
-             sizeof(HierarchicalLevelOfDetail), 5);
 
   array_init(&actions_pointers, sizeof(ActionPointer), 20);
-
-  array_init(&frame_draw_static_elements, sizeof(void *), 100);
-  array_init(&frame_draw_skinned_elements, sizeof(void *), 100);
-
-  array_init(&models_for_test_occlusion, sizeof(void *), 300);
-  array_init(&array_static_meshes_pointers, sizeof(void *), 300);
-  array_init(&array_static_meshes_pointers_for_test_distance, sizeof(void *),
-             100);
-  array_init(&array_skinned_mesh_for_distance_test, sizeof(void *), 100);
-  array_init(&array_skinned_mesh_pointers, sizeof(void *), 100);
 
   array_init(&array_animation_play_list, sizeof(PEAnimationPlay), 100);
 
@@ -489,13 +120,12 @@ void pe_init_arrays() {
   array_init(&pe_array_textures, sizeof(PTexture), 100);
 
   current_textures_array = &pe_array_textures;
+  actual_model_array = &array_models_loaded;
 
   touch_position_x = -1;
   touch_position_x = -1;
 
   action_pointer_id_count = 0;
-
-  actual_standard_fragment_shader = standart_fragment_shader;
 
   pe_is_window_init = false;
 

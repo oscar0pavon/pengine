@@ -4,10 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Pavon Engine — a Vulkan/OpenGL-ES2 game engine written in C for GNU/Linux (plus an Android
-target). The build produces a **static library** `lib/libpengine.a`; there is no engine
-executable. Games and the editor are separate programs that link against it (see `demos/`,
-and the out-of-tree consumer the recent history calls *swordfish*).
+Pavon Engine — a Vulkan game engine written in C for GNU/Linux. The build produces a
+**static library** `lib/libpengine.a`; there is no engine executable. Games and the editor
+are separate programs that link against it (see `demos/chess`, and the out-of-tree consumer
+the recent history calls *swordfish*).
+
+Vulkan is the only backend. An OpenGL ES2 backend, the X11 window/input path and the
+Element/Component scene graph used to live here and were removed; nothing in the tree
+should grow a `gl*` call, an `X*` call or a component type again.
 
 ## Build
 
@@ -23,9 +27,11 @@ There are no tests and no lint target. "Does it build" is the only automated che
 after touching anything under `src/engine` run a `make clean && make -j24` — incremental
 builds miss header-only breakage because there are no dependency files.
 
-Requires: `cc`, `glslc`, freetype, vulkan, X11, GL/EGL, wayland, and two of the author's
-own libraries installed under `/usr/local`: **cglm** (headers only, `-I/usr/local/include`)
-and **pway** (the Wayland windowing lib, `libpway.a`).
+Requires: `cc`, `glslc`, vulkan, wayland, and two of the author's own libraries installed
+under `/usr/local`: **cglm** (headers only, `-I/usr/local/include`) and **pway** (the
+Wayland windowing lib, `libpway.a`). `-lEGL`/`-lwayland-egl` are still on the link line
+because `libpway.a`'s `pway.o` references its own EGL setup, not because the engine draws
+with GL.
 
 `compile_commands.json` comes from `./generate_compile_commands.sh` (needs `jq`); note the
 script hardcodes `/home/pavon/pengine/src/engine` as the directory — fix it locally if you
@@ -34,12 +40,11 @@ regenerate, don't commit the change unless asked.
 Sub-builds: `make -C src/engine WORKDIR=$(pwd)` compiles the library only,
 `make -C src/shaders` runs `glslc` over every `.vert`/`.frag`.
 
-`ar` names archive members by basename, and the tree has two `shader.c`
-(`src/engine/shader.c` and `src/engine/renderer/opengl/shader.c`). The archive
-rule therefore deletes and rebuilds `libpengine.a` with `ar rcsP` so member names
-keep their paths — without `P` one of the two silently loses and edits to it stop
-reaching the library. Keep that in mind before adding a source whose basename
-already exists elsewhere in `src/engine`.
+`ar` names archive members by basename, so two sources sharing one basename would
+both claim the same member and one would silently lose — edits to it stopping at the
+library. The archive rule therefore deletes and rebuilds `libpengine.a` with `ar rcsP`
+so member names keep their paths. Keep that in mind before adding a source whose
+basename already exists elsewhere in `src/engine`.
 
 ## Building something against the engine
 
@@ -55,17 +60,21 @@ All four variables come from `include.make` and none of them is decoration:
 - `GLOBAL_DEFINE` is **not optional**. `-DCGLM_FORCE_DEPTH_ZERO_TO_ONE` and
   `-DCGLM_FORCE_LEFT_HANDED` change cglm's projection matrices; a consumer compiled without
   them gets silently different math than the engine it links to. The same goes for
-  `VULKAN`/`OPENGL_ES2`/`DESKTOP`/`EDITOR`, which gate struct members and includes.
-- `CFLAGS` matters for consumers too, not just the engine: the headers do not compile
-  cleanly without `-Wno-incompatible-pointer-types` (the engine passes `&main_camera`, a
-  `CameraComponent`, to `camera_init(Camera*)`) or without `-fcommon`.
+  `VULKAN`/`DESKTOP`/`EDITOR`, which gate struct members and includes.
+- `CFLAGS` matters for consumers too, not just the engine: the headers still declare most
+  globals as tentative definitions, so `-fcommon` is required. `-Wno-incompatible-pointer-types`
+  is no longer needed to compile the headers (`main_camera` is a `PCamera` and
+  `camera_init` takes one), but the engine's own build still needs it for the thread entry
+  points it hands to `pthread_create`.
 - `LIBRARIES` carries `-lpway` and `-llodepng` alongside the system libraries, because
   `libpengine.a` calls into both.
 
 `src/engine/files.h` is **generated** by `scripts/create_engine_file_h.sh` and gitignored.
-It bakes absolute paths to shaders, editor gizmo models and fonts from the repo checkout,
+It bakes absolute paths to `.spv` shaders and editor gizmo models from the repo checkout,
 so a built library only finds its content where it was built. Adding a new asset the engine
-loads by name means adding a `#define file_*` line to that script.
+loads by name means adding a `#define file_*` line to that script. Most of the gizmo entries
+have no in-tree user — they are there for the out-of-tree editor, so do not prune them just
+because nothing in this repo names them.
 
 ## Architecture
 
@@ -78,7 +87,9 @@ callbacks and calls `pengine_run(&game)`. That runs `pe_main_loop()` in `src/eng
 
 `pe_init()` (`base.c`) order matters and is load-bearing: `pe_init_memory()` first, then
 arrays, then globals, then window creation, then the render thread. Nothing that allocates
-may run before `pe_init_memory()`.
+may run before `pe_init_memory()`. Because `pe_render_thread_init()` (and so `pe_vk_init()`)
+runs before `game->init()`, an application's `init` can already assume a device, a swap
+chain, the descriptor set layouts and the pipeline layouts exist.
 
 Threads: main, render, input, and (stubbed) audio/collision. Anything touching GL/Vulkan
 state must run on the render thread — cross-thread work is queued as `PEThreadCommand`s via
@@ -93,15 +104,13 @@ it lives in that arena and stores either values or pointers (`isPointerToPointer
 
 ### Scene model
 
-Game objects are **Elements** (`elements.h`): an id, a name, a `TransformComponent`, and an
-`Array` of `ComponentDefinition` (type tag + `void* data`). Component types are the
-`ComponentType` enum in `components/components.h` — extending the engine with a new kind of
-object means a new enum value plus handling in the per-frame walks, not a new struct type.
+**The engine has no scene.** It owns models, not a world made of them. `pe_frame_draw()` is
+just `pe_vk_draw_frame()`, and the application's scene is reached only through the
+`pe_vk_draw_scene` hook the render pass calls. An application keeps its own objects in
+whatever shape suits it and records their draws from that callback — `demos/chess` is the
+worked example, an array of `ChessPiece` each holding a `PModel` and a colour.
 
-Per frame the engine walks components to fill `models_for_test_occlusion`, runs occlusion /
-distance tests, and fills `frame_draw_static_elements` and `frame_draw_skinned_elements`,
-which is what the renderer actually draws. Loaded models land in `array_models_loaded`.
-`docs/code.txt` describes this flow in the author's words and is worth reading.
+`docs/code.txt` describes an older Element/Component flow that no longer exists.
 
 Most engine state is **global**, declared as tentative definitions in headers and made to
 link by `-fcommon` (see `CFLAGS`). Recent work has been converting these to a real
@@ -112,9 +121,9 @@ without `-fcommon` cannot link the tentative-definition form.
 
 `src/engine/renderer/` is the Vulkan backend, one file per Vulkan object
 (`instance`, `physical_devices`, `logical_device`, `surface`, `swap_chain`, `render_pass`,
-`pipeline`, `descriptor_set`, `commands`, `sync`, …). `renderer/opengl/` is a second,
-older ES2 backend. Which one runs is `pe_renderer_type` (`PEWMVULKAN` / `PEWMOPENGLES2`),
-checked at runtime in `render_thread.c` and the frame path.
+`pipeline`, `descriptor_set`, `commands`, `sync`, …). `pe_renderer_type` survives with a
+single value, `PEWMVULKAN`, only so applications that set it keep compiling; nothing
+branches on it.
 
 The renderer must not know about any particular application. The seams it exposes
 (`renderer/renderer.h`) are:
@@ -130,18 +139,21 @@ The renderer must not know about any particular application. The seams it expose
 `-Wno-implicit-function-declaration` is on, so a call to a function that does not exist
 compiles and only fails at link (or, historically, didn't fail at all). Be suspicious: this
 is how `main.c` came to call a `time_start()` nobody defined, and how `base.c` called
-`pway_create_window()` with one argument instead of three.
+`pway_create_window()` with one argument instead of three. Because the product is a static
+library, an unresolved call does not even fail at `ar` time — it surfaces in a consumer.
 
-The ES2 backend has three conventions that are easy to break by accident:
+`camera_init()` applies `projection[1][1] *= -1` for Vulkan's +Y-down clip space.
 
-- GLSL ES 100 has no location qualifier, so `create_engine_shader()` calls
-  `glBindAttribLocation` for `vPosition`/`vUV`/`vColor`/`vNormal` before linking. The
-  numbers `update_draw_vertices()` feeds must match those bindings; leaving it to the
-  driver shifts them whenever a shader stops using one of the attributes.
-- `CGLM_FORCE_LEFT_HANDED` mirrors handedness, so front faces come out clockwise on screen
-  and the GL init sets `glFrontFace(GL_CW)`.
-- The `projection[1][1] *= -1` in `camera_init()` is Vulkan's +Y-down clip space and is
-  applied only when `pe_renderer_type == PEWMVULKAN`.
+A model carries its own transform in `PModel.model_mat`, built with the `pe_model_*`
+helpers in `model.c` (`pe_model_transform` composes translate * rotate * scale;
+`pe_model_set_position` replaces just the fourth column). An application copies that
+matrix into `uniform_buffer_object.model` before it draws.
+
+A model is not drawable until it has descriptor sets pointing at its uniform buffers —
+`pe_vk_draw_model()` binds `descriptor_sets[image_index]` on every draw. `pe_vk_load_model()`
+does that. To place the same geometry more than once, use `pe_vk_model_instance()`: it
+shares the vertex and index buffers but gives the copy its own uniform buffers and
+descriptor sets, because those carry the per-instance model matrix.
 
 The model loader fills a `PModel`'s own `vertex_array`/`index_array`; `PModel.mesh` is a
 separate view (buffer ids plus counts) that the draw path reads and that callers copy
@@ -151,9 +163,10 @@ generates flat normals when a primitive has none.
 
 ### Platforms
 
-`src/engine/platforms/linux` and `.../android`. Android has its own `CMakeLists.txt`,
-manifest and `main.c` under `platforms/android/`, and is built out of this Makefile tree;
-`docs/android` and `docs/compile` cover APK packaging and cross-compiled freetype.
+`src/engine/platforms/` is **not compiled by this Makefile** — no rule reaches it, and the
+same is true of `audio/`, `network/` and `Math/`. `platforms/android` is a GLES/EGL port and
+still calls `pe_wm_egl_end()`, which no longer exists; it needs a Vulkan port before it can
+build again. `docs/android` and `docs/compile` describe the old APK packaging.
 
 ## Conventions
 
@@ -163,5 +176,8 @@ manifest and `main.c` under `platforms/android/`, and is built out of this Makef
   headers resolve after `make install` under `/usr/local/include/pengine`.
 - Comments are sparse. Where one exists it usually starts `//INFO` and explains *why* a
   non-obvious constraint holds — match that style rather than narrating what the code does.
+- Input keys are raw evdev codes: pway reports them, `pe_input_init()` seeds
+  `pe_key_codes[]` in `Input` member order (guarded by a `_Static_assert`), and
+  `pe_parse_key_event()` matches on them.
 - Commit messages are lowercase imperative summaries with a prose body explaining the
   mechanism and consequence of the bug or change, not a bullet list of edits.

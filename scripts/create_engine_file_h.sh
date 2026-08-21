@@ -10,16 +10,7 @@ echo "#ifndef _FILES_H_" > ${FILE}
 echo "#define _FILES_H_" >> ${FILE}
 
 
-echo "#define file_std_vert \"${WORKDIR}/src/shaders/std_vert.glsl\"" >> ${FILE}
-echo "#define file_diffuse_frag \"${WORKDIR}/src/shaders/diffuse_frag.glsl\"" >> ${FILE}
-
-
-echo "#define file_skin_vertex_shader \"${WORKDIR}/src/shaders/skin_vertex_shader.glsl\"" >> ${FILE}
-
-
-echo "#define file_vertex_modeling \"${WORKDIR}/src/shaders/vertex_modelling.glsl\"" >> ${FILE}
-
-#editor gizmos
+#editor gizmos, for the out of tree editor rather than the library itself
 echo "#define file_translate_glb \"${WORKDIR}/content/editor/translate.glb\"" >> ${FILE}
 echo "#define file_rotate_glb \"${WORKDIR}/content/editor/rotate.glb\"" >> ${FILE}
 echo "#define file_scale_glb \"${WORKDIR}/content/editor/scale.glb\"" >> ${FILE}
@@ -43,19 +34,10 @@ echo "#define file_frag_spv \"${WORKDIR}/src/shaders/frag.spv\"" >> ${FILE}
 echo "#define file_in_position_spv \"${WORKDIR}/src/shaders/in_position_vert.spv\"" >> ${FILE}
 echo "#define file_diffuse_vert_spv \"${WORKDIR}/src/shaders/diffuse_vert.spv\"" >> ${FILE}
 echo "#define file_diffuse_frag_spv \"${WORKDIR}/src/shaders/diffuse_frag.spv\"" >> ${FILE}
+echo "#define file_color_vert_spv \"${WORKDIR}/src/shaders/color_vert.spv\"" >> ${FILE}
+echo "#define file_color_frag_spv \"${WORKDIR}/src/shaders/color_frag.spv\"" >> ${FILE}
+
 echo "#define file_skinned_spv \"${WORKDIR}/src/shaders/skinned.spv\"" >> ${FILE}
-
-#font
-
-echo "#define file_font \"${WORKDIR}/content/DejaVuSerif.ttf\"" >> ${FILE}
-
-#chess
-
-
-echo "#define file_peon_glb \"${WORKDIR}/demos/chess/peon.glb\"" >> ${FILE}
-echo "#define file_reina_glb \"${WORKDIR}/demos/chess/reina.glb\"" >> ${FILE}
-
-
 
 echo "#endif" >> ${FILE}
 

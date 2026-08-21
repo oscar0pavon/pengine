@@ -6,18 +6,28 @@
 #define CAMERA_H 
 
 #include <cglm/cglm.h>
-#include "engine/components/components.h"
 #include "renderer/vulkan.h"
 #include "renderer/renderer.h"
 
+typedef struct PCamera{
+    mat4 projection;
+    mat4 view;
+    vec3 front;
+    vec3 up;
+    vec3 position;
+}PCamera;
+
 void camera_rotate_control(float yaw, float pitch);
-void camera_init(Camera* camera);
 
-void camera_update(Camera* camera);
+void camera_init(PCamera* camera);
 
-void camera_update_aspect_ratio(Camera* camera);
+void camera_update(PCamera* camera);
 
-void camera_set_position(Camera* camera, vec3 position);
+void camera_update_aspect_ratio(PCamera* camera);
+
+void camera_set_position(PCamera* camera, vec3 position);
+
+void pe_camera_look_at(PCamera* camera, vec3 position);
 
 extern float camera_height_screen;
 extern float camera_width_screen;
@@ -27,9 +37,7 @@ extern bool move_camera_input;
 
 extern float camera_rotate_angle;
 
-void pe_camera_look_at(Camera* camera, vec3 position);
-
-extern CameraComponent saved_camera;
-extern CameraComponent main_camera;
+extern PCamera saved_camera;
+extern PCamera main_camera;
 
 #endif //CAMERA_H

@@ -20,7 +20,7 @@ void pe_init() {
   pe_vk_initialized = false;
   // pe_audio_init();
   // pe_phy_init();
-  ZERO(input);
+  pe_input_init();
 
   LOG("pengine initialized\n");
 
@@ -31,9 +31,6 @@ void pe_init() {
   //height registers as the size
   pe_create_window();
 
-  //pe_wm_create_x11_window();
-  //pe_init_x11_keys();//after window creation
-  
-  pe_render_thread_init();
-
+  //INFO no pe_render_thread_init() here. pe_main_loop() calls it as the step
+  //after pe_init(), and doing it in both ran pe_vk_init() twice
 }

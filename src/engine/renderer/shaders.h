@@ -22,6 +22,10 @@ typedef struct PCreateShaderInfo{
 
 void pe_vk_clean_shader(PShader *shader);
 
+void pe_vk_create_shader(PCreateShaderInfo* info);
+
+void pe_vk_create_shader_instanced(PCreateShaderInfo *info);
+
 extern VkPipelineShaderStageCreateInfo shader_create_info[2];
 
 #endif

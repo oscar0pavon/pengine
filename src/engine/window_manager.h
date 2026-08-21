@@ -8,9 +8,9 @@
 
 #include <engine/camera.h>
 
-#include <X11/Xlib.h>
-
-typedef enum PERendererType { PEWMVULKAN, PEWMOPENGLES2 } PERendererType;
+//INFO vulkan is the only backend. the enum and pe_renderer_type stay so the
+//applications that set it keep compiling
+typedef enum PERendererType { PEWMVULKAN } PERendererType;
 
 
 void pe_wm_init();
@@ -18,8 +18,6 @@ void window_update_viewport(int width, int height);
 bool is_wm_swapped();
 
 void pe_create_window();
-
-void pe_wm_create_x11_window();
 
 void window_initialize_windows();
 
@@ -31,14 +29,6 @@ void windows_manager_init();
 void window_update_windows_input();
 
 void window_manager_update_windows_input();
-
-#ifdef ANDROID
-void pe_wm_egl_init();
-
-void pe_wm_egl_end();
-#endif
-
-void pe_wm_swap_buffers();
 
 void pe_wm_events_update();
 
@@ -54,8 +44,5 @@ PERendererType pe_renderer_type;
 bool pe_is_window_init;
 
 bool pe_is_window_terminate;
-
-Display                 *display;
-Window                  window;
 
 #endif // !ENGINE_WINDOWS_MANAGER_H

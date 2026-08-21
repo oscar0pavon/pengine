@@ -37,10 +37,6 @@ void pe_main_loop() {
 
     game->draw();
 
-    if (pe_renderer_type == PEWMOPENGLES2) {
-      pe_wm_swap_buffers();
-    }
-
     update_delta_time();
 
   }

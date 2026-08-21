@@ -1,444 +1,232 @@
 #include "chess.h"
-#include "engine/elements.h"
-#include "engine/game.h"
-#include "engine/window_manager.h"
-#include <engine/animation/node.h>
-#include <engine/shader.h>
 
 #include <engine/files.h>
+#include <engine/renderer/descriptor_set.h>
+#include <engine/renderer/draw.h>
+#include <engine/renderer/shaders.h>
+#include <engine/renderer/uniform_buffer.h>
+#include <engine/window_manager.h>
 
+#define CHESS_SQUARES 64
+#define CHESS_PIECES 32
 
-vec4 color1 = {0, 0.2, 0, 1};
-vec4 color2 = {1, 0.5, 1, 1};
+//INFO these are plain scale factors. the ECS call these replaced took a delta
+//and scaled by 1 + it, so the -0.5f and -0.8f the old code passed meant 0.5
+//and 0.2 - reading them as factors makes every piece four times too big
+#define CHESS_SQUARE_SCALE 0.5f
+#define CHESS_PIECE_SCALE 0.2f
 
-vec4 piece_color1 = {0.5, 1, 0.5, 1};
-vec4 piece_color2 = {0, 0, 1, 1};
+typedef enum ChessMeshId {
+  CHESS_MESH_SQUARE,
+  CHESS_MESH_PAWN,
+  CHESS_MESH_ROOK,
+  CHESS_MESH_BISHOP,
+  CHESS_MESH_KNIGHT,
+  CHESS_MESH_QUEEN,
+  CHESS_MESH_KING,
+  CHESS_MESH_COUNT
+} ChessMeshId;
 
-PMesh check_mesh;
-PMaterial check_board_mat2;
-PMaterial check_board_mat1;
+//loaded from the demo's own directory, so pchess has to be run from there
+static const char *chess_mesh_paths[CHESS_MESH_COUNT] = {
+    "cube.glb",   "pawn.glb",  "rook.glb", "bishop.glb",
+    "knight.glb", "queen.glb", "king.glb"};
 
-PMaterial piece_mat2;
-PMaterial piece_mat1;
+static vec4 square_color1 = {0, 0.2f, 0, 1};
+static vec4 square_color2 = {1, 0.5f, 1, 1};
 
-PSkinnedMeshComponent *human_skin_component;
+static vec4 piece_color1 = {0.5f, 1, 0.5f, 1};
+static vec4 piece_color2 = {0, 0, 1, 1};
 
-Element *knight_white;
+//one loaded copy of each mesh. every square and piece is instanced off these
+static PModel chess_meshes[CHESS_MESH_COUNT];
 
-CameraComponent chess_camera_view_board;
+static PShader chess_shader;
 
-bool chess_saw_face;
-PMesh chess_get_mesh() {
-  StaticMeshComponent *mesh =
-      get_component_from_element(selected_element, STATIC_MESH_COMPONENT);
+static ChessPiece chess_board[CHESS_SQUARES];
+static ChessPiece chess_pieces[CHESS_PIECES];
+static int chess_piece_count;
 
-  PModel *original_check_mesh = array_get_pointer(&mesh->models_p, 0);
-  return original_check_mesh->mesh;
+static ChessPiece *chess_knight_white;
+
+static PCamera chess_camera_view_board;
+static bool chess_saw_face;
+
+static void chess_place(ChessPiece *piece, float x, float y, float z,
+                        float scale, float angle) {
+
+  pe_model_transform(&piece->model, VEC3(x, y, z), angle, VEC3(1, 0, 0),
+                     VEC3(scale, scale, scale));
 }
 
-void chess_create_notation() {}
-
-void chess_piece_set_pos(vec2 pos) {
-
-  pe_element_set_position(selected_element, VEC3(pos[0], pos[1], 0));
+static void chess_move_piece(ChessPiece *piece, float x, float y) {
+  chess_place(piece, x, y, 0, CHESS_PIECE_SCALE, 90);
 }
 
-void chess_piece_init_scale() {
-  float scale = -0.8f;
-  pe_element_set_scale(VEC3(scale, scale, scale));
+static ChessPiece *chess_piece_new(ChessMeshId mesh, vec4 color, float x,
+                                   float y) {
+
+  if (chess_piece_count >= CHESS_PIECES) {
+    LOG("Chess: no room left for another piece\n");
+    return NULL;
+  }
+
+  ChessPiece *piece = &chess_pieces[chess_piece_count];
+  chess_piece_count++;
+
+  pe_vk_model_instance(&piece->model, &chess_meshes[mesh]);
+  glm_vec4_copy(color, piece->color);
+
+  chess_move_piece(piece, x, y);
+
+  return piece;
 }
 
-void chess_move_piece(vec2 pos) { chess_piece_set_pos(pos); }
+static void chess_meshes_load() {
 
-void chess_piece_reset_scale_rot() {
+  PCreateShaderInfo shader_info;
+  ZERO(shader_info);
+  shader_info.out_shader = &chess_shader;
+  shader_info.vertex_path = file_color_vert_spv;
+  shader_info.fragment_path = file_color_frag_spv;
+  //the layout built from pe_vk_descriptor_set_layout: one uniform buffer at
+  //binding 0, which is all color_vert.vert reads
+  shader_info.layout = pe_vk_pipeline_layout_with_descriptors;
 
-  pe_element_rotate(selected_element, -90, VEC3(1, 0, 0));
-  float scale = 0.8f;
-  pe_element_set_scale(VEC3(scale, scale, scale));
-  chess_move_piece(VEC2(0, 0));
+  pe_vk_create_shader(&shader_info);
+
+  for (int i = 0; i < CHESS_MESH_COUNT; i++) {
+    pe_vk_load_model(&chess_meshes[i], chess_mesh_paths[i]);
+    //the instances are memcpy'd from these, so the pipeline has to be in place
+    //before the first pe_vk_model_instance() call
+    chess_meshes[i].shader = chess_shader;
+  }
 }
 
-void chess_piece_init_scale_rot() {
-
-  chess_piece_init_scale();
-  pe_element_rotate(selected_element, 90, VEC3(1, 0, 0));
-}
-
-void chess_piece_movement(int x, int y) {
-  //  chess_piece_reset_scale_rot();
-  //  chess_move_piece(VEC2(x,y));
-  // chess_piece_init_scale_rot();
-
-  TransformComponent *transform = pe_comp_get(TRASNFORM_COMPONENT);
-  if (!transform)
-    return;
-
-  glm_mat4_identity(transform->model_matrix);
-  chess_move_piece(VEC2(x, y));
-  chess_piece_init_scale_rot();
-
-  LOG("########## chess movement %i %i", x, y);
-}
-
-void chess_board_create() {
-
-  // add_element_with_model_path("/home/pavon/PavonEngine/NativeContent/Editor/cube.glb");
-  add_element_with_model_path("cube.glb");
-
-  StaticMeshComponent *mesh =
-      get_component_from_element(selected_element, STATIC_MESH_COMPONENT);
-  mesh->material = check_board_mat1;
-
-  ZERO(check_mesh);
-
-  float scale_board = -0.5f;
-  pe_element_set_scale(VEC3(scale_board, scale_board, scale_board));
-
-  PModel *original_check_mesh = array_get_pointer(&mesh->models_p, 0);
-  check_mesh = original_check_mesh->mesh;
+static void chess_board_create() {
 
   for (int x = 0; x < 8; x++) {
     for (int y = 0; y < 8; y++) {
-      new_empty_element();
 
-      add_transform_component_to_selected_element();
+      ChessPiece *square = &chess_board[x * 8 + y];
 
-      pe_comp_static_mesh_add_to_element();
+      pe_vk_model_instance(&square->model, &chess_meshes[CHESS_MESH_SQUARE]);
 
-      pe_element_comp_init();
+      if ((x + y) % 2 == 0)
+        glm_vec4_copy(square_color2, square->color);
+      else
+        glm_vec4_copy(square_color1, square->color);
 
-      StaticMeshComponent *mesh2 =
-          get_component_from_element(selected_element, STATIC_MESH_COMPONENT);
-
-      if ((x + y) % 2 == 0) {
-        mesh2->material = check_board_mat2;
-
-      } else {
-
-        mesh2->material = check_board_mat1;
-      }
-
-      selected_model->mesh = check_mesh;
-
-      pe_element_set_position(selected_element, VEC3(x, y, -0.5));
-      float scale = -0.5f;
-      pe_element_set_scale(VEC3(scale, scale, scale));
+      chess_place(square, x, y, -0.5f, CHESS_SQUARE_SCALE, 0);
     }
   }
 }
-void chess_input() {
-  if (key_released(&input.A)) {
-    selected_element = knight_white;
-    chess_piece_movement(4, 4);
-  }
 
-  if (key_released(&input.W)) {
-    selected_element = knight_white;
-    chess_piece_movement(3, 5);
-  }
-  if (key_released(&input.Y)) {
-    selected_element = knight_white;
-    chess_piece_movement(5, 0);
-  }
-
-  if (key_released(&input.Q)) {
-    LOG("###### Exit pressed");
-    exit(0);
-  }
-
-  if (key_released(&input.V)) {
-    if (chess_saw_face == true) {
-
-      memcpy(&main_camera, &chess_camera_view_board, sizeof(CameraComponent));
-      camera_update(&main_camera);
-      chess_saw_face = false;
-      return;
-    }
-    if (chess_saw_face == false) {
-      camera_rotate_control(-10, 0);
-      camera_update(&main_camera);
-      chess_saw_face = true;
-    }
-  }
-
-  //  LOG("###### Touch %f %f",touch_position_x,touch_position_y);
-}
-void chess_init_materials() {
-
-  ZERO(check_board_mat1);
-  check_board_mat1.shader = shader_standard_color;
-  glm_vec4_copy(color1, check_board_mat1.color);
-
-  ZERO(check_board_mat2);
-  check_board_mat2.shader = shader_standard_color;
-  glm_vec4_copy(color2, check_board_mat2.color);
-
-  ZERO(piece_mat1);
-  piece_mat1.shader = shader_standard_color;
-  glm_vec4_copy(piece_color1, piece_mat1.color);
-
-  ZERO(piece_mat2);
-  piece_mat2.shader = shader_standard_color;
-  glm_vec4_copy(piece_color2, piece_mat2.color);
-}
-void chess_new_empty() {
-
-  new_empty_element();
-
-  add_transform_component_to_selected_element();
-
-  pe_comp_static_mesh_add_to_element();
-
-  pe_element_comp_init();
-}
-void chess_piece_set_mesh(PMesh mesh) {
-
-  StaticMeshComponent *mesh_comp =
-      get_component_from_element(selected_element, STATIC_MESH_COMPONENT);
-
-  selected_model->mesh = mesh;
-}
-void chess_create_leaders() {
-
-  add_element_with_model_path("queen.glb");
-  chess_piece_set_pos(VEC2(7, 4));
-  chess_piece_init_scale();
-  pe_element_rotate(selected_element, 90, VEC3(1, 0, 0));
-
-  pe_element_set_material(piece_mat1);
-
-  PMesh queen = chess_get_mesh();
-
-  chess_new_empty();
-  chess_piece_set_mesh(queen);
-  pe_element_set_material(piece_mat2);
-  chess_move_piece(VEC2(0, 4));
-  chess_piece_init_scale();
-  pe_element_rotate(selected_element, 90, VEC3(1, 0, 0));
-
-  add_element_with_model_path("king.glb");
-  PMesh king = chess_get_mesh();
-
-  chess_move_piece(VEC2(7, 3));
-  chess_piece_init_scale();
-  pe_element_rotate(selected_element, 90, VEC3(1, 0, 0));
-  pe_element_set_material(piece_mat1);
-
-  chess_new_empty();
-  chess_piece_set_mesh(king);
-  pe_element_set_material(piece_mat2);
-  chess_move_piece(VEC2(0, 3));
-  chess_piece_init_scale();
-  pe_element_rotate(selected_element, 90, VEC3(1, 0, 0));
-}
-
-void chess_create_knight() {
-
-  add_element_with_model_path("knight.glb");
-
-  chess_piece_set_pos(VEC2(0, 1));
-  chess_piece_init_scale();
-  pe_element_rotate(selected_element, 90, VEC3(1, 0, 0));
-
-  PMesh knight = chess_get_mesh();
-
-  pe_element_set_material(piece_mat2);
-
-  chess_new_empty();
-  chess_piece_set_mesh(knight);
-  pe_element_set_material(piece_mat2);
-  chess_move_piece(VEC2(0, 6));
-  chess_piece_init_scale();
-  pe_element_rotate(selected_element, 90, VEC3(1, 0, 0));
-
-  chess_new_empty();
-  chess_piece_set_mesh(knight);
-  pe_element_set_material(piece_mat1);
-  chess_move_piece(VEC2(7, 6));
-  chess_piece_init_scale();
-  pe_element_rotate(selected_element, 90, VEC3(1, 0, 0));
-
-  chess_new_empty();
-  chess_piece_set_mesh(knight);
-  pe_element_set_material(piece_mat1);
-  chess_move_piece(VEC2(7, 1));
-  chess_piece_init_scale();
-  pe_element_rotate(selected_element, 90, VEC3(1, 0, 0));
-  knight_white = selected_element;
-}
-
-void chess_create_bishop() {
-
-  add_element_with_model_path("bishop.glb");
-
-  chess_piece_set_pos(VEC2(0, 2));
-  chess_piece_init_scale();
-  pe_element_rotate(selected_element, 90, VEC3(1, 0, 0));
-
-  pe_element_set_material(piece_mat2);
-
-  PMesh bishop = chess_get_mesh();
-
-  chess_new_empty();
-
-  chess_piece_set_mesh(bishop);
-
-  pe_element_set_material(piece_mat2);
-
-  chess_move_piece(VEC2(0, 5));
-  chess_piece_init_scale();
-  pe_element_rotate(selected_element, 90, VEC3(1, 0, 0));
-
-  chess_new_empty();
-
-  chess_piece_set_mesh(bishop);
-
-  pe_element_set_material(piece_mat1);
-
-  chess_move_piece(VEC2(7, 5));
-  chess_piece_init_scale();
-  pe_element_rotate(selected_element, 90, VEC3(1, 0, 0));
-
-  chess_new_empty();
-
-  chess_piece_set_mesh(bishop);
-
-  pe_element_set_material(piece_mat1);
-
-  chess_move_piece(VEC2(7, 2));
-  chess_piece_init_scale();
-  pe_element_rotate(selected_element, 90, VEC3(1, 0, 0));
-}
-
-void chess_create_pawn() {
-
-  add_element_with_model_path("pawn.glb");
-
-  chess_piece_set_pos(VEC2(1, 0));
-  chess_piece_init_scale();
-  pe_element_set_material(piece_mat2);
-  StaticMeshComponent *pawn_mesh_comp =
-      get_component_from_element(selected_element, STATIC_MESH_COMPONENT);
-
-  PModel *model = array_get_pointer(&pawn_mesh_comp->models_p, 0);
-  PMesh pawn_mesh = model->mesh;
-
-  for (int i = 1; i < 8; i++) {
-    chess_new_empty();
-    chess_piece_set_mesh(pawn_mesh);
-
-    chess_move_piece(VEC2(1, i));
-    chess_piece_init_scale();
-    pe_element_rotate(selected_element, 90, VEC3(1, 0, 0));
-    pe_element_set_material(piece_mat2);
-  }
+static void chess_pieces_create() {
 
   for (int i = 0; i < 8; i++) {
-    chess_new_empty();
-
-    chess_piece_set_mesh(pawn_mesh);
-
-    chess_move_piece(VEC2(6, i));
-    chess_piece_init_scale();
-    pe_element_rotate(selected_element, 90, VEC3(1, 0, 0));
-    pe_element_set_material(piece_mat1);
+    chess_piece_new(CHESS_MESH_PAWN, piece_color2, 1, i);
+    chess_piece_new(CHESS_MESH_PAWN, piece_color1, 6, i);
   }
-}
-void chess_piece_new(float x, float y, PMaterial material, PMesh mesh) {
 
-  chess_new_empty();
-  chess_piece_set_mesh(mesh);
+  chess_piece_new(CHESS_MESH_ROOK, piece_color2, 0, 0);
+  chess_piece_new(CHESS_MESH_ROOK, piece_color2, 0, 7);
+  chess_piece_new(CHESS_MESH_ROOK, piece_color1, 7, 0);
+  chess_piece_new(CHESS_MESH_ROOK, piece_color1, 7, 7);
 
-  pe_element_set_material(material);
+  chess_piece_new(CHESS_MESH_BISHOP, piece_color2, 0, 2);
+  chess_piece_new(CHESS_MESH_BISHOP, piece_color2, 0, 5);
+  chess_piece_new(CHESS_MESH_BISHOP, piece_color1, 7, 2);
+  chess_piece_new(CHESS_MESH_BISHOP, piece_color1, 7, 5);
 
-  chess_piece_set_pos(VEC2(x, y));
-  chess_piece_init_scale();
-  pe_element_rotate(selected_element, 90, VEC3(1, 0, 0));
-}
-void chess_create_rooks() {
+  chess_piece_new(CHESS_MESH_KNIGHT, piece_color2, 0, 1);
+  chess_piece_new(CHESS_MESH_KNIGHT, piece_color2, 0, 6);
+  chess_piece_new(CHESS_MESH_KNIGHT, piece_color1, 7, 6);
+  chess_knight_white = chess_piece_new(CHESS_MESH_KNIGHT, piece_color1, 7, 1);
 
-  add_element_with_model_path("rook.glb");
-  chess_piece_set_pos(VEC2(7, 7));
-  chess_piece_init_scale();
-  pe_element_rotate(selected_element, 90, VEC3(1, 0, 0));
+  chess_piece_new(CHESS_MESH_QUEEN, piece_color2, 0, 4);
+  chess_piece_new(CHESS_MESH_QUEEN, piece_color1, 7, 4);
 
-  pe_element_set_material(piece_mat1);
-
-  PMesh rook_mesh = chess_get_mesh();
-
-  chess_new_empty();
-  chess_piece_set_mesh(rook_mesh);
-
-  pe_element_set_material(piece_mat1);
-
-  chess_piece_set_pos(VEC2(7, 0));
-  chess_piece_init_scale();
-  pe_element_rotate(selected_element, 90, VEC3(1, 0, 0));
-
-  chess_piece_new(0, 0, piece_mat2, rook_mesh);
-  chess_piece_new(0, 7, piece_mat2, rook_mesh);
+  chess_piece_new(CHESS_MESH_KING, piece_color2, 0, 3);
+  chess_piece_new(CHESS_MESH_KING, piece_color1, 7, 3);
 }
 
-void chess_pieces_create() {
-
-  chess_create_pawn();
-  chess_create_rooks();
-  chess_create_bishop();
-  chess_create_leaders();
-  chess_create_knight();
-}
-
-void chess_camera_init() {
+static void chess_camera_init() {
 
   camera_init(&main_camera);
-  init_vec3(-6, 3.5, 10,
-            main_camera.position); // x: back/forward z: up/down y: left/right
-  // init_vec3(-6,3.5,8, main_camera.position);
 
-  // init_vec3(-6,0,8, main_camera.position);//test human
+  // x: back/forward z: up/down y: left/right
+  init_vec3(-6, 3.5, 10, main_camera.position);
 
   camera_update(&main_camera);
   camera_rotate_control(-35, 0);
 
   camera_update(&main_camera);
 
-  memcpy(&chess_camera_view_board, &main_camera, sizeof(CameraComponent));
+  memcpy(&chess_camera_view_board, &main_camera, sizeof(PCamera));
 }
 
-void chess_human_create() {
-  LOG("###########HUman created and selected_element ");
+static void chess_piece_draw(ChessPiece *piece, VkCommandBuffer *cmd_buffer,
+                             uint32_t index) {
 
-  add_element_with_model_path("chess_human.glb");
-  // add_element_with_model_path(
-  //     "/home/pavon/PavonEngine/NativeContent/Editor/simple_skeletal.glb");
+  PUniformBufferObject *ubo = &piece->model.uniform_buffer_object;
 
-  // pe_element_set_position(selected_element,VEC3(10,4,-10));
-  // pe_element_rotate(selected_element, -90, VEC3(0,0,1));
+  glm_mat4_copy(piece->model.model_mat, ubo->model);
+  glm_mat4_copy(main_camera.view, ubo->view);
+  glm_mat4_copy(main_camera.projection, ubo->projection);
+  glm_vec4_copy(piece->color, ubo->color);
 
-  //  float scale = -0.2f;
-  // pe_element_set_scale(VEC3(scale,scale,scale)) ;
+  pe_vk_send_uniform_buffer(&piece->model, index);
 
-  PSkinnedMeshComponent *human_comp =
-      get_component_from_element(selected_element, COMPONENT_SKINNED_MESH);
-  if (!human_comp) {
-    LOG("********Human component not found");
-    return;
+  PDrawModelCommand draw;
+  ZERO(draw);
+  draw.model = &piece->model;
+  draw.layout = pe_vk_pipeline_layout_with_descriptors;
+  draw.command_buffer = *cmd_buffer;
+  draw.image_index = index;
+
+  pe_vk_draw_model(&draw);
+}
+
+//INFO the renderer calls this from inside the render pass. the engine has no
+//scene of its own, so this walk is the whole of what chess draws
+static void chess_draw_scene(VkCommandBuffer *cmd_buffer, uint32_t index) {
+
+  for (int i = 0; i < CHESS_SQUARES; i++)
+    chess_piece_draw(&chess_board[i], cmd_buffer, index);
+
+  for (int i = 0; i < chess_piece_count; i++)
+    chess_piece_draw(&chess_pieces[i], cmd_buffer, index);
+}
+
+void chess_input() {
+
+  if (key_released(&input.A))
+    chess_move_piece(chess_knight_white, 4, 4);
+
+  if (key_released(&input.W))
+    chess_move_piece(chess_knight_white, 3, 5);
+
+  if (key_released(&input.Y))
+    chess_move_piece(chess_knight_white, 5, 0);
+
+  if (key_released(&input.Q)) {
+    LOG("Chess: exit pressed\n");
+    exit(0);
   }
-  human_comp->mesh->material = piece_mat1;
-  human_skin_component = human_comp;
 
-  for (int i = 0; i < human_skin_component->mesh->vertex_array.count; i++) {
-    PVertex *v = array_get(&human_skin_component->mesh->vertex_array, i);
-    // LOG("############ UV: %f %f",v->uv[0],v->uv[1]);
+  if (key_released(&input.V)) {
+    if (chess_saw_face) {
+      memcpy(&main_camera, &chess_camera_view_board, sizeof(PCamera));
+      camera_update(&main_camera);
+      chess_saw_face = false;
+      return;
+    }
+
+    camera_rotate_control(-10, 0);
+    camera_update(&main_camera);
+    chess_saw_face = true;
   }
-
-  // add_texture_to_selected_element_with_image_path(
-  //    "/sdcard/Download/ImageConverter/Muro_head_dm.png");
-
-  // add_texture_to_selected_element_with_image_path(
-  //    "/sdcard/Download/ImageConverter/Muro_body_dm.png");
-
-  // pe_skeletal_editor_init_for(human_skin_component);
 }
 
 void chess_init() {
@@ -447,80 +235,36 @@ void chess_init() {
 
   chess_camera_init();
 
-  chess_init_materials();
+  chess_meshes_load();
 
   chess_board_create();
 
   chess_pieces_create();
 
-  // chess_human_create();
+  pe_vk_draw_scene = &chess_draw_scene;
 }
 
 void chess_loop() {}
 
-void chess_draw() {
+void chess_draw() {}
 
-  if (key_released(&input.R)) {
-
-    if (!human_skin_component) {
-      LOG("######### human skin component is NULL");
-      return;
-    }
-    if (human_skin_component->joints.count == 0) {
-      LOG("######### human skin component joints ZERO");
-    }
-
-    Node *node1 = pe_node_by_name(&human_skin_component->joints, "Bone.007");
-
-    if (!node1) {
-      LOG("######## NOde not found");
-      return;
-    }
-
-    TransformComponent *knigt_trasform =
-        get_component_from_element(knight_white, TRASNFORM_COMPONENT);
-    if (!knigt_trasform) {
-      LOG("########### No knight transform component");
-    }
-
-    StaticMeshComponent *knight_mesh_comp =
-        get_component_from_element(knight_white, STATIC_MESH_COMPONENT);
-    if (!knight_mesh_comp) {
-      LOG("########### No mesh compon knight witeh");
-    }
-
-    PModel *knight_model = array_get(&knight_mesh_comp->models_p, 0);
-    if (!knight_model) {
-      LOG("#### Not model getted from knight model");
-    }
-
-    //pe_skeletal_update_draw_vertices(human_skin_component);
-    pe_anim_nodes_update(human_skin_component);
-  }
-}
-
-PGame *chess_main(PGame *chess) {
-
-  chess->name = "Chess";
-  chess->update = &chess_loop;
-  chess->init = &chess_init;
-  chess->draw = &chess_draw;
-  chess->input = &chess_input;
-  game = chess; // need for egl context creation
-
-  return chess;
-}
-
-int main(){
+int main() {
   PGame chess;
+  ZERO(chess);
+  chess.name = "Chess";
   chess.update = &chess_loop;
   chess.init = &chess_init;
   chess.draw = &chess_draw;
   chess.input = &chess_input;
 
-  pe_renderer_type = PEWMOPENGLES2; 
+  pe_renderer_type = PEWMVULKAN;
+
+  //the renderer cannot know this: it decides whether pe_vk_create_surface()
+  //builds a VkSurfaceKHR from the compositor's wl_surface or whether the
+  //application drives KMS itself and has no surface at all
+  is_wayland_window = true;
 
   pengine_run(&chess);
-  
-  return 0; 
+
+  return 0;
 }

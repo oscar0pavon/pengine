@@ -7,9 +7,7 @@
 #define PATH_TYPE_ROTATION 2
 
 #include "../array.h"
-#include "../components/components.h"
 #include "../skeletal.h"
-#include <engine/components/skinned_mesh_component.h>
 typedef struct AnimationSampler {
   Array inputs;  // int
   Array outputs; // vec3 or vec4
@@ -32,17 +30,17 @@ typedef struct Animation {
 
 typedef struct PEAnimationPlay {
   Animation *anim;
-  PSkinnedMeshComponent *skin;
+  PSkin *skin;
 } PEAnimationPlay;
 
 Array array_animation_play_list;
 
-void play_animation_by_name(PSkinnedMeshComponent *skin_component,
+void play_animation_by_name(PSkin *skin_component,
                             const char *name, bool loop);
 
 void play_animation_list();
 
-void pe_anim_nodes_update(PSkinnedMeshComponent *);
+void pe_anim_nodes_update(PSkin *);
 
 #ifdef DEBUG
 bool update_vertex_bones_gizmos;

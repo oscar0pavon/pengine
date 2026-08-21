@@ -4,8 +4,7 @@
 #include <cglm/cglm.h>
 
 typedef struct PMaterial{
-  int shader;
-  vec4 color;   
+  vec4 color;
 }PMaterial;
 
 #endif

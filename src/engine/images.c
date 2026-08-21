@@ -47,19 +47,11 @@ int image_load_from_memory(PImage* image, void* data, u32 size){
     return 0;
 }
 
-//INFO only the vulkan backend still owns pixels. pe_tex_to_gpu is an ES2
-//leftover that free()s the image and uploads nothing, so a texture asked for
-//under PEWMOPENGLES2 is reported rather than silently handed back empty
 static int pe_texture_upload(PTexture* texture, PImage* image){
 
-    if(pe_renderer_type == PEWMVULKAN){
-        pe_vk_create_texture_from_image(texture, image);
-        texture->gpu_loaded = true;
-        return 0;
-    }
-
-    LOG("Texture upload not implemented for this renderer\n");
-    return -1;
+    pe_vk_create_texture_from_image(texture, image);
+    texture->gpu_loaded = true;
+    return 0;
 }
 
 int pe_load_texture(const char* path, PTexture* new_texture){

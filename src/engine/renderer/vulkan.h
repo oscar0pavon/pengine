@@ -23,19 +23,14 @@
 
 #define VKVALID(f,message) if(f != VK_SUCCESS){LOG("%s \n",message);}
 
-typedef struct Camera{
-    mat4 projection;
-    mat4 view;
-    vec3 front;
-    vec3 up;
-    vec3 position;
-}Camera;
-
 typedef struct PUniformBufferObject {
   mat4 model;
   mat4 view;
   mat4 projection;
   vec4 light_position;
+  //INFO a shader that does not declare this member simply does not read it,
+  //so the trailing field costs the others nothing
+  vec4 color;
 } PUniformBufferObject;
 
 extern PFN_vkGetMemoryFdKHR pe_vk_get_memory_file_descriptor;

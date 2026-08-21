@@ -21,9 +21,7 @@ typedef struct PGame{
 #endif
 }PGame;
 
-int init_game();
 
-void update_game();
 
 int load_gamplay_code();
 

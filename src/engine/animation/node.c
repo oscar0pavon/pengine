@@ -1,6 +1,5 @@
 #include "node.h"
 #include <engine/skeletal.h>
-#include <engine/components/skinned_mesh_component.h>
 #include <engine/animation/animation.h>
 
 

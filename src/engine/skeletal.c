@@ -1,7 +1,6 @@
 #include "skeletal.h"
-#include <engine/components/skinned_mesh_component.h>
 
-void pe_skeletal_inverse_kinematic(PSkinnedMeshComponent *skin) {}
+void pe_skeletal_inverse_kinematic(PSkin *skin) {}
 
 void get_global_matrix(Node *node, mat4 out_mat) {
   mat4 local;

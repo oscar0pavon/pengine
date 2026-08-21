@@ -321,7 +321,13 @@ PModel *pe_vk_load_model(PModel* model, const char *path) {
 
   pe_vk_create_uniform_buffers(model);
   pe_vk_descriptor_pool_create(model);
- 
+
+  //INFO a model is not drawable until its descriptor sets exist and point at
+  //its uniform buffers - pe_vk_draw_model() binds set[image_index] every draw.
+  //the pool alone was not enough and left the sets array empty
+  pe_vk_create_descriptor_sets(model, pe_vk_descriptor_set_layout);
+  pe_vk_descriptor_update(model);
+
   //init model matrix
   glm_mat4_identity(model->model_mat);
   //setup Uniform Buffer Object
@@ -330,6 +336,65 @@ PModel *pe_vk_load_model(PModel* model, const char *path) {
   glm_mat4_copy(main_camera.view, model->uniform_buffer_object.view);
 
   return model;
+}
+
+//INFO one more thing to draw with geometry that is already on the gpu. the
+//vertex and index buffers are shared with source, but the copy gets its own
+//uniform buffers and descriptor sets, because those carry the per instance
+//model matrix. sharing them would make every copy sit where the last one moved
+PModel *pe_vk_model_instance(PModel *model, PModel *source) {
+
+  memcpy(model, source, sizeof(PModel));
+
+  ZERO(model->uniform_buffers);
+  ZERO(model->uniform_buffers_memory);
+  ZERO(model->descriptor_sets);
+
+  pe_vk_create_uniform_buffers(model);
+  pe_vk_descriptor_pool_create(model);
+  pe_vk_create_descriptor_sets(model, pe_vk_descriptor_set_layout);
+  pe_vk_descriptor_update(model);
+
+  glm_mat4_identity(model->model_mat);
+  glm_mat4_copy(model->model_mat, model->uniform_buffer_object.model);
+
+  return model;
+}
+
+void pe_model_transform_reset(PModel *model) {
+  glm_mat4_identity(model->model_mat);
+  glm_vec3_zero(model->position);
+}
+
+void pe_model_transform(PModel *model, vec3 position, float angle, vec3 axis,
+                        vec3 scale) {
+  glm_mat4_identity(model->model_mat);
+  glm_translate(model->model_mat, position);
+  glm_rotate(model->model_mat, glm_rad(angle), axis);
+  glm_scale(model->model_mat, scale);
+
+  glm_vec3_copy(position, model->position);
+}
+
+//INFO the translation lives in the fourth column, so it can be replaced
+//without touching the rotation and scale in the upper 3x3 - composing a fresh
+//translate onto the matrix instead would move it by position every call
+void pe_model_set_position(PModel *model, vec3 position) {
+  glm_vec3_copy(position, model->model_mat[3]);
+  glm_vec3_copy(position, model->position);
+}
+
+void pe_model_translate(PModel *model, vec3 offset) {
+  glm_translate(model->model_mat, offset);
+  glm_vec3_copy(model->model_mat[3], model->position);
+}
+
+void pe_model_rotate(PModel *model, float angle, vec3 axis) {
+  glm_rotate(model->model_mat, glm_rad(angle), axis);
+}
+
+void pe_model_scale(PModel *model, vec3 scale) {
+  glm_scale(model->model_mat, scale);
 }
 
 void pe_clean_model(PModel* model){

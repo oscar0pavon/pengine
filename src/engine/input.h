@@ -6,6 +6,15 @@
 #endif
 
 #include <stdbool.h>
+#include <stdint.h>
+
+//INFO the key state pe_parse_key_event() takes. the values are
+//WL_KEYBOARD_KEY_STATE_RELEASED/PRESSED, so a pway key callback can forward
+//its state straight through
+typedef enum PEKeyState {
+	PE_KEY_RELEASED = 0,
+	PE_KEY_PRESSED = 1
+} PEKeyState;
 
 typedef struct Key{
 	bool pressed;
@@ -95,11 +104,11 @@ bool mouse_navigate_control;
 
 void pe_input_init();
 
-void pe_init_x11_keys();
+void pe_parse_key_event(unsigned int key_code, uint8_t type);
+
 
 void mouse_movement_control(float xpos, float ypos);
 
-void pe_wm_poll_events_x11();
 
 void pe_input_clean();
 
