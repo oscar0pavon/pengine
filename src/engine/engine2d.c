@@ -9,12 +9,12 @@
 #include <vulkan/vulkan_core.h>
 
 #include "renderer/vk_buffer.h"
-//#include "../window.h"
 #include "renderer/uniform_buffer.h"
 #include "renderer/descriptor_set.h"
 
 #include <engine/utils.h>
 #include "camera.h"
+#include <engine/renderer/renderer.h>
 
 mat4 orthogonal_projection;
 

@@ -6,8 +6,6 @@
 #define CAMERA_H 
 
 #include <cglm/cglm.h>
-#include "renderer/vulkan.h"
-#include "renderer/renderer.h"
 
 typedef struct PCamera{
     mat4 projection;

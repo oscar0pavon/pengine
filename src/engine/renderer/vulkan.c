@@ -44,6 +44,7 @@ bool is_wayland_window = false;
 uint32_t pe_window_width = 1280;
 uint32_t pe_window_height = 720;
 
+PRenderTarget main_render_target;
 
 VkRenderPass pe_vk_render_pass;
 

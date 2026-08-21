@@ -3,7 +3,7 @@
 #include "camera.h"
 #include <cglm/cam.h>
 #include <cglm/types.h>
-#include "renderer/vulkan.h"
+#include "renderer/renderer.h"
 #include "utils.h"
 #include "window_manager.h"
 //#include "window.h"

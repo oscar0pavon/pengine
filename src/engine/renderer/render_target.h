@@ -2,10 +2,11 @@
 #define PE_RENDER_TARGET
 
 #include "engine/camera.h"
-#include "surface.h"
+#include <vulkan/vulkan_core.h>
 #include "swap_chain.h"
 #include "sync.h"
 #include <engine/types.h>
+#include <engine/camera.h>
 
 typedef struct PRenderTarget{
 

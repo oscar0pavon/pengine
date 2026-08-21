@@ -9,23 +9,6 @@
 VkDisplayKHR vk_display;
 VkDisplayModeKHR vk_display_mode;
 
-void vk_create_display_surface(){
-  VkDisplaySurfaceCreateInfoKHR info = {
-    .sType = VK_STRUCTURE_TYPE_DISPLAY_SURFACE_CREATE_INFO_KHR, 
-    .displayMode = vk_display_mode,
-    .planeIndex = 0,
-    .globalAlpha = 1.0f,
-    .alphaMode = VK_DISPLAY_PLANE_ALPHA_OPAQUE_BIT_KHR,
-    .planeStackIndex = 0, 
-    .imageExtent = {1920,1080},
-    .transform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR
-  };
-
-  VKVALID(vkCreateDisplayPlaneSurfaceKHR(vk_instance,
-      &info, NULL, &vk_surface), "Can't create display surface");
-  
-}
-
 void vk_get_displays() {
   u32 display_count;
 
@@ -57,6 +40,4 @@ void vk_get_displays() {
 
   vk_display_mode = modes[0].displayMode;
   
-  vk_create_display_surface();
-
 }

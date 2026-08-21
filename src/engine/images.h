@@ -5,7 +5,7 @@
 #include "numbers.h"
 #include <stdbool.h>
 #include <stdint.h>
-#include "renderer/vulkan.h"
+#include <vulkan/vulkan_core.h>
 
 typedef struct PImage{
   unsigned short int width;

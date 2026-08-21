@@ -8,6 +8,8 @@
 #include <pway/pway.h>
 
 #include "images_view.h"
+#include "display.h"
+#include <vulkan/vulkan_wayland.h>
 
 VkImage pe_vk_color_image;
 VkDeviceMemory pe_vk_color_memory;
@@ -19,6 +21,10 @@ PTexture vk_color_image;
 
 void pe_vk_create_surface() {
 
+  if(is_drm_rendering){
+    pe_vk_create_display_surface(&main_render_target);
+    return;
+  }
   //pway owns the wl_surface, vulkan just renders into it. no EGL context is
   //created, the raw wayland objects are all this needs. the other path is
   //is_drm_rendering, which has no surface at all
@@ -34,6 +40,23 @@ void pe_vk_create_surface() {
   if (vkCreateWaylandSurfaceKHR(vk_instance, &surface_create_info, NULL,
                                 &vk_surface) != VK_SUCCESS)
     fprintf(stderr, "Failed to create Vulkan Wayland surface!\n");
+}
+
+void pe_vk_create_display_surface(PRenderTarget* target){
+  VkDisplaySurfaceCreateInfoKHR info = {
+    .sType = VK_STRUCTURE_TYPE_DISPLAY_SURFACE_CREATE_INFO_KHR, 
+    .displayMode = vk_display_mode,
+    .planeIndex = 0,
+    .globalAlpha = 1.0f,
+    .alphaMode = VK_DISPLAY_PLANE_ALPHA_OPAQUE_BIT_KHR,
+    .planeStackIndex = 0, 
+    .imageExtent = {1920,1080},
+    .transform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR
+  };
+
+  VKVALID(vkCreateDisplayPlaneSurfaceKHR(vk_instance,
+      &info, NULL, &target->surface), "Can't create display surface");
+  
 }
 
 void pe_vk_create_color_resources() {

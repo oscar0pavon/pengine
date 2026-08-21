@@ -1,10 +1,9 @@
 #ifndef RENDERER
 #define RENDERER
 
-#include <engine/renderer/vulkan.h>
+#include <vulkan/vulkan_core.h>
 
-#include "render_thread.h"
-#include "material.h"
+#include <stdbool.h>
 
 //INFO the two things only the application knows: whether it drives KMS itself
 //and whether it got a window from a host compositor. defined in vulkan.c so a

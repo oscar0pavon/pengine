@@ -9,6 +9,8 @@
 
 #include <pway/pway.h>
 
+#include <engine/renderer/renderer.h>
+
 bool pe_wm_swapped = false;
 
 //pway reports the raw evdev code and a WL_KEYBOARD_KEY_STATE_*, and

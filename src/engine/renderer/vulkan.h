@@ -11,7 +11,7 @@
 #include <engine/log.h>
 
 #include <cglm/cglm.h>
-
+#include "render_target.h"
 
 #define VEC3(p1, p2, p3)                                                       \
   (vec3) { p1, p2, p3 }
@@ -42,6 +42,7 @@ void pe_vk_end();
   
 extern VkPhysicalDevice vk_physical_device;
 
+extern PRenderTarget main_render_target;
 
 extern VkInstance vk_instance;
 extern VkDevice vk_device;

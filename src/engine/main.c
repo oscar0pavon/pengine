@@ -1,7 +1,7 @@
 #include "engine/window_manager.h"
 #include <engine/base.h>
 #include <engine/engine.h>
-
+#include <engine/renderer/render_thread.h>
 
 //INFO the signature pthread_create() wants, not a void() cast into place. the
 //return value is never read - the loop does not end - but a thread entry with
