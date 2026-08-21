@@ -2,10 +2,11 @@
 #define RENDER_VK_SWAPCHAIN
 
 #include <vulkan/vulkan.h>
-#include <engine/array.h>
 #include <engine/images.h>
 
-void pe_vk_create_swapchain();
+typedef struct PRenderTarget PRenderTarget ;
+
+void pe_vk_create_swapchain(PRenderTarget* target);
 
 extern VkSwapchainKHR pe_vk_swap_chain;
 

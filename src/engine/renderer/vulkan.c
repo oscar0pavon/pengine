@@ -133,14 +133,9 @@ int pe_vk_init() {
 
   vkGetDeviceQueue(vk_device, q_graphic_family, 0, &vk_queue);
 
-  pe_vk_create_surface();
+  pe_vk_create_surface(&main_render_target);
 
-  pe_vk_create_swapchain();
-
-  if(is_drm_rendering){
-    //pe_vk_create_exportable_images();
-    //init_direct_render();
-  }
+  pe_vk_create_swapchain(&main_render_target);
 
   pe_vk_set_viewport_and_sccisor();
 

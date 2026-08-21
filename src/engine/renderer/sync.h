@@ -8,7 +8,7 @@
 //INFO how many frames the CPU may record ahead of the GPU. one of everything
 //meant the CPU sat in vkWaitForFences until the GPU had finished the frame it
 //had just submitted, so neither side ever had work queued behind it
-#define PE_VK_FRAMES_IN_FLIGHT 2
+#define PE_VK_FRAMES_IN_FLIGHT 1
 
 //waited on by the submit that renders into the image the acquire returned, so
 //there is one per frame in flight - the frame owns it from acquire to submit

@@ -2,6 +2,7 @@
 #include "debug.h"
 #include "engine/images.h"
 
+#include "engine/renderer/render_target.h"
 #include "vulkan.h"
 #include <engine/log.h>
 #include <engine/macros.h>
@@ -99,7 +100,7 @@ pe_vk_swch_choose_extent(const VkSurfaceCapabilitiesKHR *capabilities) {
   }
 }
 
-void pe_vk_create_swapchain() {
+void pe_vk_create_swapchain(PRenderTarget* target) {
   if (vk_physical_device == NULL) {
     printf("ERROR None phisical device selected\n");
   }
@@ -115,7 +116,7 @@ void pe_vk_create_swapchain() {
 
   VkSwapchainCreateInfoKHR info = {
       .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-      .surface = vk_surface,
+      .surface = target->surface,
       .minImageCount = pe_vk_swapchain_image_count,
       .imageFormat = format.format,
       .presentMode = mode,
@@ -137,7 +138,7 @@ void pe_vk_create_swapchain() {
         support.capabilities.supportedCompositeAlpha &
         -support.capabilities.supportedCompositeAlpha);
 
-  VKVALID(vkCreateSwapchainKHR(vk_device, &info, NULL, &pe_vk_swap_chain),
+  VKVALID(vkCreateSwapchainKHR(vk_device, &info, NULL, &target->swap_chain),
           "Can't create a swap schain");
 
   pe_vk_swch_extent = extent;
@@ -149,7 +150,7 @@ void pe_vk_create_swapchain() {
   u32 getting_images_count = 0;
   
   VKVALID(
-      vkGetSwapchainImagesKHR(vk_device, pe_vk_swap_chain, &getting_images_count, NULL),
+      vkGetSwapchainImagesKHR(vk_device, target->swap_chain, &getting_images_count, NULL),
       "Can't get swap chain images");
 
   printf("Getting %i swapchain images\n", getting_images_count);
@@ -163,8 +164,8 @@ void pe_vk_create_swapchain() {
   if (getting_images_count > PE_VK_MAX_SWAPCHAIN_IMAGES)
     getting_images_count = PE_VK_MAX_SWAPCHAIN_IMAGES;
 
-  VKVALID(vkGetSwapchainImagesKHR(vk_device, pe_vk_swap_chain, &getting_images_count,
-                                  pe_vk_swch_images),
+  VKVALID(vkGetSwapchainImagesKHR(vk_device, target->swap_chain, &getting_images_count,
+                                  target->swap_chain_images),
           "Cant't get images from swapchain");
 
   //everything sized per swapchain image - the image views, the descriptor

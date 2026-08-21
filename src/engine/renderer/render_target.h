@@ -3,7 +3,6 @@
 
 #include "engine/camera.h"
 #include <vulkan/vulkan_core.h>
-#include "swap_chain.h"
 #include "sync.h"
 #include <engine/types.h>
 #include <engine/camera.h>
@@ -13,7 +12,7 @@ typedef struct PRenderTarget{
   VkSurfaceKHR surface;
   VkSwapchainKHR swap_chain;
   VkExtent2D extent;
-  VkImage images[PE_VK_MAX_SWAPCHAIN_IMAGES];
+  VkImage swap_chain_images[PE_VK_MAX_SWAPCHAIN_IMAGES];
   Array images_views;
   Array framebuffers;
 

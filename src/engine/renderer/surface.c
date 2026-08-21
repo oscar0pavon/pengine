@@ -1,5 +1,6 @@
 #include "surface.h"
 
+#include "engine/renderer/render_thread.h"
 #include "vulkan.h"
 #include "vk_images.h"
 #include "swap_chain.h"
@@ -19,17 +20,12 @@ VkSurfaceKHR vk_surface;
 
 PTexture vk_color_image;
 
-void pe_vk_create_surface() {
+void pe_vk_create_surface(PRenderTarget* target) {
 
   if(is_drm_rendering){
-    pe_vk_create_display_surface(&main_render_target);
+    pe_vk_create_display_surface(target);
     return;
   }
-  //pway owns the wl_surface, vulkan just renders into it. no EGL context is
-  //created, the raw wayland objects are all this needs. the other path is
-  //is_drm_rendering, which has no surface at all
-  if (!is_wayland_window)
-    return;
 
   VkWaylandSurfaceCreateInfoKHR surface_create_info = {
       .sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR,
@@ -38,7 +34,7 @@ void pe_vk_create_surface() {
   };
 
   if (vkCreateWaylandSurfaceKHR(vk_instance, &surface_create_info, NULL,
-                                &vk_surface) != VK_SUCCESS)
+                                &target->surface) != VK_SUCCESS)
     fprintf(stderr, "Failed to create Vulkan Wayland surface!\n");
 }
 
