@@ -112,12 +112,12 @@ void pe_vk_create_swapchain(PRenderTarget* target) {
       pe_vk_swch_choose_present_mode(&support.present_modes);
   VkExtent2D extent = pe_vk_swch_choose_extent(&support.capabilities);
 
-  pe_vk_swapchain_image_count = support.capabilities.minImageCount + 1;
+  target->images_count = support.capabilities.minImageCount + 1;
 
   VkSwapchainCreateInfoKHR info = {
       .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
       .surface = target->surface,
-      .minImageCount = pe_vk_swapchain_image_count,
+      .minImageCount = target->images_count,
       .imageFormat = format.format,
       .presentMode = mode,
       .imageExtent = extent,
@@ -141,11 +141,11 @@ void pe_vk_create_swapchain(PRenderTarget* target) {
   VKVALID(vkCreateSwapchainKHR(vk_device, &info, NULL, &target->swap_chain),
           "Can't create a swap schain");
 
-  pe_vk_swch_extent = extent;
-  pe_vk_swch_format = format.format;
+  target->extent = extent;
+  target->format = format.format;
 
-  LOG("Swap chain extent %i, %i\n", pe_vk_swch_extent.width,
-      pe_vk_swch_extent.height);
+  LOG("Swap chain extent %i, %i\n", target->extent.width,
+      target->extent.height);
   
   u32 getting_images_count = 0;
   
@@ -171,9 +171,9 @@ void pe_vk_create_swapchain(PRenderTarget* target) {
   //everything sized per swapchain image - the image views, the descriptor
   //pool, the uniform buffers - counts from here, so it has to be the number
   //that exist rather than the number requested
-  pe_vk_swapchain_image_count = getting_images_count;
+  target->images_count = getting_images_count;
 
-  if (pe_vk_swch_images[0] == VK_NULL_HANDLE) {
+  if (target->swap_chain_images[0] == VK_NULL_HANDLE) {
     printf("Swapchain image not valid");
   }
 }

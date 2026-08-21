@@ -12,7 +12,9 @@ typedef struct PRenderTarget{
   VkSurfaceKHR surface;
   VkSwapchainKHR swap_chain;
   VkExtent2D extent;
+  VkFormat format;
   VkImage swap_chain_images[PE_VK_MAX_SWAPCHAIN_IMAGES];
+  u32 images_count;
   Array images_views;
   Array framebuffers;
 

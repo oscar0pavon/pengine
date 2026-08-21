@@ -1,19 +1,17 @@
 #include "images_view.h"
+#include "swap_chain.h"
+#include <engine/log.h>
 #include <engine/macros.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include "swap_chain.h"
-#include <engine/log.h>
-#include <engine/macros.h>
-#include "swap_chain.h"
 
 Array pe_vk_images_views;
 
 VkImageView pe_vk_create_image_view(VkImage image, VkFormat format,
                                     VkImageAspectFlags aspect_flags,
                                     uint32_t mip_level) {
-  if(image == VK_NULL_HANDLE){
+  if (image == VK_NULL_HANDLE) {
     printf("ERROR Image null\n");
   }
   VkImageViewCreateInfo viewInfo = {
@@ -29,23 +27,25 @@ VkImageView pe_vk_create_image_view(VkImage image, VkFormat format,
 
   VkImageView image_view;
 
-  VKVALID(vkCreateImageView(vk_device, &viewInfo, NULL, &image_view),"Can't create image view");
-  
-  //printf("Creating image view %p\n", image_view);
-  
+  VKVALID(vkCreateImageView(vk_device, &viewInfo, NULL, &image_view),
+          "Can't create image view");
+
+  // printf("Creating image view %p\n", image_view);
+
   return image_view;
 }
 
-void pe_vk_create_images_views() {
-  array_init(&pe_vk_images_views, sizeof(VkImageView), pe_vk_swapchain_image_count);
+void pe_vk_create_images_views(PRenderTarget *target) {
+  array_init(&target->images_views, sizeof(VkImageView), target->images_count);
 
   // images view count equal to pe_vk_images array
-  for (size_t i = 0; i < pe_vk_swapchain_image_count; i++) {
+  for (size_t i = 0; i < target->images_count; i++) {
     VkImageView image_view;
 
-    image_view = pe_vk_create_image_view(pe_vk_swch_images[i], pe_vk_swch_format,
-        VK_IMAGE_ASPECT_COLOR_BIT,1);
+    image_view =
+        pe_vk_create_image_view(target->swap_chain_images[i], pe_vk_swch_format,
+                                VK_IMAGE_ASPECT_COLOR_BIT, 1);
 
-    array_add(&pe_vk_images_views, &image_view);
+    array_add(&target->images_views, &image_view);
   }
 }
