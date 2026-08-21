@@ -64,10 +64,9 @@ All four variables come from `include.make` and none of them is decoration:
   them gets silently different math than the engine it links to. The same goes for
   `VULKAN`/`DESKTOP`/`EDITOR`, which gate struct members and includes.
 - `CFLAGS` matters for consumers too, not just the engine: the headers still declare most
-  globals as tentative definitions, so `-fcommon` is required. `-Wno-incompatible-pointer-types`
-  is no longer needed to compile the headers (`main_camera` is a `PCamera` and
-  `camera_init` takes one), but the engine's own build still needs it for the thread entry
-  points it hands to `pthread_create`.
+  globals as tentative definitions, so `-fcommon` is required. It is the only flag left in
+  `CFLAGS` besides `-g -fPIC`; the five `-Wno-` suppressions are gone and the tree builds
+  clean without them.
 - `LIBRARIES` carries `-lpway` and `-llodepng` alongside the system libraries, because
   `libpengine.a` calls into both.
 
@@ -144,11 +143,14 @@ The renderer must not know about any particular application. The seams it expose
   extent, the camera and the 2D ortho projection all read them, and an application sets
   both before `pe_vk_init()`. There is no fixed-resolution macro.
 
-`-Wno-implicit-function-declaration` is on, so a call to a function that does not exist
-compiles and only fails at link (or, historically, didn't fail at all). Be suspicious: this
-is how `main.c` came to call a `time_start()` nobody defined, and how `base.c` called
-`pway_create_window()` with one argument instead of three. Because the product is a static
-library, an unresolved call does not even fail at `ar` time — it surfaces in a consumer.
+Undeclared calls are errors again. `-Wno-implicit-function-declaration` used to be on, so a
+call to a function that does not exist compiled and only failed at link — and because the
+product is a static library, an unresolved call does not fail at `ar` time either, so it
+surfaced in a consumer or not at all. That is how `main.c` came to call a `time_start()`
+nobody defined, how `base.c` called `pway_create_window()` with one argument instead of
+three, and how `content_manager.c` went on calling two functions that left with the
+element/component scene graph. Keep it that way: a new call needs a declaration in scope,
+which usually means the header the function belongs to, not a local prototype.
 
 `camera_init()` applies `projection[1][1] *= -1` for Vulkan's +Y-down clip space.
 

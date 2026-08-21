@@ -32,6 +32,10 @@ void close_dynamic_game_play();
 
 void pe_game_window_init();
 
+//INFO the input thread in main.c calls this every iteration; it lived only in
+//game.c and every caller was guessing at its type
+void pe_game_input();
+
 PGame* game;
 
 #endif //PAVON_MOBILE_GAME_H

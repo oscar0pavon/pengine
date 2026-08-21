@@ -76,19 +76,18 @@ int content_manager_load_content(const char* path){
 
     switch (content_type)
     {
+    //INFO both of these read the type out of the header and stop there. the
+    //bodies used to call pe_comp_add() and
+    //engine_add_texture_from_memory_to_selected_element(), which went with the
+    //element/component scene graph; nothing declared them afterwards and no
+    //undeclared call is an error here, so they compiled and would have failed
+    //to link in a consumer that reached them
     case CONTENT_TYPE_STATIC_MESH:{
-        Array* prev_array = actual_model_array;
-        actual_model_array = &array_models_loaded;
-
-        actual_model_array = prev_array;
-        
-        pe_comp_add(2);
-        
+        LOG("Static mesh content not loaded, no loader for it\n");
         break;
     }
    	case CONTENT_TYPE_TEXTURE:{
-		engine_add_texture_from_memory_to_selected_element(new_file.data+24,data_size);	
-		LOG("Texture loaded\n");	
+		LOG("Texture content not loaded, no loader for it\n");
 		break;
 							  }
 	case CONTENT_TYPE_PROJECT:{

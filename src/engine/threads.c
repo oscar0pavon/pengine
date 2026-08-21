@@ -1,3 +1,8 @@
+//INFO before every include: pthread_setname_np is a GNU extension and
+//<pthread.h> only declares it when _GNU_SOURCE is set, so this has to come
+//before threads.h pulls that header in
+#define _GNU_SOURCE
+
 #include "threads.h"
 #include <engine/macros.h>
 

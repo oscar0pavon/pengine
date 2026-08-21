@@ -1,14 +1,20 @@
 #include "engine/window_manager.h"
+#include <engine/base.h>
 #include <engine/engine.h>
 
 
-void pe_input_thread() {
+//INFO the signature pthread_create() wants, not a void() cast into place. the
+//return value is never read - the loop does not end - but a thread entry with
+//the wrong type is undefined behaviour, not a formality
+void *pe_input_thread(void *argument) {
 
   for (;;) {
     pe_wm_events_update();
     pe_wm_input_update();
     pe_game_input();
   }
+
+  return NULL;
 }
 
 void pe_main_loop() {

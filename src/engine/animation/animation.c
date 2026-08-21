@@ -48,7 +48,9 @@ void pe_anim_nodes_update(PSkin *skin_component) {
     mat4 *inverse_bind_matrix =
         array_get(&skin_component->inverse_bind_matrices, i);
 
-    glm_mat4_mul(inverse_dot_local, inverse_bind_matrix, joint_mat);
+    //INFO dereferenced: array_get() hands back a pointer to the mat4 element,
+    //and glm_mat4_mul() takes the mat4 itself, which decays to vec4*
+    glm_mat4_mul(inverse_dot_local, *inverse_bind_matrix, joint_mat);
 
     // joints matrix will sended to skin vertex shader
     glm_mat4_copy(joint_mat, skin_component->node_uniform.joints_matrix[i]);

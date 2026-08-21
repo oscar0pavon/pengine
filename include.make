@@ -3,7 +3,12 @@ CC := cc
 SRCS := $(wildcard *.c)
 OBJS := $(SRCS:c=o)
 
-CFLAGS := -g -fPIC -Wno-switch -Wno-implicit-function-declaration -Wno-int-conversion -Wno-return-type -fcommon -Wno-incompatible-pointer-types
+#INFO no -Wno- here on purpose. -Wno-implicit-function-declaration was the
+#dangerous one: since the product is a static library an undeclared call does
+#not fail at ar time either, so a call to a function nobody defined only
+#surfaced in a consumer's link. that is how main.c came to call time_start()
+#and base.c to call pway_create_window() with one argument instead of three
+CFLAGS := -g -fPIC -fcommon
 
 CINCLUDES := -I$(WORKDIR)/src -I/usr/local/include
 

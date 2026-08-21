@@ -15,6 +15,11 @@ typedef struct RenderThread{
 	void(*finish)(void);
 }PERenderThread;
 
+//INFO pe_main_loop() calls this as the step after pe_init() and had no
+//declaration for it, so it was reading the return value of an int returning
+//function that returns nothing
+void pe_render_thread_init();
+
 void pe_render_thread_start_and_draw();
 
 void pe_frame_clean();
