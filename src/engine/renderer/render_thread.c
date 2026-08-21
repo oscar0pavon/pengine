@@ -35,5 +35,5 @@ void pe_render_thread_start_and_draw() {
 //to draw are chosen and recorded
 void pe_frame_draw() {
 
-  pe_vk_draw_frame();
+  pe_vk_draw_frame(&main_render_target);
 }

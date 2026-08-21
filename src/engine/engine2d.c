@@ -175,10 +175,11 @@ void pe_2d_init_vulkan_buffers(PModel* model){
   //setup Uniform Buffer Object
   glm_mat4_copy(orthogonal_projection, model->uniform_buffer_object.projection);
 
-  pe_vk_create_uniform_buffers(model);
-  pe_vk_descriptor_pool_create(model);
+  pe_vk_create_uniform_buffers(model, &main_render_target);
+  pe_vk_descriptor_pool_create(model, &main_render_target);
 
-  pe_vk_create_descriptor_sets(model, pe_vk_descriptor_set_layout_with_texture);
+  pe_vk_create_descriptor_sets(model, pe_vk_descriptor_set_layout_with_texture,
+                               &main_render_target);
   //pe_vk_descriptor_with_image_update(model);//TODO
 }
 

@@ -110,14 +110,15 @@ pe_vk_pipeline_get_default_vertex_input(PVertexAtrributes *attributes) {
   return info;
 }
 
-VkPipelineViewportStateCreateInfo pe_vk_pipeline_get_default_viewport() {
+VkPipelineViewportStateCreateInfo
+pe_vk_pipeline_get_default_viewport(PRenderTarget *target) {
 
   VkViewport viewport;
   ZERO(viewport);
   viewport.x = 0.0f;
   viewport.y = 0.0f;
-  viewport.width = (float)pe_vk_swch_extent.width;
-  viewport.height = (float)pe_vk_swch_extent.height;
+  viewport.width = (float)target->extent.width;
+  viewport.height = (float)target->extent.height;
   viewport.minDepth = 0.0f;
   viewport.maxDepth = 1.0f;
 
@@ -129,7 +130,7 @@ VkPipelineViewportStateCreateInfo pe_vk_pipeline_get_default_viewport() {
   VkRect2D scissor;
   ZERO(scissor);
   scissor.offset = offset;
-  scissor.extent = pe_vk_swch_extent;
+  scissor.extent = target->extent;
 
   VkPipelineViewportStateCreateInfo viewportState;
   ZERO(viewportState);
@@ -248,19 +249,19 @@ VkGraphicsPipelineCreateInfo* pe_vk_pipeline_create_info(){
 
 
 
-void pe_vk_pipelines_init() {
-  
+void pe_vk_pipelines_init(PRenderTarget *target) {
+
 
   array_init(&pe_vk_pipeline_infos, sizeof(VkGraphicsPipelineCreateInfo),
              PE_VK_PIPELINES_MAX);
 
   array_init(&pe_graphics_pipelines, sizeof(VkPipeline), PE_VK_PIPELINES_MAX);
 
-  
+
   depth_stencil = pe_vk_pipeline_get_default_depth_stencil();
   multisample_state = pe_vk_pipeline_get_default_multisample();
   input_assembly_state = pe_vk_pipeline_get_default_input_assembly();
-  viewport_state = pe_vk_pipeline_get_default_viewport();
+  viewport_state = pe_vk_pipeline_get_default_viewport(target);
   dynamic_state = pe_vk_pipeline_get_default_dynamic_state();
   rasterization_state = pe_vk_pipeline_get_default_rasterization();
 

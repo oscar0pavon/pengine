@@ -22,10 +22,6 @@
 #include <wchar.h>
 #include <wctype.h>
 
-PTexture vk_depth_image;
-
-VkImageView pe_vk_depth_image_view;
-
 VkImageMemoryBarrier pe_vk_create_barrier() {
 
   VkImageMemoryBarrier barrier = {
@@ -443,13 +439,16 @@ void pe_vk_image_generate_mipmaps(VkImage image, uint32_t width,
   pe_vk_end_single_time_cmd(command);
 }
 
-void pe_vk_create_depth_resources() {
+void pe_vk_create_depth_resources(PRenderTarget *target) {
   VkFormat format = VK_FORMAT_D32_SFLOAT;
 
+  PTexture depth_texture;
+  ZERO(depth_texture);
+
   PImageCreateInfo image_create_info = {
-      .width = pe_vk_swch_extent.width,
-      .height = pe_vk_swch_extent.height,
-      .texture = &vk_depth_image,
+      .width = target->extent.width,
+      .height = target->extent.height,
+      .texture = &depth_texture,
       .format = format,
       .tiling = VK_IMAGE_TILING_OPTIMAL,
       .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
@@ -459,8 +458,10 @@ void pe_vk_create_depth_resources() {
 
   pe_vk_create_image(&image_create_info);
 
-  pe_vk_depth_image_view = pe_vk_create_image_view(
-      vk_depth_image.image, format, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
+  target->depth_image = depth_texture.image;
+  target->depth_memory = depth_texture.memory;
+  target->depth_image_view = pe_vk_create_image_view(
+      depth_texture.image, format, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
 
 }
 

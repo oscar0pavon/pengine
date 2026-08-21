@@ -11,8 +11,9 @@ typedef struct PDrawModelCommand{
 } PDrawModelCommand;
 
 void pe_vk_draw_simple_model(int i);
-void pe_vk_draw_frame();
-void pe_vk_draw_commands(VkCommandBuffer* cmd_buffer , uint32_t index);
+void pe_vk_draw_frame(PRenderTarget *target);
+void pe_vk_draw_commands(PRenderTarget *target, VkCommandBuffer* cmd_buffer,
+                         uint32_t index);
 void pe_vk_draw_model(PDrawModelCommand* draw_model);
 
 void pe_vk_draw_model_instanced(PDrawModelCommand *draw_model,

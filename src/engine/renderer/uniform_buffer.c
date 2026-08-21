@@ -39,17 +39,17 @@ PBufferCreateInfo pe_vk_uniform_buffer_create_buffer(size_t size) {
   return info;
 }
 
-void pe_vk_create_uniform_buffers(PModel *model) {
+void pe_vk_create_uniform_buffers(PModel *model, PRenderTarget *target) {
   VkDeviceSize buffer_size = sizeof(PUniformBufferObject);
 
   array_init(&model->uniform_buffers, sizeof(VkBuffer),
-             pe_vk_swapchain_image_count);
+             target->images_count);
 
   array_init(&model->uniform_buffers_memory, sizeof(VkDeviceMemory),
-             pe_vk_swapchain_image_count);
+             target->images_count);
 
   //LOG("Creating uniform buffer\n");
-  for (int i = 0; i < pe_vk_swapchain_image_count; i++) {
+  for (int i = 0; i < target->images_count; i++) {
     // create buffer
     PBufferCreateInfo info =
         pe_vk_uniform_buffer_create_buffer(sizeof(PUniformBufferObject));

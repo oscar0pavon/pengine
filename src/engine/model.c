@@ -319,14 +319,15 @@ PModel *pe_vk_load_model(PModel* model, const char *path) {
                                             model->index_array.data,
                                             VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
 
-  pe_vk_create_uniform_buffers(model);
-  pe_vk_descriptor_pool_create(model);
+  pe_vk_create_uniform_buffers(model, &main_render_target);
+  pe_vk_descriptor_pool_create(model, &main_render_target);
 
   //INFO a model is not drawable until its descriptor sets exist and point at
   //its uniform buffers - pe_vk_draw_model() binds set[image_index] every draw.
   //the pool alone was not enough and left the sets array empty
-  pe_vk_create_descriptor_sets(model, pe_vk_descriptor_set_layout);
-  pe_vk_descriptor_update(model);
+  pe_vk_create_descriptor_sets(model, pe_vk_descriptor_set_layout,
+                               &main_render_target);
+  pe_vk_descriptor_update(model, &main_render_target);
 
   //init model matrix
   glm_mat4_identity(model->model_mat);
@@ -350,10 +351,11 @@ PModel *pe_vk_model_instance(PModel *model, PModel *source) {
   ZERO(model->uniform_buffers_memory);
   ZERO(model->descriptor_sets);
 
-  pe_vk_create_uniform_buffers(model);
-  pe_vk_descriptor_pool_create(model);
-  pe_vk_create_descriptor_sets(model, pe_vk_descriptor_set_layout);
-  pe_vk_descriptor_update(model);
+  pe_vk_create_uniform_buffers(model, &main_render_target);
+  pe_vk_descriptor_pool_create(model, &main_render_target);
+  pe_vk_create_descriptor_sets(model, pe_vk_descriptor_set_layout,
+                               &main_render_target);
+  pe_vk_descriptor_update(model, &main_render_target);
 
   glm_mat4_identity(model->model_mat);
   glm_mat4_copy(model->model_mat, model->uniform_buffer_object.model);

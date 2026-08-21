@@ -11,11 +11,11 @@
 
 #include "framebuffer.h"
 
-void pe_vk_create_render_pass() {
+void pe_vk_create_render_pass(PRenderTarget *target) {
 
   VkAttachmentDescription color_attachment;
   ZERO(color_attachment);
-  color_attachment.format = pe_vk_swch_format;
+  color_attachment.format = target->format;
   color_attachment.samples = pe_vk_msaa_samples;
   color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
   color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -39,7 +39,7 @@ void pe_vk_create_render_pass() {
       VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
   VkAttachmentDescription colorAttachmentResolve = {};
-  colorAttachmentResolve.format = pe_vk_swch_format;
+  colorAttachmentResolve.format = target->format;
   colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
   colorAttachmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
   colorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -113,9 +113,10 @@ void pe_vk_create_render_pass() {
           "Can't create render pass");
 }
 
-void pe_vk_start_render_pass(VkCommandBuffer command, int i){
+void pe_vk_start_render_pass(PRenderTarget *target, VkCommandBuffer command,
+                             int i){
 
-  VkFramebuffer *framebuffer = array_get(&pe_vk_framebuffers, i);
+  VkFramebuffer *framebuffer = array_get(&target->framebuffers, i);
 
 
   //we use two clear values, 
@@ -138,14 +139,14 @@ void pe_vk_start_render_pass(VkCommandBuffer command, int i){
       .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
       .renderPass = pe_vk_render_pass,
       .framebuffer = *(framebuffer),
-      .renderArea.extent = pe_vk_swch_extent,
+      .renderArea.extent = target->extent,
       .renderArea.offset = offset, 
       .clearValueCount = 2,
       .pClearValues = clear_values};
 
   vkCmdBeginRenderPass(command, &info, VK_SUBPASS_CONTENTS_INLINE);
 
-    pe_vk_draw_commands(&command, i);
+    pe_vk_draw_commands(target, &command, i);
 
   vkCmdEndRenderPass(command);
 

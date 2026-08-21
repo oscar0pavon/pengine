@@ -27,10 +27,6 @@ typedef struct PImageCreateInfo {
   const void *pNext;
 } PImageCreateInfo;
 
-extern VkImageView pe_vk_depth_image_view;
-
-extern PTexture vk_depth_image;
-
 #define PE_MAX_IMAGE_PLANES 4
 
 //everything the exporter decided about the buffer's layout. vulkan cannot work
@@ -58,7 +54,7 @@ void pe_vk_create_texture_from_image(PTexture* new_texture, PImage* image);
 
 void pe_vk_clean_image(PTexture* image);
 void pe_vk_create_image(PImageCreateInfo *info);
-void pe_vk_create_depth_resources();
+void pe_vk_create_depth_resources(PRenderTarget *target);
 
 //the three halves of pe_vk_create_texture_from_image, declared so a caller that
 //has pixels of its own - a wl_shm client's buffer, which is neither a file nor

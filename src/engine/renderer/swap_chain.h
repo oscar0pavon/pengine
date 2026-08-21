@@ -8,11 +8,6 @@ typedef struct PRenderTarget PRenderTarget ;
 
 void pe_vk_create_swapchain(PRenderTarget* target);
 
-extern VkSwapchainKHR pe_vk_swap_chain;
-
-extern VkFormat pe_vk_swch_format;
-extern VkExtent2D pe_vk_swch_extent;
-
 //INFO minImageCount is a floor, not the answer: the driver is free to hand
 //back more images than were asked for, and vkAcquireNextImageKHR then returns
 //indices up to its own count. these arrays have to hold whatever it made

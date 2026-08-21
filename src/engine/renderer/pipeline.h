@@ -6,6 +6,8 @@
 #include "shaders.h"
 #include "vk_vertex.h"
 
+typedef struct PRenderTarget PRenderTarget;
+
 #define PE_VK_PIPELINES_MAX 50
 
 extern VkPipeline pe_vk_pipeline;
@@ -18,7 +20,7 @@ extern VkPipelineVertexInputStateCreateInfo vertex_input_state;
 
 VkGraphicsPipelineCreateInfo *pe_vk_pipeline_create_info();
 
-void pe_vk_pipelines_init();
+void pe_vk_pipelines_init(PRenderTarget *target);
 
 void pe_vk_clean_layouts();
 

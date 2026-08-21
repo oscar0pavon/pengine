@@ -63,7 +63,20 @@ void pe_vk_commands_pool_init(){
 
 }
 
-VkCommandBuffer pe_vk_start_record_command(int swapchain_image_index) {
+void pe_vk_target_command_pool_init(PRenderTarget *target){
+
+  VkCommandPoolCreateInfo info;
+  ZERO(info);
+  info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+  info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+  info.queueFamilyIndex = q_graphic_family;
+
+  vkCreateCommandPool(vk_device, &info, NULL, &target->commands_pool);
+
+}
+
+VkCommandBuffer pe_vk_start_record_command(PRenderTarget *target,
+                                           int swapchain_image_index) {
 
   VkCommandBufferBeginInfo begininfo = {
       .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -73,28 +86,28 @@ VkCommandBuffer pe_vk_start_record_command(int swapchain_image_index) {
   };
 
   VkCommandBuffer *command =
-      array_get(&pe_vk_command_buffers, swapchain_image_index);
+      array_get(&target->command_buffers, swapchain_image_index);
 
   vkBeginCommandBuffer(*command, &begininfo);
 
   return *command;
 }
 
-void pe_vk_command_init() {
+void pe_vk_command_init(PRenderTarget *target) {
 
 
-  array_init(&pe_vk_command_buffers, sizeof(VkCommandBuffer),
-             pe_vk_framebuffers.count);
-  array_resize(&pe_vk_command_buffers, pe_vk_framebuffers.count);
+  array_init(&target->command_buffers, sizeof(VkCommandBuffer),
+             target->framebuffers.count);
+  array_resize(&target->command_buffers, target->framebuffers.count);
 
   VkCommandBufferAllocateInfo bufferinfo;
   ZERO(bufferinfo);
   bufferinfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  bufferinfo.commandPool = pe_vk_commands_pool;
+  bufferinfo.commandPool = target->commands_pool;
   bufferinfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  bufferinfo.commandBufferCount = pe_vk_command_buffers.count;
+  bufferinfo.commandBufferCount = target->command_buffers.count;
 
-  vkAllocateCommandBuffers(vk_device, &bufferinfo, pe_vk_command_buffers.data);
+  vkAllocateCommandBuffers(vk_device, &bufferinfo, target->command_buffers.data);
 
 }
 

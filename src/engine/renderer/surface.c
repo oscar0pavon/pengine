@@ -14,11 +14,6 @@
 
 VkImage pe_vk_color_image;
 VkDeviceMemory pe_vk_color_memory;
-VkImageView pe_vk_color_image_view;
-
-VkSurfaceKHR vk_surface;
-
-PTexture vk_color_image;
 
 void pe_vk_create_surface(PRenderTarget* target) {
 
@@ -55,14 +50,16 @@ void pe_vk_create_display_surface(PRenderTarget* target){
   
 }
 
-void pe_vk_create_color_resources() {
-  VkFormat color_format = pe_vk_swch_format;
+void pe_vk_create_color_resources(PRenderTarget* target) {
+  VkFormat color_format = target->format;
 
-  vk_color_image.mip_level = 1;
+  PTexture color_texture;
+  ZERO(color_texture);
+  color_texture.mip_level = 1;
   PImageCreateInfo image_create_info = {
-      .width = pe_vk_swch_extent.width,
-      .height = pe_vk_swch_extent.height,
-      .texture = &vk_color_image,
+      .width = target->extent.width,
+      .height = target->extent.height,
+      .texture = &color_texture,
       .format = color_format,
       .tiling = VK_IMAGE_TILING_OPTIMAL,
       .usage = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
@@ -73,8 +70,10 @@ void pe_vk_create_color_resources() {
 
   pe_vk_create_image(&image_create_info);
 
-  pe_vk_color_image_view = pe_vk_create_image_view(
-      vk_color_image.image, color_format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+  target->color_image = color_texture.image;
+  target->color_memory = color_texture.memory;
+  target->color_image_view = pe_vk_create_image_view(
+      color_texture.image, color_format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 }
 
 void pe_vk_set_viewport_and_sccisor(PRenderTarget* target){

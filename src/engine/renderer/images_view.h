@@ -2,8 +2,6 @@
 #include <stdint.h>
 #include <engine/array.h>
 #include "render_target.h"
-extern Array pe_vk_images_views;
-
 
 void pe_vk_create_images_views(PRenderTarget *target);
 

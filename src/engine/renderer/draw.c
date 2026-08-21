@@ -71,11 +71,12 @@ void pe_vk_draw_model_instanced(PDrawModelCommand *draw_model,
                    instance_count, 0, 0, 0);
 }
 
-void pe_vk_draw_commands(VkCommandBuffer *cmd_buffer, uint32_t index) {
+void pe_vk_draw_commands(PRenderTarget *target, VkCommandBuffer *cmd_buffer,
+                         uint32_t index) {
 
-  vkCmdSetViewport(*cmd_buffer, 0, 1, &viewport);
+  vkCmdSetViewport(*cmd_buffer, 0, 1, &target->viewport);
 
-  vkCmdSetScissor(*cmd_buffer, 0, 1, &scissor);
+  vkCmdSetScissor(*cmd_buffer, 0, 1, &target->scissor);
 
   VkDeviceSize offsets[] = {0};
 
@@ -85,9 +86,9 @@ void pe_vk_draw_commands(VkCommandBuffer *cmd_buffer, uint32_t index) {
     pe_vk_draw_scene(cmd_buffer, index);
 }
 
-void pe_vk_draw_frame() {
+void pe_vk_draw_frame(PRenderTarget *target) {
 
-  VkFence *frame_fence = &pe_vk_fence_in_flight[pe_vk_current_frame];
+  VkFence *frame_fence = &target->fence_in_flight[target->current_frame];
 
   //the frame two submissions back, whose semaphores and per frame state this
   //one is about to reuse
@@ -95,8 +96,8 @@ void pe_vk_draw_frame() {
 
   uint32_t image_index;
 
-  vkAcquireNextImageKHR(vk_device, pe_vk_swap_chain, UINT64_MAX,
-                        pe_vk_semaphore_images_available[pe_vk_current_frame],
+  vkAcquireNextImageKHR(vk_device, target->swap_chain, UINT64_MAX,
+                        target->semaphore_images_available[target->current_frame],
                         VK_NULL_HANDLE, &image_index);
 
   //INFO waiting on this frame's own fence says nothing about the image the
@@ -104,32 +105,33 @@ void pe_vk_draw_frame() {
   //image_index - the command buffer, and every model's uniform buffer and
   //descriptor set - so the frame that last rendered into this image has to be
   //done before any of it is touched
-  if (pe_vk_fence_image_in_flight[image_index] != VK_NULL_HANDLE)
-    vkWaitForFences(vk_device, 1, &pe_vk_fence_image_in_flight[image_index],
+  if (target->fence_image_in_flight[image_index] != VK_NULL_HANDLE)
+    vkWaitForFences(vk_device, 1, &target->fence_image_in_flight[image_index],
                     VK_TRUE, UINT64_MAX);
 
-  pe_vk_fence_image_in_flight[image_index] = *frame_fence;
+  target->fence_image_in_flight[image_index] = *frame_fence;
 
   //reset last: a fence that is waited on above must still be signalled there
   vkResetFences(vk_device, 1, frame_fence);
 
-  VkCommandBuffer current_command = pe_vk_start_record_command(image_index);
+  VkCommandBuffer current_command =
+      pe_vk_start_record_command(target, image_index);
 
-  pe_vk_start_render_pass(current_command, image_index);//INFO this is where we draw things
+  pe_vk_start_render_pass(target, current_command, image_index);//INFO this is where we draw things
 
 
   pe_vk_end_command(current_command);
 
   VkSemaphore singal_semaphore[] = {
-      pe_vk_semaphore_render_finished[image_index]};
+      target->semaphore_render_finished[image_index]};
   VkSemaphore wait_semaphores[] = {
-      pe_vk_semaphore_images_available[pe_vk_current_frame]};
+      target->semaphore_images_available[target->current_frame]};
 
 
   VkPipelineStageFlags wait_stages[] = {
       VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 
-  VkSwapchainKHR swap_chains[] = {pe_vk_swap_chain};
+  VkSwapchainKHR swap_chains[] = {target->swap_chain};
 
   VkSubmitInfo submit_info = {.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
                               .waitSemaphoreCount = 1,
@@ -161,5 +163,5 @@ void pe_vk_draw_frame() {
   //which is the whole of what the fences and semaphores above are for; with it
   //in place PE_VK_FRAMES_IN_FLIGHT could be any number and nothing would ever
   //overlap
-  pe_vk_current_frame = (pe_vk_current_frame + 1) % PE_VK_FRAMES_IN_FLIGHT;
+  target->current_frame = (target->current_frame + 1) % PE_VK_FRAMES_IN_FLIGHT;
 }

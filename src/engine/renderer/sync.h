@@ -5,6 +5,8 @@
 
 #include "swap_chain.h"
 
+typedef struct PRenderTarget PRenderTarget;
+
 //INFO how many frames the CPU may record ahead of the GPU. one of everything
 //meant the CPU sat in vkWaitForFences until the GPU had finished the frame it
 //had just submitted, so neither side ever had work queued behind it
@@ -28,9 +30,9 @@ extern VkFence pe_vk_fence_image_in_flight[PE_VK_MAX_SWAPCHAIN_IMAGES];
 
 extern uint32_t pe_vk_current_frame;
 
-void pe_vk_semaphores_create(void);
+void pe_vk_semaphores_create(PRenderTarget *target);
 
-void pe_vk_end_sync(void);
+void pe_vk_end_sync(PRenderTarget *target);
 
 
 #endif

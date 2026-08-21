@@ -17,11 +17,6 @@
 
 #include "engine/camera.h"
 
-VkSwapchainKHR pe_vk_swap_chain;
-
-VkFormat pe_vk_swch_format;
-VkExtent2D pe_vk_swch_extent;
-
 u32 pe_vk_swapchain_image_count;
 
 //TODO we use four images buffer we can use less
@@ -35,29 +30,30 @@ typedef struct PSupportDetails {
   Array present_modes;
 } PSupportDetails;
 
-PSupportDetails pe_vk_query_swap_chain_support(VkPhysicalDevice device) {
+PSupportDetails pe_vk_query_swap_chain_support(VkPhysicalDevice device,
+                                               VkSurfaceKHR surface) {
   PSupportDetails details;
   ZERO(details);
-  vkGetPhysicalDeviceSurfaceCapabilitiesKHR(vk_physical_device, vk_surface,
+  vkGetPhysicalDeviceSurfaceCapabilitiesKHR(vk_physical_device, surface,
                                             &details.capabilities);
 
   uint32_t format_count;
-  vkGetPhysicalDeviceSurfaceFormatsKHR(vk_physical_device, vk_surface,
+  vkGetPhysicalDeviceSurfaceFormatsKHR(vk_physical_device, surface,
                                        &format_count, NULL);
 
   array_init(&details.formats, sizeof(VkSurfaceFormatKHR), format_count);
   details.formats.count = format_count;
-  vkGetPhysicalDeviceSurfaceFormatsKHR(vk_physical_device, vk_surface,
+  vkGetPhysicalDeviceSurfaceFormatsKHR(vk_physical_device, surface,
                                        &format_count, details.formats.data);
 
   uint32_t modes_count;
-  vkGetPhysicalDeviceSurfacePresentModesKHR(vk_physical_device, vk_surface,
+  vkGetPhysicalDeviceSurfacePresentModesKHR(vk_physical_device, surface,
                                             &modes_count, NULL);
 
   array_init(&details.present_modes, sizeof(VkPresentModeKHR), modes_count);
   details.present_modes.count = modes_count;
   vkGetPhysicalDeviceSurfacePresentModesKHR(
-      vk_physical_device, vk_surface, &modes_count, details.present_modes.data);
+      vk_physical_device, surface, &modes_count, details.present_modes.data);
 
   return details;
 }
@@ -105,7 +101,8 @@ void pe_vk_create_swapchain(PRenderTarget* target) {
     printf("ERROR None phisical device selected\n");
   }
 
-  PSupportDetails support = pe_vk_query_swap_chain_support(vk_physical_device);
+  PSupportDetails support =
+      pe_vk_query_swap_chain_support(vk_physical_device, target->surface);
   VkSurfaceFormatKHR format =
       pe_vk_swch_choose_surface_format(&support.formats);
   VkPresentModeKHR mode =

@@ -1,6 +1,5 @@
 
 #include <engine/array.h>
+#include "render_target.h"
 
-extern Array pe_vk_framebuffers;
-
-void pe_vk_framebuffer_create();
+void pe_vk_framebuffer_create(PRenderTarget *target);

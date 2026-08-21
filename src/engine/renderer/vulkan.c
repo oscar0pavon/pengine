@@ -67,29 +67,33 @@ void pe_vk_end() {
 
   pe_vk_clean_commands();
 
-  vkDestroySwapchainKHR(vk_device, pe_vk_swap_chain, NULL);
+  vkDestroyCommandPool(vk_device, main_render_target.commands_pool, NULL);
+
+  vkDestroySwapchainKHR(vk_device, main_render_target.swap_chain, NULL);
 
   pe_vk_clean_layouts();
 
-  pe_vk_end_sync();
+  pe_vk_end_sync(&main_render_target);
 
   pe_vk_clean_descriptors_set();
 
   vkDestroyRenderPass(vk_device, pe_vk_render_pass, NULL);
 
-  pe_vk_clean_image(&vk_depth_image);
-  pe_vk_clean_image(&vk_color_image);
+  vkDestroyImageView(vk_device, main_render_target.depth_image_view, NULL);
+  vkDestroyImage(vk_device, main_render_target.depth_image, NULL);
+  vkFreeMemory(vk_device, main_render_target.depth_memory, NULL);
 
-  vkDestroyImageView(vk_device, pe_vk_color_image_view, NULL);
-  vkDestroyImageView(vk_device, pe_vk_depth_image_view, NULL);
+  vkDestroyImageView(vk_device, main_render_target.color_image_view, NULL);
+  vkDestroyImage(vk_device, main_render_target.color_image, NULL);
+  vkFreeMemory(vk_device, main_render_target.color_memory, NULL);
 
-  for(int i = 0; i < pe_vk_images_views.count; i++){
-    VkFramebuffer *framebuffer = array_get(&pe_vk_framebuffers, i);
+  for(int i = 0; i < main_render_target.images_views.count; i++){
+    VkFramebuffer *framebuffer = array_get(&main_render_target.framebuffers, i);
     vkDestroyFramebuffer(vk_device, *framebuffer, NULL);
   }
 
-  for(int i = 0; i < pe_vk_images_views.count; i++){
-    VkImageView *image_view = array_get(&pe_vk_images_views, i) ;
+  for(int i = 0; i < main_render_target.images_views.count; i++){
+    VkImageView *image_view = array_get(&main_render_target.images_views, i);
     vkDestroyImageView(vk_device, *image_view, NULL);
   }
 
@@ -98,7 +102,7 @@ void pe_vk_end() {
     vkDestroyBuffer(vk_device,*buffer,NULL);
   }
   pe_vk_debug_end();
-  vkDestroySurfaceKHR(vk_instance, vk_surface, NULL);
+  vkDestroySurfaceKHR(vk_instance, main_render_target.surface, NULL);
   vkDestroyDevice(vk_device, NULL);
   vkDestroyInstance(vk_instance, NULL);
 }
@@ -141,7 +145,7 @@ int pe_vk_init() {
 
   pe_vk_create_images_views(&main_render_target);
 
-  pe_vk_create_render_pass();
+  pe_vk_create_render_pass(&main_render_target);
 
   pe_vk_create_descriptor_set_layout();
   
@@ -158,21 +162,23 @@ int pe_vk_init() {
   // pe_vk_pipeline_create_layout(true, &pe_vk_pipeline_layout_skinned,
   //                              &pe_vk_descriptor_set_layout_skinned);
 
-  pe_vk_pipelines_init();
+  pe_vk_pipelines_init(&main_render_target);
 
   pe_vk_initialized = true;
 
   pe_vk_commands_pool_init();
 
-  pe_vk_create_color_resources();
+  pe_vk_target_command_pool_init(&main_render_target);
 
-  pe_vk_create_depth_resources();
+  pe_vk_create_color_resources(&main_render_target);
 
-  pe_vk_framebuffer_create();
+  pe_vk_create_depth_resources(&main_render_target);
 
-  pe_vk_command_init();
+  pe_vk_framebuffer_create(&main_render_target);
 
-  pe_vk_semaphores_create();
+  pe_vk_command_init(&main_render_target);
+
+  pe_vk_semaphores_create(&main_render_target);
 
 
   LOG("Vulkan intialize [OK]\n");

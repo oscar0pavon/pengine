@@ -7,21 +7,19 @@
 
 #include "vk_images.h"
 
-Array pe_vk_framebuffers;
+void pe_vk_framebuffer_create(PRenderTarget *target) {
 
-void pe_vk_framebuffer_create() {
+  array_init(&target->framebuffers, sizeof(VkFramebuffer),
+             target->images_views.count);
 
-  array_init(&pe_vk_framebuffers, sizeof(VkFramebuffer),
-             pe_vk_images_views.count);
+  for (int i = 0; i < target->images_views.count; i++) {
 
-  for (int i = 0; i < pe_vk_images_views.count; i++) {
-
-    VkImageView *framebuffer_image_view = array_get(&pe_vk_images_views, i);
+    VkImageView *framebuffer_image_view = array_get(&target->images_views, i);
 
     VkImageView attachments[3];
     attachments[2] = *(framebuffer_image_view);
-    attachments[1] = pe_vk_depth_image_view;
-    attachments[0] = pe_vk_color_image_view;
+    attachments[1] = target->depth_image_view;
+    attachments[0] = target->color_image_view;
 
     VkFramebufferCreateInfo info;
     ZERO(info);
@@ -29,13 +27,13 @@ void pe_vk_framebuffer_create() {
     info.renderPass = pe_vk_render_pass;
     info.attachmentCount = 3;
     info.pAttachments = attachments;
-    info.width = pe_vk_swch_extent.width;
-    info.height = pe_vk_swch_extent.height;
+    info.width = target->extent.width;
+    info.height = target->extent.height;
     info.layers = 1;
 
     VkFramebuffer buffer;
     vkCreateFramebuffer(vk_device, &info, NULL, &buffer);
-    array_add(&pe_vk_framebuffers, &buffer);
+    array_add(&target->framebuffers, &buffer);
 
   }
 }

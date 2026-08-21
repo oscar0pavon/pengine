@@ -6,8 +6,6 @@
 #include <stdio.h>
 #include <string.h>
 
-Array pe_vk_images_views;
-
 VkImageView pe_vk_create_image_view(VkImage image, VkFormat format,
                                     VkImageAspectFlags aspect_flags,
                                     uint32_t mip_level) {
@@ -43,7 +41,7 @@ void pe_vk_create_images_views(PRenderTarget *target) {
     VkImageView image_view;
 
     image_view =
-        pe_vk_create_image_view(target->swap_chain_images[i], pe_vk_swch_format,
+        pe_vk_create_image_view(target->swap_chain_images[i], target->format,
                                 VK_IMAGE_ASPECT_COLOR_BIT, 1);
 
     array_add(&target->images_views, &image_view);

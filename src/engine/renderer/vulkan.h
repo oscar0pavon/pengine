@@ -48,9 +48,6 @@ extern VkInstance vk_instance;
 extern VkDevice vk_device;
 extern VkQueue vk_queue;
 
-extern VkSurfaceKHR vk_surface;
-
-
 extern VkRenderPass pe_vk_render_pass;
 
 extern VkSampleCountFlagBits pe_vk_msaa_samples;
@@ -65,7 +62,6 @@ extern bool pe_vk_initialized;
 
 extern VkImage pe_vk_color_image;
 extern VkDeviceMemory pe_vk_color_memory;
-extern VkImageView pe_vk_color_image_view;
 
 extern VkViewport viewport;
 extern VkRect2D scissor;

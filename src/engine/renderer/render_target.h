@@ -22,6 +22,10 @@ typedef struct PRenderTarget{
   VkDeviceMemory color_memory;
   VkImageView color_image_view;
 
+  VkImage depth_image;
+  VkDeviceMemory depth_memory;
+  VkImageView depth_image_view;
+
   VkCommandPool commands_pool;
 
   Array command_buffers;
@@ -30,6 +34,8 @@ typedef struct PRenderTarget{
   VkSemaphore semaphore_render_finished[PE_VK_MAX_SWAPCHAIN_IMAGES];
   VkFence fence_in_flight[PE_VK_FRAMES_IN_FLIGHT];
   VkFence fence_image_in_flight[PE_VK_MAX_SWAPCHAIN_IMAGES];
+
+  u32 current_frame;
 
   VkViewport viewport;
   VkRect2D scissor;
