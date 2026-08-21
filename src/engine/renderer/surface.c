@@ -77,20 +77,20 @@ void pe_vk_create_color_resources() {
       vk_color_image.image, color_format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 }
 
-void pe_vk_set_viewport_and_sccisor(){
+void pe_vk_set_viewport_and_sccisor(PRenderTarget* target){
   //TODO update when recreate swap chain for handling resizing window
 
   VkOffset2D offset = {0, 0};
 
-  scissor.extent = pe_vk_swch_extent;
-  scissor.offset = offset;
+  target->scissor.extent = target->extent;
+  target->scissor.offset = offset;
 
-  viewport.x = 0.0f;
-  viewport.y = 0.0f;
-  viewport.width = (float)pe_vk_swch_extent.width;
-  viewport.height = (float)pe_vk_swch_extent.height;
-  viewport.minDepth = 0.0f;
-  viewport.maxDepth = 1.0f;
+  target->viewport.x = 0.0f;
+  target->viewport.y = 0.0f;
+  target->viewport.width = (float)target->extent.width;
+  target->viewport.height = (float)target->extent.height;
+  target->viewport.minDepth = 0.0f;
+  target->viewport.maxDepth = 1.0f;
 
 }
 

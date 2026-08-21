@@ -137,7 +137,7 @@ int pe_vk_init() {
 
   pe_vk_create_swapchain(&main_render_target);
 
-  pe_vk_set_viewport_and_sccisor();
+  pe_vk_set_viewport_and_sccisor(&main_render_target);
 
   pe_vk_create_images_views(&main_render_target);
 
