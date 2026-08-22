@@ -23,8 +23,12 @@ PCamera saved_camera;
 PCamera main_camera;
 
 void camera_init(PCamera* camera){
-    camera_width_screen = pe_window_width;
-    camera_height_screen = pe_window_height;
+    camera_init_with_size(camera, pe_window_width, pe_window_height);
+}
+
+void camera_init_with_size(PCamera* camera, float width, float height){
+    camera_width_screen = width;
+    camera_height_screen = height;
 
     camera_rotate_angle = 0;
 
@@ -40,7 +44,7 @@ void camera_init(PCamera* camera){
 
     glm_lookat(camera->position, look_pos, camera->front , camera->view);
 
-    glm_perspective(45.f, camera_width_screen / camera_height_screen, 0.001f,
+    glm_perspective(45.f, width / height, 0.001f,
                     5000.f, camera->projection);
 
 

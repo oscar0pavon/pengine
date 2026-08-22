@@ -7,6 +7,10 @@
 #include <engine/types.h>
 #include <engine/camera.h>
 
+//INFO how many outputs pe_vk_init() can drive at once. only DRM mode ever
+//sets pe_render_targets_count above 1 - a Wayland window is one target
+#define PE_VK_MAX_RENDER_TARGETS 4
+
 typedef struct PRenderTarget{
 
   VkSurfaceKHR surface;

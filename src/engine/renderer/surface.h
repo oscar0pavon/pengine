@@ -8,7 +8,7 @@ void pe_vk_create_color_resources(PRenderTarget* target);
 
 void pe_vk_set_viewport_and_sccisor(PRenderTarget* target);
 
-void pe_vk_create_surface(PRenderTarget* target);
-void pe_vk_create_display_surface(PRenderTarget* target);
+void pe_vk_create_surface(PRenderTarget* target, u32 display_index);
+void pe_vk_create_display_surface(PRenderTarget* target, u32 display_index);
 
 #endif

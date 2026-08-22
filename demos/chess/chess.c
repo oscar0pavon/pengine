@@ -190,7 +190,8 @@ static void chess_piece_draw(ChessPiece *piece, VkCommandBuffer *cmd_buffer,
 
 //INFO the renderer calls this from inside the render pass. the engine has no
 //scene of its own, so this walk is the whole of what chess draws
-static void chess_draw_scene(VkCommandBuffer *cmd_buffer, uint32_t index) {
+static void chess_draw_scene(PRenderTarget *target, VkCommandBuffer *cmd_buffer,
+                             uint32_t index) {
 
   for (int i = 0; i < CHESS_SQUARES; i++)
     chess_piece_draw(&chess_board[i], cmd_buffer, index);

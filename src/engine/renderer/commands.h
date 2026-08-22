@@ -8,8 +8,6 @@
 
 extern VkCommandPool pe_vk_commands_pool;
 
-extern Array pe_vk_command_buffers;
-
 void pe_vk_command_init(PRenderTarget *target);
 
 void pe_vk_commands_pool_init();

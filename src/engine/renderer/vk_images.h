@@ -71,8 +71,6 @@ void pe_vk_image_copy_buffer(VkBuffer buffer, VkImage image, uint32_t width,
 
 void pe_vk_create_texture_sampler(PTexture *new_texture);
 
-void pe_vk_create_exportable_images();
-
 void pe_vk_image_to_color_attacthment(VkImage image);
 
 void pe_vk_image_color_to_transfer(VkImage image);

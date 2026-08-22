@@ -5,13 +5,6 @@
 #include <engine/macros.h>
 #include <vulkan/vulkan_core.h>
 
-VkSemaphore pe_vk_semaphore_images_available[PE_VK_FRAMES_IN_FLIGHT];
-VkSemaphore pe_vk_semaphore_render_finished[PE_VK_MAX_SWAPCHAIN_IMAGES];
-VkFence pe_vk_fence_in_flight[PE_VK_FRAMES_IN_FLIGHT];
-VkFence pe_vk_fence_image_in_flight[PE_VK_MAX_SWAPCHAIN_IMAGES];
-
-uint32_t pe_vk_current_frame;
-
 void pe_vk_semaphores_create(PRenderTarget *target){
 
   VkSemaphoreCreateInfo info;

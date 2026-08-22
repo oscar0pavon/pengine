@@ -24,14 +24,19 @@ void pe_vk_clean_descriptors_set(){
 }
 
 void pe_vk_descriptor_pool_create(PModel *model, PRenderTarget *target) {
+  //INFO sized like the uniform buffer arrays in uniform_buffer.c: a model's
+  //descriptor sets are shared across every target it draws on, so the pool
+  //has to cover whichever target has the most swap chain images
+  u32 count = pe_vk_targets_max_images_count();
+
   VkDescriptorPoolSize pool_size[3];
   ZERO(pool_size);
   pool_size[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-  pool_size[0].descriptorCount = target->images_count;
+  pool_size[0].descriptorCount = count;
   pool_size[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-  pool_size[1].descriptorCount = target->images_count;
+  pool_size[1].descriptorCount = count;
   pool_size[2].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-  pool_size[2].descriptorCount = target->images_count;
+  pool_size[2].descriptorCount = count;
 
   VkDescriptorPoolCreateInfo info;
   ZERO(info);
@@ -129,7 +134,14 @@ void pe_vk_create_descriptor_set_layout() {
 }
 void pe_vk_descriptor_with_image_update(PModel *model, PRenderTarget *target) {
 
-  for (int i = 0; i < target->images_count; i++) {
+  //INFO writes every slot the arrays were sized for
+  //(pe_vk_targets_max_images_count()), not just target->images_count -
+  //otherwise a target with more swap chain images than the one this was
+  //called with would draw with descriptor sets that were allocated but never
+  //pointed at a uniform buffer
+  u32 count = pe_vk_targets_max_images_count();
+
+  for (int i = 0; i < count; i++) {
 
     VkBuffer *buffer = array_get(&model->uniform_buffers, i);
     VkDescriptorBufferInfo info = {.buffer = *buffer,
@@ -169,7 +181,9 @@ void pe_vk_descriptor_with_image_update(PModel *model, PRenderTarget *target) {
 // here is where you send uniform buffer with MVP matrix
 void pe_vk_descriptor_update(PModel *model, PRenderTarget *target) {
 
-  for (int i = 0; i < target->images_count; i++) {
+  u32 count = pe_vk_targets_max_images_count();
+
+  for (int i = 0; i < count; i++) {
 
     VkBuffer *buffer = array_get(&model->uniform_buffers, i);
     VkDescriptorBufferInfo info = {
@@ -192,25 +206,31 @@ void pe_vk_descriptor_update(PModel *model, PRenderTarget *target) {
 void pe_vk_create_descriptor_sets(PModel *model, VkDescriptorSetLayout layout,
                                   PRenderTarget *target) {
 
-  VkDescriptorSetLayout layouts[target->images_count];
+  //INFO same reasoning as pe_vk_descriptor_pool_create(): this array is
+  //shared across every target the model draws on, and pe_vk_descriptor_update
+  ///pe_vk_descriptor_with_image_update() below index it up to whichever
+  //target they're called with, not just this one
+  u32 count = pe_vk_targets_max_images_count();
+
+  VkDescriptorSetLayout layouts[count];
 
   ZERO(layouts);
 
-  for (int i = 0; i < target->images_count; i++) {
+  for (int i = 0; i < count; i++) {
     //layouts[i] = pe_vk_descriptor_set_layout_with_texture;
     layouts[i] = layout;
   }
 
-  array_init(&model->descriptor_sets, sizeof(VkDescriptorSet), target->images_count);
+  array_init(&model->descriptor_sets, sizeof(VkDescriptorSet), count);
 
   // resize because we need to allocate descriptor copy in array.data
-  array_resize(&model->descriptor_sets, target->images_count);
+  array_resize(&model->descriptor_sets, count);
 
   // Allocation
   VkDescriptorSetAllocateInfo alloc_info = {
       .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
       .descriptorPool = model->descriptor_pool,
-      .descriptorSetCount = target->images_count,
+      .descriptorSetCount = count,
       .pSetLayouts = layouts};
 
   vkAllocateDescriptorSets(vk_device, &alloc_info, model->descriptor_sets.data);

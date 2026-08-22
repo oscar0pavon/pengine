@@ -33,16 +33,13 @@ void pe_vk_queue_families_support() {
       // LOG("[X] No graphics queue found\n");
     }
 
-    // VkBool32 present_support = false;
-    // vkGetPhysicalDeviceSurfaceSupportKHR(vk_physical_device, i, vk_surface,
-    //                                      &present_support);
-    // if (present_support == true)
-    //   q_present_family = i;
-    // else {
-    //
-    //   // LOG("[X] NO present queue found");
-    // }
   }
+
+  //INFO the surface-support check this used to be needs a VkSurfaceKHR,
+  //which does not exist yet at this point in pe_vk_init() - and every target
+  //presents through the same vk_queue anyway, so the graphics family is used
+  //for both instead of leaving this uninitialized
+  q_present_family = q_graphic_family;
 
   ZERO(queues_creates_infos);
   uint32_t q_unique_falimiles[] = {q_graphic_family, q_present_family};

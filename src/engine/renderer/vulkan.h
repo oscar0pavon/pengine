@@ -42,7 +42,18 @@ void pe_vk_end();
   
 extern VkPhysicalDevice vk_physical_device;
 
-extern PRenderTarget main_render_target;
+extern PRenderTarget pe_render_targets[PE_VK_MAX_RENDER_TARGETS];
+extern u32 pe_render_targets_count;
+
+//INFO a model's uniform buffers/descriptor sets are shared across every
+//target it is drawn on (see uniform_buffer.c, descriptor_set.c), so they have
+//to be sized for whichever target has the most swap chain images, not just
+//targets[0]
+u32 pe_vk_targets_max_images_count(void);
+
+//most of the tree still names the one render target that existed before
+//multimonitor; this keeps every one of those call sites compiling unchanged
+#define main_render_target (pe_render_targets[0])
 
 extern VkInstance vk_instance;
 extern VkDevice vk_device;
@@ -59,12 +70,6 @@ extern uint32_t q_present_family;
 extern bool pe_vk_validation_layer_enable;
 
 extern bool pe_vk_initialized;
-
-extern VkImage pe_vk_color_image;
-extern VkDeviceMemory pe_vk_color_memory;
-
-extern VkViewport viewport;
-extern VkRect2D scissor;
 
 extern Array buffers;
 

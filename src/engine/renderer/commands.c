@@ -8,9 +8,6 @@
 
 VkCommandPool pe_vk_commands_pool;
 
-Array pe_vk_command_buffers;
-
-
 VkCommandBuffer pe_vk_begin_single_time_cmd(){
     
     VkCommandBufferAllocateInfo bufferinfo;

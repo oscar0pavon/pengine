@@ -17,13 +17,6 @@
 
 #include "engine/camera.h"
 
-u32 pe_vk_swapchain_image_count;
-
-//TODO we use four images buffer we can use less
-VkImage pe_vk_swch_images[PE_VK_MAX_SWAPCHAIN_IMAGES];
-PTexture pe_vk_exportable_images[PE_VK_MAX_SWAPCHAIN_IMAGES];
-int pe_vk_exportable_images_id[PE_VK_MAX_SWAPCHAIN_IMAGES];
-
 typedef struct PSupportDetails {
   VkSurfaceCapabilitiesKHR capabilities;
   Array formats;
@@ -80,14 +73,19 @@ VkPresentModeKHR pe_vk_swch_choose_present_mode(Array *present_modes) {
 }
 
 VkExtent2D
-pe_vk_swch_choose_extent(const VkSurfaceCapabilitiesKHR *capabilities) {
+pe_vk_swch_choose_extent(PRenderTarget *target,
+                         const VkSurfaceCapabilitiesKHR *capabilities) {
   if (capabilities->currentExtent.width != UINT32_MAX)
     return capabilities->currentExtent;
   else {
     VkExtent2D current;
+    //INFO belt and braces: a display surface already defines currentExtent
+    //from its chosen mode, so this almost never fires under DRM.
+    //pe_vk_create_display_surface() fills target->width/heigth from that same
+    //mode before this ever runs, so it is a safe fallback if it does
     if (is_drm_rendering) {
-      current.width = 1920;
-      current.height = 1080;
+      current.width = target->width;
+      current.height = target->heigth;
     } else {
       current.width = pe_window_width;
       current.height = pe_window_height;
@@ -107,7 +105,7 @@ void pe_vk_create_swapchain(PRenderTarget* target) {
       pe_vk_swch_choose_surface_format(&support.formats);
   VkPresentModeKHR mode =
       pe_vk_swch_choose_present_mode(&support.present_modes);
-  VkExtent2D extent = pe_vk_swch_choose_extent(&support.capabilities);
+  VkExtent2D extent = pe_vk_swch_choose_extent(target, &support.capabilities);
 
   target->images_count = support.capabilities.minImageCount + 1;
 
@@ -140,6 +138,8 @@ void pe_vk_create_swapchain(PRenderTarget* target) {
 
   target->extent = extent;
   target->format = format.format;
+  target->width = extent.width;
+  target->heigth = extent.height;
 
   LOG("Swap chain extent %i, %i\n", target->extent.width,
       target->extent.height);

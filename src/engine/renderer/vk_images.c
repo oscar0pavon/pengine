@@ -479,24 +479,6 @@ void pe_vk_clean_image(PTexture* image){
   vkFreeMemory(vk_device, image->memory, NULL);
 }
 
-void pe_vk_create_exportable_images(){
-  for (int i = 0; i < pe_vk_swapchain_image_count; i++) {
-    PImageCreateInfo image_create_info = {
-        .width = 1920,
-        .height = 1080,
-        .texture = &pe_vk_exportable_images[i],
-        //.format = VK_FORMAT_R8G8B8A8_SRGB,//TODO could be this
-        .format = VK_FORMAT_R8G8B8A8_UNORM,
-        .tiling = VK_IMAGE_TILING_OPTIMAL,
-        .usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-        .properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        .number_of_samples = VK_SAMPLE_COUNT_1_BIT};
-    
-    pe_vk_create_image(&image_create_info);
-
-  }
-}
-
 bool pe_vk_import_image(PTexture *new_texture, const PImageImportInfo *info) {
 
   if (info->plane_count == 0 || info->plane_count > PE_MAX_IMAGE_PLANES) {

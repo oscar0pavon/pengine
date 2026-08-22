@@ -18,6 +18,7 @@ typedef struct PCamera{
 void camera_rotate_control(float yaw, float pitch);
 
 void camera_init(PCamera* camera);
+void camera_init_with_size(PCamera* camera, float width, float height);
 
 void camera_update(PCamera* camera);
 

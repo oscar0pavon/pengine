@@ -12,13 +12,10 @@
 #include "display.h"
 #include <vulkan/vulkan_wayland.h>
 
-VkImage pe_vk_color_image;
-VkDeviceMemory pe_vk_color_memory;
-
-void pe_vk_create_surface(PRenderTarget* target) {
+void pe_vk_create_surface(PRenderTarget* target, u32 display_index) {
 
   if(is_drm_rendering){
-    pe_vk_create_display_surface(target);
+    pe_vk_create_display_surface(target, display_index);
     return;
   }
 
@@ -33,21 +30,25 @@ void pe_vk_create_surface(PRenderTarget* target) {
     fprintf(stderr, "Failed to create Vulkan Wayland surface!\n");
 }
 
-void pe_vk_create_display_surface(PRenderTarget* target){
+void pe_vk_create_display_surface(PRenderTarget* target, u32 display_index){
+  PVkDisplay *display = &pe_vk_displays[display_index];
+
   VkDisplaySurfaceCreateInfoKHR info = {
-    .sType = VK_STRUCTURE_TYPE_DISPLAY_SURFACE_CREATE_INFO_KHR, 
-    .displayMode = vk_display_mode,
-    .planeIndex = 0,
+    .sType = VK_STRUCTURE_TYPE_DISPLAY_SURFACE_CREATE_INFO_KHR,
+    .displayMode = display->mode,
+    .planeIndex = display->plane_index,
     .globalAlpha = 1.0f,
     .alphaMode = VK_DISPLAY_PLANE_ALPHA_OPAQUE_BIT_KHR,
-    .planeStackIndex = 0, 
-    .imageExtent = {1920,1080},
+    .planeStackIndex = display->plane_stack_index,
+    .imageExtent = display->extent,
     .transform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR
   };
 
   VKVALID(vkCreateDisplayPlaneSurfaceKHR(vk_instance,
       &info, NULL, &target->surface), "Can't create display surface");
-  
+
+  target->width = display->extent.width;
+  target->heigth = display->extent.height;
 }
 
 void pe_vk_create_color_resources(PRenderTarget* target) {

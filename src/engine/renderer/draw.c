@@ -17,7 +17,8 @@
 
 #include "engine/renderer/renderer.h"
 
-void (*pe_vk_draw_scene)(VkCommandBuffer *cmd_buffer, uint32_t index) = NULL;
+void (*pe_vk_draw_scene)(PRenderTarget *target, VkCommandBuffer *cmd_buffer,
+                         uint32_t index) = NULL;
 
 #include "descriptor_set.h"
 
@@ -83,7 +84,7 @@ void pe_vk_draw_commands(PRenderTarget *target, VkCommandBuffer *cmd_buffer,
   // TODO draw objets here
 
   if (pe_vk_draw_scene)
-    pe_vk_draw_scene(cmd_buffer, index);
+    pe_vk_draw_scene(target, cmd_buffer, index);
 }
 
 void pe_vk_draw_frame(PRenderTarget *target) {

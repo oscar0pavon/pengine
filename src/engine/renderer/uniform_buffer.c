@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include <vulkan/vulkan_core.h>
 #include "swap_chain.h"
+#include "vulkan.h"
 
 
 PUniformBufferObject ubo;
@@ -42,14 +43,18 @@ PBufferCreateInfo pe_vk_uniform_buffer_create_buffer(size_t size) {
 void pe_vk_create_uniform_buffers(PModel *model, PRenderTarget *target) {
   VkDeviceSize buffer_size = sizeof(PUniformBufferObject);
 
-  array_init(&model->uniform_buffers, sizeof(VkBuffer),
-             target->images_count);
+  //INFO a model is drawn on every render target, indexed each time by that
+  //target's own image_index, but it owns only one uniform_buffers array - so
+  //it has to be sized for whichever target has the most swap chain images,
+  //not just the one passed in here
+  u32 count = pe_vk_targets_max_images_count();
 
-  array_init(&model->uniform_buffers_memory, sizeof(VkDeviceMemory),
-             target->images_count);
+  array_init(&model->uniform_buffers, sizeof(VkBuffer), count);
+
+  array_init(&model->uniform_buffers_memory, sizeof(VkDeviceMemory), count);
 
   //LOG("Creating uniform buffer\n");
-  for (int i = 0; i < target->images_count; i++) {
+  for (int i = 0; i < count; i++) {
     // create buffer
     PBufferCreateInfo info =
         pe_vk_uniform_buffer_create_buffer(sizeof(PUniformBufferObject));

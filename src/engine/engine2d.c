@@ -81,6 +81,24 @@ void pe_2d_draw(PModel* model, u32 image_index, vec2 position, vec2 size){
 
 }
 
+void pe_2d_draw_on_target(PModel *model, PRenderTarget *target,
+                          u32 image_index, vec2 position, vec2 size){
+
+  mat4 model_matrix;
+  glm_mat4_identity(model_matrix);
+
+  glm_translate(model_matrix, (vec3){position[0], position[1], 0.0f});
+  glm_scale(model_matrix, (vec3){size[0], size[1], 1.0f});
+
+  glm_mat4_copy(model_matrix, model->uniform_buffer_object.model);
+
+  glm_ortho(0, target->width, 0, target->heigth, 0.1f, 1000.f,
+           model->uniform_buffer_object.projection);
+
+  pe_vk_send_uniform_buffer(model, image_index);
+
+}
+
 void pe_2d_create_character_geometry(Array *vertex_array, char character, int x,
                                      int y, int width, int height) {
 
