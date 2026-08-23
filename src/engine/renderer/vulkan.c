@@ -41,6 +41,8 @@ VkDevice vk_device;
 bool is_drm_rendering = false;
 bool is_wayland_window = false;
 
+bool (*pe_vk_acquire_display)(void);
+
 uint32_t pe_window_width = 1280;
 uint32_t pe_window_height = 720;
 
@@ -143,6 +145,12 @@ int pe_vk_init() {
       printf("Error can't get vulkan extenstion\n");
       return 1;
     }
+    //before the enumeration, not after: acquiring is what gives wsi_display an
+    //fd to enumerate connectors through at all once the application already
+    //holds DRM master
+    if (pe_vk_acquire_display)
+      pe_vk_acquire_display();
+
     vk_get_displays();
     pe_render_targets_count = pe_vk_displays_count;
   }

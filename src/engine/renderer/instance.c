@@ -5,11 +5,17 @@
 
 
 const char *instance_extensions_names[] = {
-    VK_KHR_DISPLAY_EXTENSION_NAME, 
-    VK_KHR_SURFACE_EXTENSION_NAME, 
+    VK_KHR_DISPLAY_EXTENSION_NAME,
+    VK_KHR_SURFACE_EXTENSION_NAME,
     VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME,
-    VK_EXT_DEBUG_UTILS_EXTENSION_NAME, 
-    VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME, 
+    VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
+    VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME,
+    //INFO these two are what let the *application* own the DRM fd the display
+    //is scanned out through, instead of the one mesa opened for itself. a
+    //compositor that cannot take that fd away again cannot give the display
+    //back on a VT switch - see pe_vk_acquire_display in renderer.h
+    VK_EXT_DIRECT_MODE_DISPLAY_EXTENSION_NAME,
+    VK_EXT_ACQUIRE_DRM_DISPLAY_EXTENSION_NAME,
     };
 
 void pe_vk_create_instance() {

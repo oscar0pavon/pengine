@@ -20,6 +20,15 @@ extern bool is_wayland_window;
 extern void (*pe_vk_draw_scene)(PRenderTarget *target,
                                 VkCommandBuffer *cmd_buffer, uint32_t index);
 
+//optional, and only ever called on the DRM path: the application's chance to
+//hand vulkan a DRM fd of its own (vkGetDrmDisplayEXT + vkAcquireDrmDisplayEXT)
+//before the displays are enumerated. mesa's wsi_display otherwise scans out
+//through the fd radv opened for itself, which the application has no way to
+//drop - and a compositor that cannot drop DRM master cannot release the
+//display when its VT is switched away. left NULL, the old behaviour stands.
+//returning false is not fatal: enumeration is tried anyway
+extern bool (*pe_vk_acquire_display)(void);
+
 //the size the renderer draws at. the swap chain, the camera and the 2D
 //projection all read it, and an application that wants something other than
 //the default sets both before pe_vk_init()
