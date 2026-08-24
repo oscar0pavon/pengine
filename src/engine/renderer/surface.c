@@ -78,7 +78,9 @@ void pe_vk_create_color_resources(PRenderTarget* target) {
 }
 
 void pe_vk_set_viewport_and_sccisor(PRenderTarget* target){
-  //TODO update when recreate swap chain for handling resizing window
+  //the viewport and the scissor are dynamic state, set from the target on
+  //every frame, so a resize only has to come back through here once -
+  //pe_vk_recreate_swapchain() does that and leaves the pipelines alone
 
   VkOffset2D offset = {0, 0};
 

@@ -11,7 +11,12 @@
 #include <string.h>
 #include <vulkan/vulkan.h>
 
+#include "commands.h"
+#include "framebuffer.h"
 #include "images_view.h"
+#include "surface.h"
+#include "sync.h"
+#include "vk_images.h"
 
 #include "engine/renderer/renderer.h"
 
@@ -90,6 +95,20 @@ pe_vk_swch_choose_extent(PRenderTarget *target,
       current.width = pe_window_width;
       current.height = pe_window_height;
     }
+
+    //a client that picks its own extent still has to stay inside the range
+    //the surface supports. a compositor can configure a window to a size the
+    //swap chain would be rejected for, and a resize is where that shows up
+    if (current.width < capabilities->minImageExtent.width)
+      current.width = capabilities->minImageExtent.width;
+    if (current.height < capabilities->minImageExtent.height)
+      current.height = capabilities->minImageExtent.height;
+
+    if (current.width > capabilities->maxImageExtent.width)
+      current.width = capabilities->maxImageExtent.width;
+    if (current.height > capabilities->maxImageExtent.height)
+      current.height = capabilities->maxImageExtent.height;
+
     return current;
   }
 }
@@ -173,4 +192,71 @@ void pe_vk_create_swapchain(PRenderTarget* target) {
   if (target->swap_chain_images[0] == VK_NULL_HANDLE) {
     printf("Swapchain image not valid");
   }
+}
+
+//everything that was sized from the old extent, in the reverse of the order
+//pe_vk_init() built it
+static void pe_vk_destroy_swapchain_resources(PRenderTarget *target) {
+
+  for (int i = 0; i < target->framebuffers.count; i++) {
+    VkFramebuffer *framebuffer = array_get(&target->framebuffers, i);
+    vkDestroyFramebuffer(vk_device, *framebuffer, NULL);
+  }
+
+  vkDestroyImageView(vk_device, target->depth_image_view, NULL);
+  vkDestroyImage(vk_device, target->depth_image, NULL);
+  vkFreeMemory(vk_device, target->depth_memory, NULL);
+
+  vkDestroyImageView(vk_device, target->color_image_view, NULL);
+  vkDestroyImage(vk_device, target->color_image, NULL);
+  vkFreeMemory(vk_device, target->color_memory, NULL);
+
+  for (int i = 0; i < target->images_views.count; i++) {
+    VkImageView *image_view = array_get(&target->images_views, i);
+    vkDestroyImageView(vk_device, *image_view, NULL);
+  }
+
+  vkDestroySwapchainKHR(vk_device, target->swap_chain, NULL);
+}
+
+void pe_vk_recreate_swapchain(PRenderTarget *target) {
+
+  //nothing below this can be destroyed while a frame in flight is still
+  //reading it, and there is no other point where that is known
+  vkDeviceWaitIdle(vk_device);
+
+  u32 previous_images_count = target->images_count;
+
+  //the command buffers and the render finished semaphores are counted per
+  //swap chain image, so they belong to the swap chain that is going away
+  vkFreeCommandBuffers(vk_device, target->commands_pool,
+                       target->command_buffers.count,
+                       target->command_buffers.data);
+
+  pe_vk_end_sync(target);
+
+  pe_vk_destroy_swapchain_resources(target);
+
+  pe_vk_create_swapchain(target);
+  pe_vk_set_viewport_and_sccisor(target);
+  pe_vk_create_images_views(target);
+  pe_vk_create_color_resources(target);
+  pe_vk_create_depth_resources(target);
+  pe_vk_framebuffer_create(target);
+  pe_vk_command_init(target);
+  pe_vk_semaphores_create(target);
+
+  //INFO the render pass, the pipelines and the layouts all survive: the
+  //format has not changed, and the viewport and scissor are dynamic state
+  //that pe_vk_draw_commands() sets from the target every frame
+
+  //INFO a model's uniform buffers and descriptor sets are one per swap chain
+  //image and were sized when the model was created. more images than there
+  //were then and image_index runs off the end of both
+  if (target->images_count != previous_images_count)
+    LOG("Swap chain came back with %i images instead of %i - models built "
+        "before it have descriptor sets for the old count\n",
+        target->images_count, previous_images_count);
+
+  camera_init_with_size(&target->camera, target->width, target->heigth);
 }

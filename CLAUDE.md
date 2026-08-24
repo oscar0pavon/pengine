@@ -143,6 +143,24 @@ The renderer must not know about any particular application. The seams it expose
   extent, the camera and the 2D ortho projection all read them, and an application sets
   both before `pe_vk_init()`. There is no fixed-resolution macro.
 
+**Resizing** is `pe_vk_recreate_swapchain()` (`swap_chain.c`). It waits for the device to
+go idle and rebuilds everything a target sizes from its extent — swap chain, image views,
+colour and depth attachments, framebuffers, per-image command buffers and semaphores, and
+the target's own camera. The render pass, the pipelines and the layouts survive: the format
+does not change, and the viewport and scissor are dynamic state that `pe_vk_draw_commands()`
+sets from the target every frame. A Wayland surface leaves the extent to the client, so
+`pe_window_width`/`pe_window_height` must already hold the new size before the call.
+
+Because it waits for idle, it belongs between two frames on the thread that draws, never in
+a window event callback. `pe_vk_draw_frame()` also calls it itself when the acquire returns
+`VK_ERROR_OUT_OF_DATE_KHR` (that frame is dropped) or the present comes back out of date or
+suboptimal.
+
+The one thing a rebuild cannot fix up is a model's uniform buffers and descriptor sets:
+there is one per swap chain image, sized when the model was created. If the new chain has
+more images than the old one, `image_index` runs off the end of both — the recreate logs
+that rather than papering over it.
+
 Undeclared calls are errors again. `-Wno-implicit-function-declaration` used to be on, so a
 call to a function that does not exist compiled and only failed at link — and because the
 product is a static library, an unresolved call does not fail at `ar` time either, so it
@@ -152,7 +170,9 @@ three, and how `content_manager.c` went on calling two functions that left with 
 element/component scene graph. Keep it that way: a new call needs a declaration in scope,
 which usually means the header the function belongs to, not a local prototype.
 
-`camera_init()` applies `projection[1][1] *= -1` for Vulkan's +Y-down clip space.
+`camera_init()` applies `projection[1][1] *= -1` for Vulkan's +Y-down clip space, and so
+does `camera_update_aspect_ratio()`, which is the one to call after a resize — it reads
+`camera_width_screen`/`camera_height_screen`, so those go first.
 
 A model carries its own transform in `PModel.model_mat`, built with the `pe_model_*`
 helpers in `model.c` (`pe_model_transform` composes translate * rotate * scale;

@@ -97,9 +97,30 @@ void pe_vk_draw_frame(PRenderTarget *target) {
 
   uint32_t image_index;
 
-  vkAcquireNextImageKHR(vk_device, target->swap_chain, UINT64_MAX,
-                        target->semaphore_images_available[target->current_frame],
-                        VK_NULL_HANDLE, &image_index);
+  VkResult acquired = vkAcquireNextImageKHR(
+      vk_device, target->swap_chain, UINT64_MAX,
+      target->semaphore_images_available[target->current_frame],
+      VK_NULL_HANDLE, &image_index);
+
+  //INFO the swap chain no longer matches the surface: the window was resized
+  //under us, or the compositor changed something about it. nothing was
+  //acquired and the semaphore was not signalled, so this frame is dropped
+  //either way, and the next one draws against the rebuilt chain. an
+  //application that rebuilds on its own configure events rarely gets here -
+  //this is the case where the surface changed without asking.
+  //
+  //only on the window path: a DRM display surface has no compositor to resize
+  //it, its extent comes from the mode, and rebuilding a scanout chain per
+  //frame is not something to start doing behind a compositor's back
+  if (acquired == VK_ERROR_OUT_OF_DATE_KHR) {
+
+    if (!is_drm_rendering)
+      pe_vk_recreate_swapchain(target);
+    else
+      LOG("Display swap chain is out of date\n");
+
+    return;
+  }
 
   //INFO waiting on this frame's own fence says nothing about the image the
   //acquire handed back. everything the recording below overwrites is indexed by
@@ -158,7 +179,17 @@ void pe_vk_draw_frame(PRenderTarget *target) {
       .pSwapchains = swap_chains,
       .pImageIndices = &image_index};
 
-  VKVALID(vkQueuePresentKHR(vk_queue, &present_info), "Can't present");
+  VkResult presented = vkQueuePresentKHR(vk_queue, &present_info);
+
+  //SUBOPTIMAL presents fine but says the chain no longer fits the surface, so
+  //it is rebuilt for the next frame rather than left to degrade. same reason
+  //as the acquire above for leaving the DRM path alone
+  if ((presented == VK_ERROR_OUT_OF_DATE_KHR ||
+       presented == VK_SUBOPTIMAL_KHR) &&
+      !is_drm_rendering)
+    pe_vk_recreate_swapchain(target);
+  else if (presented != VK_SUCCESS && presented != VK_SUBOPTIMAL_KHR)
+    LOG("Can't present \n");
 
   //INFO no vkQueueWaitIdle here. it made every frame end with the queue empty,
   //which is the whole of what the fences and semaphores above are for; with it

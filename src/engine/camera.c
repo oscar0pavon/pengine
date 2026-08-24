@@ -92,4 +92,9 @@ void camera_rotate_control(float yaw, float pitch){
 void camera_update_aspect_ratio(PCamera* camera){
   glm_perspective(45.f, camera_width_screen / camera_height_screen, 0.001f,
                   5000.f, camera->projection);
+
+  //INFO the same flip camera_init_with_size() ends on: vulkan's clip space has
+  //+Y pointing down where GL has it pointing up. without it here a camera that
+  //had been through a resize drew the whole scene upside down
+  camera->projection[1][1] *= -1;
 }
