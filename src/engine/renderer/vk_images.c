@@ -163,6 +163,17 @@ void pe_vk_transition_image_layout(VkImage image, VkFormat format,
 
     source_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
     destination_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+
+  } else if (old_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL &&
+             new_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+    //the way back, for an image that is written again after it has been
+    //sampled: a wl_shm client redraws into the same buffer every frame, so its
+    //texture goes round this loop for as long as the window is up
+    barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+    source_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    destination_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
   } else {
     LOG("Unsupported layout transition");
   }

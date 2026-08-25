@@ -66,7 +66,13 @@ pe_vk_pipeline_get_default_depth_stencil() {
   info.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
   info.depthTestEnable = VK_TRUE;
   info.depthWriteEnable = VK_TRUE;
-  info.depthCompareOp = VK_COMPARE_OP_LESS;
+  //LESS_OR_EQUAL rather than LESS: everything 2D is drawn at the same depth,
+  //back to front, so the later draw is the one meant to be seen - painter's
+  //algorithm. under LESS a quad drawn over another at the same depth failed
+  //the test and vanished, which sword's tiling had hidden forever because no
+  //two window quads ever overlapped - the first surface drawn on top of
+  //another one (a menu) was simply not there
+  info.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
   info.depthBoundsTestEnable = VK_FALSE;
   info.minDepthBounds = 0.0f;
   info.maxDepthBounds = 1.0f;
