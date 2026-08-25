@@ -42,6 +42,7 @@ bool is_drm_rendering = false;
 bool is_wayland_window = false;
 
 bool (*pe_vk_acquire_display)(void);
+void (*pe_vk_sort_displays)(void);
 
 uint32_t pe_window_width = 1280;
 uint32_t pe_window_height = 720;
@@ -152,6 +153,10 @@ int pe_vk_init() {
       pe_vk_acquire_display();
 
     vk_get_displays();
+
+    if (pe_vk_sort_displays)
+      pe_vk_sort_displays();
+
     pe_render_targets_count = pe_vk_displays_count;
   }
 

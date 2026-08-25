@@ -29,6 +29,16 @@ extern void (*pe_vk_draw_scene)(PRenderTarget *target,
 //returning false is not fatal: enumeration is tried anyway
 extern bool (*pe_vk_acquire_display)(void);
 
+//optional, and only ever called on the DRM path, right after vk_get_displays()
+//fills pe_vk_displays[] (display.h) and before pe_render_targets is built from
+//it in that same order: the application's chance to permute pe_vk_displays[]
+//into whatever order it wants pe_render_targets[]/output index 0,1,2... to
+//come out in. vk_get_displays()'s own order is whatever the driver's internal
+//connector probe happened to walk, which need not agree with the order
+//another DRM client (a host compositor the box was also driving) laid the
+//same monitors out in. left NULL, enumeration order stands
+extern void (*pe_vk_sort_displays)(void);
+
 //the size the renderer draws at. the swap chain, the camera and the 2D
 //projection all read it, and an application that wants something other than
 //the default sets both before pe_vk_init()
