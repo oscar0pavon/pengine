@@ -7,7 +7,7 @@ void pe_end(){
 
 void pe_init() {
   LOG("Initializing pengine\n");
-  pe_init_memory(); //VERY IMPORTANT
+  pe_init_memory(INIT_MEMORY); //VERY IMPORTANT
 
   pe_init_arrays();
 

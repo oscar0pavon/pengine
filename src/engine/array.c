@@ -75,7 +75,7 @@ static bool array_grow(Array *array, u32 needed_bytes) {
   //allocate_memory() takes an int and tests actual_free_memory > size, so a
   //size past INT_MAX arrives negative, passes that test and hands back a block
   //that was never reserved
-  if (new_bytes_capacity > INIT_MEMORY) {
+  if (new_bytes_capacity > engine_memory_capacity) {
     LOG("Array growth refused: %u bytes is larger than the engine arena\n",
         new_bytes_capacity);
     return false;

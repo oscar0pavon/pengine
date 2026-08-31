@@ -1,5 +1,6 @@
 #include "memory.h"
 #include <stdlib.h>
+#include <string.h>
 #include "log.h"
 
 #include <stdbool.h>
@@ -10,6 +11,7 @@ int memory_used;
 int memory_marker;
 int previous_marker;
 int actual_free_memory;
+int engine_memory_capacity;
 
 void* engine_memory;
 
@@ -20,10 +22,15 @@ StackMemory engine_stack_memory;
 PoolMemory arrays_memory;
 
 // VERY IMPORTANT
-void pe_init_memory(){
-    engine_memory = malloc(INIT_MEMORY);
-    memset(engine_memory,0,INIT_MEMORY);
-    actual_free_memory = INIT_MEMORY;
+void pe_init_memory(int size_bytes){
+    if(size_bytes <= 0){
+        LOG("ERROR pe_init_memory: size_bytes must be > 0\n");
+        return;
+    }
+    engine_memory = malloc(size_bytes);
+    memset(engine_memory,0,size_bytes);
+    engine_memory_capacity = size_bytes;
+    actual_free_memory = size_bytes;
     memory_marker = 0;
 
 }
