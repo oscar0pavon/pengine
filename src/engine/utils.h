@@ -1,5 +1,5 @@
-#ifndef UTILS_H
-#define UTILS_H
+#ifndef PE_UTILS_H
+#define PE_UTILS_H
 
 #include <cglm/vec3.h>
 

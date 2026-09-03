@@ -1,5 +1,5 @@
-#ifndef VK_VERTEX_H
-#define VK_VERTEX_H
+#ifndef PE_VK_VERTEX_H
+#define PE_VK_VERTEX_H
 
 #include "vulkan.h"
 #include <engine/array.h>

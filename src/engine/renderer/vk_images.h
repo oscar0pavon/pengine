@@ -1,5 +1,5 @@
-#ifndef VK_IMAGES_H
-#define VK_IMAGES_H
+#ifndef PE_VK_IMAGES_H
+#define PE_VK_IMAGES_H
 
 #include "engine/images.h"
 #include "vulkan.h"

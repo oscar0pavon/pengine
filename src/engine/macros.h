@@ -1,5 +1,5 @@
-#ifndef PE_MACROS
-#define PE_MACROS
+#ifndef PE_MACROS_H
+#define PE_MACROS_H
 #include <string.h>
 //Set to zero
 #define ZERO(s) memset(&s,0,sizeof(s))

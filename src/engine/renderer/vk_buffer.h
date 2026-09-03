@@ -1,5 +1,5 @@
-#ifndef VK_BUFFER
-#define VK_BUFFER
+#ifndef PE_VK_BUFFER_H
+#define PE_VK_BUFFER_H
 #include "vulkan.h"
 
 typedef struct PBufferCreateInfo {

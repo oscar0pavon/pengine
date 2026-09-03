@@ -1,5 +1,5 @@
-#ifndef IMAGES_H
-#define IMAGES_H
+#ifndef PE_IMAGES_H
+#define PE_IMAGES_H
 
 
 #include "numbers.h"

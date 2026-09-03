@@ -1,5 +1,5 @@
-#ifndef DEBUG_VULKAN
-#define DEBUG_VULKAN
+#ifndef PE_VK_DEBUG_H
+#define PE_VK_DEBUG_H
 
 #include <vulkan/vulkan.h>
 #include <stdbool.h>

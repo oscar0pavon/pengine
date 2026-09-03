@@ -1,5 +1,5 @@
-#ifndef ENGINE_2D_H
-#define ENGINE_2D_H
+#ifndef PE_ENGINE2D_H
+#define PE_ENGINE2D_H
 
 #include <engine/model.h>
 #include <engine/renderer/render_target.h>

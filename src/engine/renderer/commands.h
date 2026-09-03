@@ -1,5 +1,5 @@
-#ifndef COMMANDS_H
-#define COMMANDS_H
+#ifndef PE_VK_COMMANDS_H
+#define PE_VK_COMMANDS_H
 
 #include <vulkan/vulkan.h>
 #include <engine/array.h>

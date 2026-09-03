@@ -1,6 +1,6 @@
-#ifndef ENGINE_MATH_H
+#ifndef PE_MATH_H
 
-#define ENGINE_MATH_H
+#define PE_MATH_H
 
 #include <math.h>
 

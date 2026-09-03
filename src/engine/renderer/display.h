@@ -1,5 +1,5 @@
-#ifndef DISPLAY_H
-#define DISPLAY_H
+#ifndef PE_VK_DISPLAY_H
+#define PE_VK_DISPLAY_H
 
 #include <vulkan/vulkan_core.h>
 #include "render_target.h"

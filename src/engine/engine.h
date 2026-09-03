@@ -2,8 +2,8 @@
 // Created by pavon on 6/24/19.
 //
 
-#ifndef PAVON_ENGINE_H
-#define PAVON_ENGINE_H
+#ifndef PE_ENGINE_H
+#define PE_ENGINE_H
 
 #include "array.h"
 #include "interruptions.h"
@@ -127,4 +127,4 @@ Array main_thread_commads;
 
 vec4 pe_background_color;
 
-#endif // PAVON_ENGINE_H
+#endif // PE_ENGINE_H

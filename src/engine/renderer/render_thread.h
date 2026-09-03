@@ -1,5 +1,5 @@
-#ifndef ENGINE_RENDER_THREAD
-#define ENGINE_RENDER_THREAD
+#ifndef PE_VK_RENDER_THREAD_H
+#define PE_VK_RENDER_THREAD_H
 #include <engine/array.h>
 #include <engine/threads.h>
 

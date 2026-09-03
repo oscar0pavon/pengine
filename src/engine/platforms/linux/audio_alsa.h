@@ -1,5 +1,5 @@
-#ifndef AUDIO_ALSA
-#define AUDIO_ALSA
+#ifndef PE_LINUX_AUDIO_ALSA_H
+#define PE_LINUX_AUDIO_ALSA_H
 
 
 void pe_audio_alsa_init();

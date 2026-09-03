@@ -1,5 +1,5 @@
-#ifndef FILE_LOADER_H
-#define FILE_LOADER_H
+#ifndef PE_FILE_LOADER_H
+#define PE_FILE_LOADER_H
 
 #include "utils.h"
 
@@ -37,5 +37,5 @@ void close_file(File* file);
  * specified buffer */
 int file_read(File* file, char* buffer, int buffer_size);
 
-#endif // !FILE_LOADER_H
+#endif // !PE_FILE_LOADER_H
 

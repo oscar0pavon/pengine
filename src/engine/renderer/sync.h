@@ -1,5 +1,5 @@
-#ifndef VKSYNC_H
-#define VKSYNC_H
+#ifndef PE_VK_SYNC_H
+#define PE_VK_SYNC_H
 
 #include <vulkan/vulkan.h>
 

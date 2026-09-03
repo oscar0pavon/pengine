@@ -2,8 +2,8 @@
 // Created by pavon on 6/24/19.
 //
 
-#ifndef PAVON_MOBILE_GAME_H
-#define PAVON_MOBILE_GAME_H
+#ifndef PE_GAME_H
+#define PE_GAME_H
 
 #include "model.h"
 
@@ -38,4 +38,4 @@ void pe_game_input();
 
 PGame* game;
 
-#endif //PAVON_MOBILE_GAME_H
+#endif //PE_GAME_H

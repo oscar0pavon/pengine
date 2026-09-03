@@ -1,5 +1,5 @@
-#ifndef PE_RENDER_TARGET
-#define PE_RENDER_TARGET
+#ifndef PE_RENDER_TARGET_H
+#define PE_RENDER_TARGET_H
 
 #include "engine/camera.h"
 #include <vulkan/vulkan_core.h>

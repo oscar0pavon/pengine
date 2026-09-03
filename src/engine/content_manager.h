@@ -1,5 +1,5 @@
-#ifndef ENGINE_CONTENT_MANAGER_H
-#define ENGINE_CONTENT_MANAGER_H
+#ifndef PE_CONTENT_MANAGER_H
+#define PE_CONTENT_MANAGER_H
 
 #include "../engine/numbers.h"
 

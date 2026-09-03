@@ -1,5 +1,5 @@
-#ifndef PAVON_ENGINE_SKELETAL_H
-#define PAVON_ENGINE_SKELETAL_H
+#ifndef PE_SKELETAL_H
+#define PE_SKELETAL_H
 
 
 #include <cglm/cglm.h>

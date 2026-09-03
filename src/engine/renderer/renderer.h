@@ -1,5 +1,5 @@
-#ifndef RENDERER
-#define RENDERER
+#ifndef PE_RENDERER_H
+#define PE_RENDERER_H
 
 #include <vulkan/vulkan_core.h>
 

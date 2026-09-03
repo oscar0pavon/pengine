@@ -1,5 +1,5 @@
-#ifndef ENGINE_DATA_TYPES
-#define ENGINE_DATA_TYPES
+#ifndef PE_TYPES_H
+#define PE_TYPES_H
 
 #include <stdbool.h>
 
@@ -39,4 +39,4 @@ typedef struct {
   void *parameter;
 } ExecuteCommand;
 
-#endif // !ENGINE_DATA_TYPES
+#endif // !PE_TYPES_H

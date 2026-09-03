@@ -1,5 +1,5 @@
-#ifndef DESCRIPTOR_SET_H
-#define DESCRIPTOR_SET_H
+#ifndef PE_VK_DESCRIPTOR_SET_H
+#define PE_VK_DESCRIPTOR_SET_H
 
 #include <engine/array.h>
 #include <engine/macros.h>

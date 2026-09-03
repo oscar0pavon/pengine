@@ -1,5 +1,5 @@
-#ifndef PAVON_AUDIO_ENGINE
-#define PAVON_AUDIO_ENGINE
+#ifndef PE_AUDIO_ENGINE_H
+#define PE_AUDIO_ENGINE_H
 
 #include "engine/threads.h"
 #include <engine/file_loader.h>

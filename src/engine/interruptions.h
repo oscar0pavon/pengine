@@ -1,5 +1,5 @@
-#ifndef ENGINE_INTERRUPTIONS
-#define ENGINE_INTERRUPTIONS
+#ifndef PE_INTERRUPTIONS_H
+#define PE_INTERRUPTIONS_H
 
 #include <signal.h>
 

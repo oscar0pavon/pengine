@@ -1,5 +1,5 @@
-#ifndef ENGINE_MATH_SPHERE_H
-#define ENGINE_MATH_SPHERE_H
+#ifndef PE_MATH_SPHERE_H
+#define PE_MATH_SPHERE_H
 
 #include <cglm/cglm.h>
 #include "math.h"

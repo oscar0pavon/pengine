@@ -1,5 +1,5 @@
-#ifndef ENGINE_NUMBERS
-#define ENGINE_NUMBERS
+#ifndef PE_NUMBERS_H
+#define PE_NUMBERS_H
 
 #include <stdint.h>
 typedef uint8_t u8;

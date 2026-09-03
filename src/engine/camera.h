@@ -2,8 +2,8 @@
 // Created by pavon on 6/23/19.
 //
 
-#ifndef CAMERA_H
-#define CAMERA_H 
+#ifndef PE_CAMERA_H
+#define PE_CAMERA_H 
 
 #include <cglm/cglm.h>
 
@@ -39,4 +39,4 @@ extern float camera_rotate_angle;
 extern PCamera saved_camera;
 extern PCamera main_camera;
 
-#endif //CAMERA_H
+#endif //PE_CAMERA_H

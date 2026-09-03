@@ -1,5 +1,5 @@
-#ifndef ENGINE_THREADS
-#define ENGINE_THREADS
+#ifndef PE_THREADS_H
+#define PE_THREADS_H
 
 #include "array.h"
 #include <pthread.h>
@@ -45,4 +45,4 @@ PEThreadID pe_th_audio_id;
 
 PEThread thread_main;
 
-#endif // !ENGINE_THREADS
+#endif // !PE_THREADS_H

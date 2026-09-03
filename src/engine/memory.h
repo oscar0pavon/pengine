@@ -1,5 +1,5 @@
-#ifndef ENGINE_MEMORY
-#define ENGINE_MEMORY
+#ifndef PE_MEMORY_H
+#define PE_MEMORY_H
 
 //INFO pengine's own default for callers (like pe_init()) that have no
 //caller-specific size to pass. Not a limit any more - see engine_memory_capacity.

@@ -1,5 +1,5 @@
-#ifndef DRAW_H
-#define DRAW_H
+#ifndef PE_VK_DRAW_H
+#define PE_VK_DRAW_H
 #include "vulkan.h"
 #include <engine/model.h>
 

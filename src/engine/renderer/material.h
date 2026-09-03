@@ -1,5 +1,5 @@
-#ifndef PRENDERER_MATERIAL
-#define PRENDERER_MATERIAL
+#ifndef PE_VK_MATERIAL_H
+#define PE_VK_MATERIAL_H
 
 #include <cglm/cglm.h>
 

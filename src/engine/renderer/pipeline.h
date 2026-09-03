@@ -1,3 +1,6 @@
+#ifndef PE_VK_PIPELINE_H
+#define PE_VK_PIPELINE_H
+
 #include "shaders.h"
 #include "vulkan.h"
 #include <engine/array.h>
@@ -36,3 +39,5 @@ pe_vk_pipeline_get_default_vertex_input(PVertexAtrributes *attributes);
 void pe_vk_create_shader(PCreateShaderInfo *);
 
 void pe_vk_create_shader_instanced(PCreateShaderInfo *);
+
+#endif // !PE_VK_PIPELINE_H

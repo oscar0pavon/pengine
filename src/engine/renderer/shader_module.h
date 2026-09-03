@@ -1,5 +1,5 @@
-#ifndef SHADER_MODULE_H
-#define SHADER_MODULE_H
+#ifndef PE_VK_SHADER_MODULE_H
+#define PE_VK_SHADER_MODULE_H
 
 #include "vulkan.h"
 #include "shaders.h"

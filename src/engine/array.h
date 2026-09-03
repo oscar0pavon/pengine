@@ -1,5 +1,5 @@
-#ifndef ARRAY_H
-#define ARRAY_H
+#ifndef PE_ARRAY_H
+#define PE_ARRAY_H
 
 #include "../engine/numbers.h"
 #include <stdbool.h>
@@ -40,4 +40,4 @@ void *array_get_last(Array* array);
 inline static void* array_pop(Array* array){
 	return array_get(array,array->count-1);
 }
-#endif // !ARRAY_H
+#endif // !PE_ARRAY_H

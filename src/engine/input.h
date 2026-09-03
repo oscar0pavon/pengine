@@ -1,5 +1,5 @@
-#ifndef ENGINE_INPUT
-#define ENGINE_INPUT
+#ifndef PE_INPUT_H
+#define PE_INPUT_H
 
 #ifdef ANDROID
 #include <engine/platforms/android/input.h>

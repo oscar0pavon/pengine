@@ -1,6 +1,6 @@
 /*Created by pavon on 2019/07/17 */
-#ifndef ENGINE_ANIMATION_H
-#define ENGINE_ANIMATION_H
+#ifndef PE_ANIMATION_H
+#define PE_ANIMATION_H
 
 #define PATH_TYPE_NULL 0
 #define PATH_TYPE_TRANSLATION 1
@@ -46,4 +46,4 @@ void pe_anim_nodes_update(PSkin *);
 bool update_vertex_bones_gizmos;
 #endif
 
-#endif // !ENGINE_ANIMATION_H
+#endif // !PE_ANIMATION_H

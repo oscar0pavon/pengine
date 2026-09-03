@@ -1,5 +1,5 @@
-#ifndef RENDER_VK_SWAPCHAIN
-#define RENDER_VK_SWAPCHAIN
+#ifndef PE_VK_SWAP_CHAIN_H
+#define PE_VK_SWAP_CHAIN_H
 
 #include <vulkan/vulkan.h>
 #include <engine/images.h>

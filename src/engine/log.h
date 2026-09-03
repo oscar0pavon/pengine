@@ -1,5 +1,5 @@
-#ifndef ENGINE_LOG
-#define ENGINE_LOG
+#ifndef PE_LOG_H
+#define PE_LOG_H
 
 #ifdef ANDROID
     #include <android_native_app_glue.h>
@@ -17,4 +17,4 @@
 
 #define LOGW(t) printf(t); printf("\n")
 
-#endif // !ENGINE_LOG
+#endif // !PE_LOG_H

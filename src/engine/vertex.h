@@ -1,5 +1,5 @@
-#ifndef VERTEX_H
-#define VERTEX_H
+#ifndef PE_VERTEX_H
+#define PE_VERTEX_H
 
 #include <cglm/cglm.h>
 
@@ -30,4 +30,4 @@ typedef struct PInstance {
   float name_length;
 } PInstance;
 
-#endif // !VERTEX_H
+#endif // !PE_VERTEX_H

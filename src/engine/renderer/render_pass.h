@@ -1,5 +1,5 @@
-#ifndef RENDER_PASS_H
-#define RENDER_PASS_H
+#ifndef PE_VK_RENDER_PASS_H
+#define PE_VK_RENDER_PASS_H
 
 #include <vulkan/vulkan.h>
 #include "render_target.h"

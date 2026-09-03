@@ -1,5 +1,5 @@
-#ifndef MODEL_H
-#define MODEL_H
+#ifndef PE_MODEL_H
+#define PE_MODEL_H
 
 
 
@@ -99,4 +99,4 @@ PModel *pe_vk_model_instance(PModel* model, PModel *source);
 
 int pe_load_model_path(PModel* model, const char *path);
 
-#endif // !MODEL_H
+#endif // !PE_MODEL_H

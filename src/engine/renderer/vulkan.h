@@ -1,5 +1,5 @@
-#ifndef PEVULKAN_H
-#define PEVULKAN_H
+#ifndef PE_VULKAN_H
+#define PE_VULKAN_H
 
 #include <vulkan/vulkan_core.h>
 #define VK_USE_PLATFORM_WAYLAND_KHR // Must be defined before including vulkan.h

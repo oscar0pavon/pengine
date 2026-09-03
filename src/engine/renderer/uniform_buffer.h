@@ -1,6 +1,6 @@
 
-#ifndef VK_UNIFORM
-#define VK_UNIFORM
+#ifndef PE_VK_UNIFORM_BUFFER_H
+#define PE_VK_UNIFORM_BUFFER_H
 
 #include "vk_buffer.h"
 

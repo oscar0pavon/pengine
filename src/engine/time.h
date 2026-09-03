@@ -1,5 +1,5 @@
-#ifndef TIME_H
-#define TIME_H
+#ifndef PE_TIME_H
+#define PE_TIME_H
 
 
 typedef struct timespec PTime;

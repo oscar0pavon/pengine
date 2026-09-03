@@ -1,6 +1,6 @@
-#ifndef PE_NODE
+#ifndef PE_ANIMATION_NODE_H
 
-#define PE_NODE
+#define PE_ANIMATION_NODE_H
 
 #include <engine/types.h>
 

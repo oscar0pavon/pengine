@@ -1,5 +1,5 @@
-#ifndef LINUX_NETWORK
-#define LINUX_NETWORK
+#ifndef PE_LINUX_NETWORK_H
+#define PE_LINUX_NETWORK_H
 
 #include <sys/socket.h>
 #include <unistd.h>
