@@ -5,6 +5,9 @@
 #include <stdbool.h>
 
 #define PE_TERRAIN_TILES_PER_SIDE 64
+
+//yards on a side. kept exact so the border two tiles share is the same number
+#define PE_TERRAIN_TILE_SIZE (1600.0f / 3.0f)
 #define PE_TERRAIN_CHUNKS_PER_SIDE 16
 #define PE_TERRAIN_CHUNKS (PE_TERRAIN_CHUNKS_PER_SIDE * PE_TERRAIN_CHUNKS_PER_SIDE)
 
