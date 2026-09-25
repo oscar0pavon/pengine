@@ -52,6 +52,9 @@ void pe_vk_create_texture(PTexture* new_texture, const char* path);
 
 void pe_vk_create_texture_from_image(PTexture* new_texture, PImage* image);
 
+void pe_vk_create_texture_from_image_format(PTexture* new_texture,
+                                            PImage* image, VkFormat format);
+
 void pe_vk_clean_image(PTexture* image);
 void pe_vk_create_image(PImageCreateInfo *info);
 void pe_vk_create_depth_resources(PRenderTarget *target);

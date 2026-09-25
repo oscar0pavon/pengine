@@ -18,6 +18,9 @@ typedef struct PCreateShaderInfo{
     const char* fragment_path;
     VkPipelineLayout layout;
     VkGraphicsPipelineCreateInfo* vk_create_info;
+
+    //how the vertex buffers are read. NULL means the position and uv of a PVertex
+    const VkPipelineVertexInputStateCreateInfo* vertex_input;
 }PCreateShaderInfo;
 
 void pe_vk_clean_shader(PShader *shader);

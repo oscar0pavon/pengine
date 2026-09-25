@@ -71,16 +71,20 @@ void pe_vk_create_shader(PCreateShaderInfo* info){
   pe_vk_shader_load(info);
 
 
-  // example can be have vertex position and UV or more
-  PVertexAtrributes vertex_attributes = {.has_attributes = true,
-                                         .position = true,
-                                         .uv = true};
+  if (info->vertex_input) {
+    info->vk_create_info->pVertexInputState = info->vertex_input;
+  } else {
+    // example can be have vertex position and UV or more
+    PVertexAtrributes vertex_attributes = {.has_attributes = true,
+                                           .position = true,
+                                           .uv = true};
 
-  ZERO(vertex_input_state);
-  vertex_input_state =
-      pe_vk_pipeline_get_default_vertex_input(&vertex_attributes);
+    ZERO(vertex_input_state);
+    vertex_input_state =
+        pe_vk_pipeline_get_default_vertex_input(&vertex_attributes);
 
-  info->vk_create_info->pVertexInputState = &vertex_input_state;
+    info->vk_create_info->pVertexInputState = &vertex_input_state;
+  }
 
   info->vk_create_info->layout = info->layout;
 

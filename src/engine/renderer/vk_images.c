@@ -576,6 +576,15 @@ void pe_vk_create_texture(PTexture* new_texture, const char* path) {
 //arrives as bytes rather than a path can reach the same code. the PImage is
 //the caller's to free
 void pe_vk_create_texture_from_image(PTexture* new_texture, PImage* image) {
+  pe_vk_create_texture_from_image_format(new_texture, image,
+                                         VK_FORMAT_R8G8B8A8_SRGB);
+}
+
+//INFO the format decides whether the sampler decodes the bytes as sRGB colour.
+//data that is not colour, an alpha map or a height, has to be UNORM or it comes
+//back bent by the sRGB curve
+void pe_vk_create_texture_from_image_format(PTexture* new_texture,
+                                            PImage* image, VkFormat format) {
   PImage texture = *image;
 
   // new_texture->mip_level =
@@ -592,7 +601,7 @@ void pe_vk_create_texture_from_image(PTexture* new_texture, PImage* image) {
       .width = texture.width,
       .height = texture.heigth,
       .texture = new_texture,
-      .format = VK_FORMAT_R8G8B8A8_SRGB,
+      .format = format,
       .tiling = VK_IMAGE_TILING_OPTIMAL,
       .usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
                VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -602,7 +611,7 @@ void pe_vk_create_texture_from_image(PTexture* new_texture, PImage* image) {
   pe_vk_create_image(&image_create_info);
 
   pe_vk_transition_image_layout(
-      new_texture->image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED,
+      new_texture->image, format, VK_IMAGE_LAYOUT_UNDEFINED,
       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, new_texture->mip_level);
 
   pe_vk_image_copy_buffer(image_buffer.buffer, new_texture->image, texture.width,
@@ -617,7 +626,7 @@ void pe_vk_create_texture_from_image(PTexture* new_texture, PImage* image) {
                                texture.heigth, new_texture->mip_level);
 
   new_texture->image_view = pe_vk_create_image_view(
-      new_texture->image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT,
+      new_texture->image, format, VK_IMAGE_ASPECT_COLOR_BIT,
       new_texture->mip_level);
 
   pe_vk_create_texture_sampler(new_texture);
