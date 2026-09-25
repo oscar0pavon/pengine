@@ -142,6 +142,21 @@ static void build_chunk_vertices(const PTerrainTile *tile, int chunk_row,
   }
 }
 
+static void build_chunk_bounds(const PTerrainVertex *vertices, vec4 bounds) {
+  vec3 low;
+  vec3 high;
+  glm_vec3_copy((float *)vertices[0].position, low);
+  glm_vec3_copy((float *)vertices[0].position, high);
+
+  for (int i = 1; i < PE_TERRAIN_CHUNK_VERTICES; i++) {
+    glm_vec3_minv(low, (float *)vertices[i].position, low);
+    glm_vec3_maxv(high, (float *)vertices[i].position, high);
+  }
+
+  glm_vec3_center(low, high, bounds);
+  bounds[3] = glm_vec3_distance(low, high) / 2;
+}
+
 static bool quad_is_hole(u16 holes, int row, int column) {
   return (holes >> ((row / 2) * 4 + column / 2)) & 1;
 }
@@ -187,6 +202,8 @@ void pe_terrain_mesh_build(const PTerrainTile *tile, PTerrainMesh *mesh) {
 
       build_chunk_vertices(tile, chunk_row, chunk_column,
                            &mesh->vertices[first_vertex]);
+      build_chunk_bounds(&mesh->vertices[first_vertex],
+                         mesh->bounds[chunk_index]);
 
       range->first_index = mesh->index_count;
       range->index_count = build_chunk_indices(

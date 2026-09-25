@@ -38,6 +38,9 @@ typedef struct PTerrainMesh {
   PTerrainVertex vertices[PE_TERRAIN_TILE_VERTICES];
   u32 indices[PE_TERRAIN_TILE_INDICES_MAX];
   PTerrainChunkRange chunks[PE_TERRAIN_CHUNKS];
+
+  //the sphere around each chunk: centre in xyz, radius in w
+  vec4 bounds[PE_TERRAIN_CHUNKS];
   u32 index_count;
 } PTerrainMesh;
 
@@ -45,6 +48,7 @@ typedef struct PTerrainGpuMesh {
   PBuffer vertex_buffer;
   PBuffer index_buffer;
   PTerrainChunkRange chunks[PE_TERRAIN_CHUNKS];
+  vec4 bounds[PE_TERRAIN_CHUNKS];
 } PTerrainGpuMesh;
 
 void pe_terrain_mesh_build(const PTerrainTile *tile, PTerrainMesh *mesh);

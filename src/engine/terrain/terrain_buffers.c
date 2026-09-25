@@ -11,4 +11,5 @@ void pe_vk_terrain_mesh_upload(const PTerrainMesh *mesh, PTerrainGpuMesh *gpu) {
       VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
 
   memcpy(gpu->chunks, mesh->chunks, sizeof(gpu->chunks));
+  memcpy(gpu->bounds, mesh->bounds, sizeof(gpu->bounds));
 }

@@ -86,6 +86,9 @@ void pe_vk_create_shader(PCreateShaderInfo* info){
     info->vk_create_info->pVertexInputState = &vertex_input_state;
   }
 
+  if (info->rasterization)
+    info->vk_create_info->pRasterizationState = info->rasterization;
+
   info->vk_create_info->layout = info->layout;
 
   int count = 1;

@@ -21,6 +21,9 @@ typedef struct PCreateShaderInfo{
 
     //how the vertex buffers are read. NULL means the position and uv of a PVertex
     const VkPipelineVertexInputStateCreateInfo* vertex_input;
+
+    //cull mode and winding. NULL means the engine's default, which culls nothing
+    const VkPipelineRasterizationStateCreateInfo* rasterization;
 }PCreateShaderInfo;
 
 void pe_vk_clean_shader(PShader *shader);

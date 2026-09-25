@@ -8,6 +8,12 @@
 
 #include <stddef.h>
 
+//INFO the mesh winds clockwise seen from above, and the projection's Y flip
+//turns that counter clockwise on the screen. with clockwise here instead, the
+//ground facing the camera is the side that gets culled
+#define TERRAIN_CULL_MODE VK_CULL_MODE_BACK_BIT
+#define TERRAIN_FRONT_FACE VK_FRONT_FACE_COUNTER_CLOCKWISE
+
 
 static VkDescriptorSetLayout create_set_layout(
     const VkDescriptorSetLayoutBinding *bindings, u32 count) {
@@ -72,6 +78,13 @@ void pe_vk_terrain_pipeline_create(PTerrainPipeline *pipeline) {
       .vertexAttributeDescriptionCount = 4,
       .pVertexAttributeDescriptions = attributes};
 
+  VkPipelineRasterizationStateCreateInfo rasterization = {
+      .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+      .polygonMode = VK_POLYGON_MODE_FILL,
+      .cullMode = TERRAIN_CULL_MODE,
+      .frontFace = TERRAIN_FRONT_FACE,
+      .lineWidth = 1.0f};
+
   PCreateShaderInfo info;
   ZERO(info);
   info.out_shader = &pipeline->shader;
@@ -79,6 +92,7 @@ void pe_vk_terrain_pipeline_create(PTerrainPipeline *pipeline) {
   info.fragment_path = file_terrain_frag_spv;
   info.layout = pipeline->layout;
   info.vertex_input = &vertex_input;
+  info.rasterization = &rasterization;
 
   pe_vk_create_shader(&info);
 }
