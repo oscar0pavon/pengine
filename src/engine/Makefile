@@ -12,6 +12,9 @@ renderer_objs := $(renderer_src:%.c=%.o)
 animation_src := $(wildcard ./animation/*.c)
 animation_objs := $(animation_src:%.c=%.o)
 
+terrain_src := $(wildcard ./terrain/*.c)
+terrain_objs := $(terrain_src:%.c=%.o)
+
 #INFO -MMD writes a .d beside each object naming every header that object read,
 #and the -include at the bottom feeds those back as rules. without them make
 #only ever compared a .o against its .c, so editing a header rebuilt nothing
@@ -31,13 +34,16 @@ COMPILE_O = $(CC) $(CFLAGS) $(DEPFLAGS) $(GLOBAL_DEFINE) $(CINCLUDES) -c $< -o $
 ./renderer/%.o: ./renderer/%.c
 	$(COMPILE_O)
 
+./terrain/%.o: ./terrain/%.c
+	$(COMPILE_O)
+
 ../ThirdParty/parson.o: ../ThirdParty/parson.c
 	$(COMPILE_O)
 
 ./Collision/collision.o: ./Collision/collision.c
 	$(COMPILE_O)
 
-ALL_OBJS := $(OBJS) $(renderer_objs) $(animation_objs) ./Collision/collision.o ../ThirdParty/parson.o
+ALL_OBJS := $(OBJS) $(renderer_objs) $(animation_objs) $(terrain_objs) ./Collision/collision.o ../ThirdParty/parson.o
 
 ALL_DEPS := $(ALL_OBJS:.o=.d)
 
