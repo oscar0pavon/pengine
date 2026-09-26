@@ -80,10 +80,18 @@ typedef struct PTerrainTile {
 
 #define PE_TERRAIN_STEPS_PER_TILE (PE_TERRAIN_CHUNKS_PER_SIDE * 8)
 
-//INFO one multiply from the tile index, not the tile origin minus a chunk
+//INFO the world is X north, Y east, Z up. the game stores it as X north, Y
+//west, which is right handed, and the engine's camera is left handed, so
+//drawn as stored everything comes out as its own mirror image: facing north
+//the west would be on the right. terrain has no handedness of its own and
+//that goes unseen until something with text or a lopsided plan is put on it.
+//Y is negated here, once, and every other place that turns a position into a
+//tile or back goes through these two functions or their inverse.
+//
+//and one multiply from the tile index, not the tile origin minus a chunk
 //offset minus a step. a border shared by two tiles then comes out bit for bit
 //the same on both sides and no crack opens between them. rows run toward -X
-//and columns toward -Y, and both count steps from the tile's near corner
+//and columns toward +Y, and both count steps from the tile's near corner
 static inline float pe_terrain_point_x(const PTerrainTile *tile, float row) {
   return (PE_TERRAIN_MAP_CENTRE_TILE - tile->tile_y -
           row / PE_TERRAIN_STEPS_PER_TILE) *
@@ -92,8 +100,8 @@ static inline float pe_terrain_point_x(const PTerrainTile *tile, float row) {
 
 static inline float pe_terrain_point_y(const PTerrainTile *tile,
                                        float column) {
-  return (PE_TERRAIN_MAP_CENTRE_TILE - tile->tile_x -
-          column / PE_TERRAIN_STEPS_PER_TILE) *
+  return -(PE_TERRAIN_MAP_CENTRE_TILE - tile->tile_x -
+           column / PE_TERRAIN_STEPS_PER_TILE) *
          PE_TERRAIN_TILE_SIZE;
 }
 

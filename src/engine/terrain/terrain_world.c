@@ -135,7 +135,7 @@ static const PTerrainWorldTile *find_tile(const PTerrainWorld *world,
 bool pe_terrain_world_height_at(const PTerrainWorld *world, float x, float y,
                                 float *height) {
   double row_position = PE_TERRAIN_MAP_CENTRE_TILE - x / (double)PE_TERRAIN_TILE_SIZE;
-  double column_position = PE_TERRAIN_MAP_CENTRE_TILE - y / (double)PE_TERRAIN_TILE_SIZE;
+  double column_position = PE_TERRAIN_MAP_CENTRE_TILE + y / (double)PE_TERRAIN_TILE_SIZE;
 
   int tile_y = (int)floor(row_position);
   int tile_x = (int)floor(column_position);

@@ -117,9 +117,9 @@ static void surface_normal(const PTerrainTile *tile,
     column_slope = ((top_right + bottom_right) - (top_left + bottom_left)) / 2;
   }
 
-  //rows run toward -X and columns toward -Y, so a slope up along a row is a
-  //surface that faces +X
-  glm_vec3_copy((vec3){row_slope / STEP_SIZE, column_slope / STEP_SIZE, 1},
+  //rows run toward -X and columns toward +Y, so a slope up along a row is a
+  //surface that faces +X, and a slope up along a column faces -Y
+  glm_vec3_copy((vec3){row_slope / STEP_SIZE, -column_slope / STEP_SIZE, 1},
                 normal);
   glm_vec3_normalize(normal);
 }
@@ -188,7 +188,7 @@ static void build_chunk_vertices(const PTerrainTile *tile,
     surface_normal(tile, neighbours, (int)(tile_row * 2 + 0.5f),
                    (int)(tile_column * 2 + 0.5f), vertex->normal);
 
-    vertex->uv[0] = -vertex->position[1] * TEXTURE_SCALE;
+    vertex->uv[0] = vertex->position[1] * TEXTURE_SCALE;
     vertex->uv[1] = -vertex->position[0] * TEXTURE_SCALE;
 
     vertex->layer_uv[0] =

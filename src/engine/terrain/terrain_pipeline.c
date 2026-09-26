@@ -9,11 +9,11 @@
 
 #include <stddef.h>
 
-//INFO the mesh winds clockwise seen from above, and the projection's Y flip
-//turns that counter clockwise on the screen. with clockwise here instead, the
+//INFO the mesh winds counter clockwise seen from above, which the projection's
+//Y flip turns clockwise on the screen. with counter clockwise here instead, the
 //ground facing the camera is the side that gets culled
 #define TERRAIN_CULL_MODE VK_CULL_MODE_BACK_BIT
-#define TERRAIN_FRONT_FACE VK_FRONT_FACE_COUNTER_CLOCKWISE
+#define TERRAIN_FRONT_FACE VK_FRONT_FACE_CLOCKWISE
 
 
 static VkDescriptorSetLayout create_set_layout(
