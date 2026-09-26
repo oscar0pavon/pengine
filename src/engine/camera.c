@@ -7,6 +7,12 @@
 #include "utils.h"
 #include "window_manager.h"
 //#include "window.h"
+//INFO glm_perspective() takes the angle in radians - it goes straight into
+//tanf() - so the 45 that was passed here was 45 radians, which wrapped round
+//to a vertical field of view of about 58 degrees. near enough to look right
+//and never to be questioned, but not the angle anyone asked for
+#define PE_CAMERA_FOV_DEGREES 45.f
+
 //INFO the near plane is what decides how much of the depth buffer is left for
 //everything else: at 0.001 with this far plane, a 5000000 to 1 range, the
 //whole of a terrain tile past a hundred yards landed in a few hundred of the
@@ -53,8 +59,8 @@ void camera_init_with_size(PCamera* camera, float width, float height){
 
     glm_lookat(camera->position, look_pos, camera->front , camera->view);
 
-    glm_perspective(45.f, width / height, PE_CAMERA_NEAR, PE_CAMERA_FAR,
-                    camera->projection);
+    glm_perspective(glm_rad(PE_CAMERA_FOV_DEGREES), width / height,
+                    PE_CAMERA_NEAR, PE_CAMERA_FAR, camera->projection);
 
 
     //INFO vulkan's clip space has +Y pointing down where GL has it pointing up
@@ -99,8 +105,9 @@ void camera_rotate_control(float yaw, float pitch){
 }
 
 void camera_update_aspect_ratio(PCamera* camera){
-  glm_perspective(45.f, camera_width_screen / camera_height_screen,
-                  PE_CAMERA_NEAR, PE_CAMERA_FAR, camera->projection);
+  glm_perspective(glm_rad(PE_CAMERA_FOV_DEGREES),
+                  camera_width_screen / camera_height_screen, PE_CAMERA_NEAR,
+                  PE_CAMERA_FAR, camera->projection);
 
   //INFO the same flip camera_init_with_size() ends on: vulkan's clip space has
   //+Y pointing down where GL has it pointing up. without it here a camera that
