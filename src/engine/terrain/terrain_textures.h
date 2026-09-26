@@ -5,7 +5,8 @@
 
 #include <engine/images.h>
 
-#define PE_TERRAIN_TEXTURE_CACHE_MAX 256
+//the ground of the tiles and the buildings on them share it
+#define PE_TERRAIN_TEXTURE_CACHE_MAX 512
 
 //one copy of each texture for the whole world. neighbouring tiles are painted
 //from the same tileset, so tiles that each owned their textures would upload

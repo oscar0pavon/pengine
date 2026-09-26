@@ -1,4 +1,5 @@
 #include "terrain_pipeline.h"
+#include "terrain_building.h"
 #include "terrain_mesh.h"
 #include "terrain_water.h"
 
@@ -155,6 +156,81 @@ static void create_water(PTerrainPipeline *pipeline) {
   pe_vk_create_shader(&info);
 }
 
+//INFO the model matrix is 64 bytes for the vertex stage and the alpha cutoff
+//is 4 more for the fragment stage, at 64: both fit in the 128 bytes every
+//device has, and neither needs a descriptor set of its own, which would have to
+//be rewritten for every placement of every building
+static void create_building_layout(PTerrainPipeline *pipeline) {
+  VkDescriptorSetLayoutBinding texture = {
+      .binding = 0,
+      .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+      .descriptorCount = 1,
+      .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT};
+  pipeline->building_material_layout = create_set_layout(&texture, 1);
+
+  VkPushConstantRange ranges[] = {
+      {.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+       .offset = 0,
+       .size = sizeof(mat4)},
+      {.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+       .offset = sizeof(mat4),
+       .size = sizeof(float)}};
+
+  VkDescriptorSetLayout set_layouts[] = {pipeline->frame_layout,
+                                         pipeline->building_material_layout};
+  VkPipelineLayoutCreateInfo info = {
+      .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+      .setLayoutCount = 2,
+      .pSetLayouts = set_layouts,
+      .pushConstantRangeCount = 2,
+      .pPushConstantRanges = ranges};
+  VKVALID(vkCreatePipelineLayout(vk_device, &info, NULL,
+                                 &pipeline->building_layout),
+          "Can't create building pipeline layout");
+}
+
+//nothing is culled: a wall is a single sheet with two sides, and the
+//placement's reflection turns the winding of every triangle inside out
+static void create_building(PTerrainPipeline *pipeline) {
+  create_building_layout(pipeline);
+
+  VkVertexInputBindingDescription binding = {
+      .binding = 0,
+      .stride = sizeof(PBuildingVertex),
+      .inputRate = VK_VERTEX_INPUT_RATE_VERTEX};
+
+  VkVertexInputAttributeDescription attributes[] = {
+      {0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(PBuildingVertex, position)},
+      {1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(PBuildingVertex, normal)},
+      {2, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(PBuildingVertex, uv)},
+      {3, 0, VK_FORMAT_R8G8B8A8_UNORM, offsetof(PBuildingVertex, color)}};
+
+  VkPipelineVertexInputStateCreateInfo vertex_input = {
+      .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+      .vertexBindingDescriptionCount = 1,
+      .pVertexBindingDescriptions = &binding,
+      .vertexAttributeDescriptionCount = 4,
+      .pVertexAttributeDescriptions = attributes};
+
+  VkPipelineRasterizationStateCreateInfo rasterization = {
+      .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+      .polygonMode = VK_POLYGON_MODE_FILL,
+      .cullMode = VK_CULL_MODE_NONE,
+      .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+      .lineWidth = 1.0f};
+
+  PCreateShaderInfo info;
+  ZERO(info);
+  info.out_shader = &pipeline->building;
+  info.vertex_path = file_building_vert_spv;
+  info.fragment_path = file_building_frag_spv;
+  info.layout = pipeline->building_layout;
+  info.vertex_input = &vertex_input;
+  info.rasterization = &rasterization;
+
+  pe_vk_create_shader(&info);
+}
+
 void pe_vk_terrain_pipeline_create(PTerrainPipeline *pipeline) {
   create_layouts(pipeline);
 
@@ -196,6 +272,7 @@ void pe_vk_terrain_pipeline_create(PTerrainPipeline *pipeline) {
 
   create_sky(pipeline);
   create_water(pipeline);
+  create_building(pipeline);
 }
 
 static VkDescriptorPool create_frames_pool(u32 count) {

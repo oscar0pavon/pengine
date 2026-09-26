@@ -48,6 +48,13 @@ typedef struct PTerrainPipeline {
 
   //drawn after all the ground, blended over it
   PShader water;
+
+  //a building takes its own layout: the frame set, a set for the one texture of
+  //a material, and the placement's matrix and the material's alpha cutoff as
+  //push constants
+  VkDescriptorSetLayout building_material_layout;
+  VkPipelineLayout building_layout;
+  PShader building;
 } PTerrainPipeline;
 
 //one uniform buffer and descriptor set per swap chain image, so writing the

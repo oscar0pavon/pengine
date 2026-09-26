@@ -18,6 +18,7 @@ typedef struct LoadedArea {
 void pe_vk_terrain_world_create(PTerrainWorld *world) {
   pe_vk_terrain_pipeline_create(&world->pipeline);
   pe_vk_terrain_frames_create(&world->pipeline, &world->frames);
+  pe_vk_terrain_buildings_create(&world->buildings);
 }
 
 static bool tile_files_exist(const char *directory, const char *map,
@@ -78,6 +79,8 @@ static void upload_tile(PTerrainWorld *world, const PTerrainTile *tile,
                                  directory, &out->materials);
   pe_vk_terrain_water_upload(tile, &out->water);
   pe_terrain_heights_from_tile(tile, &out->heights);
+  pe_vk_terrain_buildings_add_tile(&world->pipeline, &world->textures,
+                                   &world->buildings, tile, directory);
 }
 
 bool pe_vk_terrain_world_load_area(PTerrainWorld *world, const char *directory,
@@ -167,6 +170,10 @@ u32 pe_vk_terrain_world_draw(PTerrainWorld *world, const PTerrainFrame *frame,
                              .image_index = image_index};
     drawn += pe_vk_terrain_draw(&draw);
   }
+
+  world->buildings_drawn = pe_vk_terrain_buildings_draw(
+      &world->pipeline, &world->frames, &world->buildings, frame, command,
+      image_index);
 
   for (u32 i = 0; i < world->tile_count; i++)
     pe_vk_terrain_water_draw(&world->pipeline, &world->frames,
