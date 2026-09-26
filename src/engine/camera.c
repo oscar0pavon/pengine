@@ -7,6 +7,15 @@
 #include "utils.h"
 #include "window_manager.h"
 //#include "window.h"
+//INFO the near plane is what decides how much of the depth buffer is left for
+//everything else: at 0.001 with this far plane, a 5000000 to 1 range, the
+//whole of a terrain tile past a hundred yards landed in a few hundred of the
+//float's values. adjacent triangles then came out at the same depth or over
+//the far plane, and the ground tore open along thin cracks that moved with
+//the camera. nothing here needs to draw closer than this
+#define PE_CAMERA_NEAR 0.1f
+#define PE_CAMERA_FAR 5000.f
+
 bool first_camera_rotate = true;
 
 vec3 init_front;
@@ -44,8 +53,8 @@ void camera_init_with_size(PCamera* camera, float width, float height){
 
     glm_lookat(camera->position, look_pos, camera->front , camera->view);
 
-    glm_perspective(45.f, width / height, 0.001f,
-                    5000.f, camera->projection);
+    glm_perspective(45.f, width / height, PE_CAMERA_NEAR, PE_CAMERA_FAR,
+                    camera->projection);
 
 
     //INFO vulkan's clip space has +Y pointing down where GL has it pointing up
@@ -90,8 +99,8 @@ void camera_rotate_control(float yaw, float pitch){
 }
 
 void camera_update_aspect_ratio(PCamera* camera){
-  glm_perspective(45.f, camera_width_screen / camera_height_screen, 0.001f,
-                  5000.f, camera->projection);
+  glm_perspective(45.f, camera_width_screen / camera_height_screen,
+                  PE_CAMERA_NEAR, PE_CAMERA_FAR, camera->projection);
 
   //INFO the same flip camera_init_with_size() ends on: vulkan's clip space has
   //+Y pointing down where GL has it pointing up. without it here a camera that
