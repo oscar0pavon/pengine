@@ -51,7 +51,20 @@ typedef struct PTerrainGpuMesh {
   vec4 bounds[PE_TERRAIN_CHUNKS];
 } PTerrainGpuMesh;
 
-void pe_terrain_mesh_build(const PTerrainTile *tile, PTerrainMesh *mesh);
+//the tiles around the one being built, tiles[row][column] with the tile itself
+//in [1][1]. row 2 is the tile whose tile_y is one more and column 2 the one
+//whose tile_x is one more; a tile that is not loaded is NULL
+typedef struct PTerrainNeighbours {
+  const PTerrainTile *tiles[3][3];
+} PTerrainNeighbours;
+
+//neighbours may be NULL. it is only used for the normals along the tile's
+//border, which need the heights on the far side to be the same as the
+//neighbour's own; without them the border is lit from this side alone and
+//shows as a seam
+void pe_terrain_mesh_build(const PTerrainTile *tile,
+                           const PTerrainNeighbours *neighbours,
+                           PTerrainMesh *mesh);
 
 //needs the renderer up, so from the game's init or later
 void pe_vk_terrain_mesh_upload(const PTerrainMesh *mesh, PTerrainGpuMesh *gpu);

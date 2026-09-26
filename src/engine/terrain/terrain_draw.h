@@ -32,7 +32,9 @@ void pe_vk_terrain_sky_draw(const PTerrainPipeline *pipeline,
                             VkCommandBuffer command, u32 image_index);
 
 //records one draw per chunk the camera can see and returns how many. call it
-//from the pe_vk_draw_scene hook, after pe_vk_terrain_frame_update()
+//from the pe_vk_draw_scene hook, after pe_vk_terrain_frame_update(). a chunk
+//that is out of the frustum, or past the distance where the fog hides
+//everything, is skipped
 u32 pe_vk_terrain_draw(const PTerrainDrawInfo *draw);
 
 #endif // !PE_TERRAIN_DRAW_H

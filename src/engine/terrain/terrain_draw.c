@@ -61,10 +61,17 @@ void pe_vk_terrain_sky_draw(const PTerrainPipeline *pipeline,
   vkCmdDraw(command, 3, 1, 0, 0);
 }
 
+static bool sphere_is_within(const vec4 sphere, const vec4 point,
+                             float distance) {
+  return glm_vec3_distance((float *)sphere, (float *)point) - sphere[3] <=
+         distance;
+}
+
 u32 pe_vk_terrain_draw(const PTerrainDrawInfo *draw) {
   VkCommandBuffer command = draw->command_buffer;
   VkDeviceSize no_offset = 0;
   u32 drawn = 0;
+  float view_distance = draw->frame->fog_range[1];
 
   mat4 view_projection;
   glm_mat4_mul((vec4 *)draw->frame->projection, (vec4 *)draw->frame->view,
@@ -89,6 +96,10 @@ u32 pe_vk_terrain_draw(const PTerrainDrawInfo *draw) {
         sphere_is_visible(planes, draw->mesh->bounds[chunk]) == false)
       continue;
 
+    if (view_distance > 0 &&
+        sphere_is_within(draw->mesh->bounds[chunk],
+                         draw->frame->camera_position, view_distance) == false)
+      continue;
 
     vkCmdBindDescriptorSets(command, VK_PIPELINE_BIND_POINT_GRAPHICS,
                             draw->pipeline->layout, 1, 1,

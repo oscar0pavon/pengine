@@ -21,7 +21,8 @@ typedef struct PTerrainFrame {
   vec4 camera_position;
   vec4 fog_color;
 
-  //x is the distance fog starts at and y the distance where nothing else shows
+  //x is the distance fog starts at and y the distance where nothing else shows.
+  //a chunk that is entirely past y is not drawn, since all it would add is fog
   vec4 fog_range;
 
   //the sky is the fog colour at the horizon and this straight up

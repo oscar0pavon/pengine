@@ -32,14 +32,37 @@ static int clamp_int(int value, int low, int high) {
   return value < low ? low : (value > high ? high : value);
 }
 
-//row and column count 0 to 128 across the tile, on the corner points only
-static float tile_corner_height(const PTerrainTile *tile, int row, int column) {
+//which side of the tile a lattice coordinate is on: -1 before it, 1 past it
+static int tile_side(int lattice) {
+  return lattice < 0 ? -1 : (lattice > STEPS_PER_TILE ? 1 : 0);
+}
+
+static const PTerrainTile *tile_holding(const PTerrainTile *tile,
+                                        const PTerrainNeighbours *neighbours,
+                                        int row, int column) {
+  int row_side = tile_side(row);
+  int column_side = tile_side(column);
+
+  if (row_side == 0 && column_side == 0)
+    return tile;
+  return neighbours ? neighbours->tiles[row_side + 1][column_side + 1] : NULL;
+}
+
+//row and column count 0 to 128 across the tile, on the corner points only, and
+//may be one past either end when the tile next door is there to answer
+static float tile_corner_height(const PTerrainTile *tile,
+                                const PTerrainNeighbours *neighbours, int row,
+                                int column) {
+  const PTerrainTile *holder = tile_holding(tile, neighbours, row, column);
+  row -= tile_side(row) * STEPS_PER_TILE;
+  column -= tile_side(column) * STEPS_PER_TILE;
+
   int chunk_row = clamp_int(row / STEPS_PER_CHUNK, 0,
                             PE_TERRAIN_CHUNKS_PER_SIDE - 1);
   int chunk_column = clamp_int(column / STEPS_PER_CHUNK, 0,
                                PE_TERRAIN_CHUNKS_PER_SIDE - 1);
   const PTerrainChunk *chunk =
-      &tile->chunks[chunk_row * PE_TERRAIN_CHUNKS_PER_SIDE + chunk_column];
+      &holder->chunks[chunk_row * PE_TERRAIN_CHUNKS_PER_SIDE + chunk_column];
 
   return chunk_height(chunk, row - chunk_row * STEPS_PER_CHUNK,
                       column - chunk_column * STEPS_PER_CHUNK);
@@ -49,36 +72,47 @@ static float corner_slope(float low, float high, int span) {
   return (high - low) / span;
 }
 
-//INFO the slope comes from the corner points alone, read across chunk borders,
-//so a vertex on a border gets the same normal from either chunk that owns it.
-//the centre vertices are left out on purpose: the map artist places them
-//freely, and shading through them turns every quad into a visible star
-static void surface_normal(const PTerrainTile *tile, int lattice_row,
-                           int lattice_column, vec3 normal) {
+//INFO the slope comes from the corner points alone, read across chunk borders
+//and, when the tile next door is loaded, tile borders, so a vertex on a border
+//gets the same normal from either side that owns it. the centre vertices are
+//left out on purpose: the map artist places them freely, and shading through
+//them turns every quad into a visible star
+static void surface_normal(const PTerrainTile *tile,
+                           const PTerrainNeighbours *neighbours,
+                           int lattice_row, int lattice_column,
+                           vec3 normal) {
   float row_slope;
   float column_slope;
 
   if (lattice_row % 2 == 0) {
     int row = lattice_row / 2;
     int column = lattice_column / 2;
-    int row_before = clamp_int(row - 1, 0, STEPS_PER_TILE);
-    int row_after = clamp_int(row + 1, 0, STEPS_PER_TILE);
-    int column_before = clamp_int(column - 1, 0, STEPS_PER_TILE);
-    int column_after = clamp_int(column + 1, 0, STEPS_PER_TILE);
 
-    row_slope = corner_slope(tile_corner_height(tile, row_before, column),
-                             tile_corner_height(tile, row_after, column),
-                             row_after - row_before);
-    column_slope = corner_slope(tile_corner_height(tile, row, column_before),
-                                tile_corner_height(tile, row, column_after),
-                                column_after - column_before);
+    int row_before = tile_holding(tile, neighbours, row - 1, column)
+                         ? row - 1 : row;
+    int row_after = tile_holding(tile, neighbours, row + 1, column)
+                        ? row + 1 : row;
+    int column_before = tile_holding(tile, neighbours, row, column - 1)
+                            ? column - 1 : column;
+    int column_after = tile_holding(tile, neighbours, row, column + 1)
+                           ? column + 1 : column;
+
+    row_slope = corner_slope(
+        tile_corner_height(tile, neighbours, row_before, column),
+        tile_corner_height(tile, neighbours, row_after, column),
+        row_after - row_before);
+    column_slope = corner_slope(
+        tile_corner_height(tile, neighbours, row, column_before),
+        tile_corner_height(tile, neighbours, row, column_after),
+        column_after - column_before);
   } else {
     int row = lattice_row / 2;
     int column = lattice_column / 2;
-    float top_left = tile_corner_height(tile, row, column);
-    float top_right = tile_corner_height(tile, row, column + 1);
-    float bottom_left = tile_corner_height(tile, row + 1, column);
-    float bottom_right = tile_corner_height(tile, row + 1, column + 1);
+    float top_left = tile_corner_height(tile, neighbours, row, column);
+    float top_right = tile_corner_height(tile, neighbours, row, column + 1);
+    float bottom_left = tile_corner_height(tile, neighbours, row + 1, column);
+    float bottom_right =
+        tile_corner_height(tile, neighbours, row + 1, column + 1);
 
     row_slope = ((bottom_left + bottom_right) - (top_left + top_right)) / 2;
     column_slope = ((top_right + bottom_right) - (top_left + bottom_left)) / 2;
@@ -104,8 +138,37 @@ static void grid_offset(int index, float *row, float *column) {
   }
 }
 
-static void build_chunk_vertices(const PTerrainTile *tile, int chunk_row,
-                                 int chunk_column, PTerrainVertex *vertices) {
+//INFO a border two tiles share is stored in both, as base plus height in each,
+//and the two sums do not always round to the same float. one bit is enough to
+//open a crack a pixel wide along the border. so the line belongs to the tile on
+//its low side, and this tile reads its far row and column from that neighbour
+//whenever it is loaded
+static float vertex_height(const PTerrainTile *tile,
+                           const PTerrainNeighbours *neighbours,
+                           const PTerrainChunk *chunk, int index,
+                           float tile_row, float tile_column) {
+  int row = (int)tile_row;
+  int column = (int)tile_column;
+  bool on_corner_point = row == tile_row && column == tile_column;
+
+  int side_row = on_corner_point && row == STEPS_PER_TILE ? 1 : 0;
+  int side_column = on_corner_point && column == STEPS_PER_TILE ? 1 : 0;
+
+  const PTerrainTile *owner = NULL;
+  if (neighbours && (side_row || side_column))
+    owner = neighbours->tiles[side_row + 1][side_column + 1];
+
+  if (owner == NULL)
+    return chunk->base_height + chunk->heights[index];
+
+  return tile_corner_height(owner, NULL, row - side_row * STEPS_PER_TILE,
+                            column - side_column * STEPS_PER_TILE);
+}
+
+static void build_chunk_vertices(const PTerrainTile *tile,
+                                 const PTerrainNeighbours *neighbours,
+                                 int chunk_row, int chunk_column,
+                                 PTerrainVertex *vertices) {
   const PTerrainChunk *chunk =
       &tile->chunks[chunk_row * PE_TERRAIN_CHUNKS_PER_SIDE + chunk_column];
 
@@ -127,9 +190,10 @@ static void build_chunk_vertices(const PTerrainTile *tile, int chunk_row,
     vertex->position[1] =
         (WORLD_CENTER_TILE - tile->tile_x - tile_column / STEPS_PER_TILE) *
         PE_TERRAIN_TILE_SIZE;
-    vertex->position[2] = chunk->base_height + chunk->heights[i];
+    vertex->position[2] =
+        vertex_height(tile, neighbours, chunk, i, tile_row, tile_column);
 
-    surface_normal(tile, (int)(tile_row * 2 + 0.5f),
+    surface_normal(tile, neighbours, (int)(tile_row * 2 + 0.5f),
                    (int)(tile_column * 2 + 0.5f), vertex->normal);
 
     vertex->uv[0] = -vertex->position[1] * TEXTURE_SCALE;
@@ -190,7 +254,9 @@ static u32 build_chunk_indices(const PTerrainChunk *chunk, u32 first_vertex,
   return count;
 }
 
-void pe_terrain_mesh_build(const PTerrainTile *tile, PTerrainMesh *mesh) {
+void pe_terrain_mesh_build(const PTerrainTile *tile,
+                           const PTerrainNeighbours *neighbours,
+                           PTerrainMesh *mesh) {
   mesh->index_count = 0;
 
   for (int chunk_row = 0; chunk_row < PE_TERRAIN_CHUNKS_PER_SIDE; chunk_row++) {
@@ -200,7 +266,7 @@ void pe_terrain_mesh_build(const PTerrainTile *tile, PTerrainMesh *mesh) {
       u32 first_vertex = chunk_index * PE_TERRAIN_CHUNK_VERTICES;
       PTerrainChunkRange *range = &mesh->chunks[chunk_index];
 
-      build_chunk_vertices(tile, chunk_row, chunk_column,
+      build_chunk_vertices(tile, neighbours, chunk_row, chunk_column,
                            &mesh->vertices[first_vertex]);
       build_chunk_bounds(&mesh->vertices[first_vertex],
                          mesh->bounds[chunk_index]);

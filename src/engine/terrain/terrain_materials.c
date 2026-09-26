@@ -4,38 +4,10 @@
 #include <engine/renderer/vk_images.h>
 #include <engine/renderer/vulkan.h>
 
-#include <limits.h>
-#include <stdio.h>
 #include <stdlib.h>
 
 #define ALPHA_ATLAS_DIM (PE_TERRAIN_CHUNKS_PER_SIDE * PE_TERRAIN_ALPHA_DIM)
 #define ALPHA_CHANNELS (PE_TERRAIN_LAYERS_MAX - 1)
-
-static void create_fallback(PTexture *texture) {
-  u8 pixels[2 * 2 * 4] = {255, 0, 255, 255, 0,   0, 0,   255,
-                          0,   0, 0,   255, 255, 0, 255, 255};
-  PImage image = {.width = 2, .heigth = 2, .pixels_data = pixels};
-
-  pe_vk_create_texture_from_image(texture, &image);
-}
-
-static void load_texture(PTexture *texture, const char *directory,
-                         const char *name, const PTexture *fallback) {
-  char path[PATH_MAX];
-  PImage image;
-  ZERO(image);
-
-  snprintf(path, sizeof(path), "%s/%s", directory, name);
-
-  if (pe_load_image(path, &image) == -1) {
-    LOG("terrain: can't load texture %s\n", path);
-    *texture = *fallback;
-    return;
-  }
-
-  pe_vk_create_texture_from_image(texture, &image);
-  free_image(&image);
-}
 
 //the atlas is 16 by 16 cells of one chunk's map each, in chunk order. the
 //three layers above the base are the red, green and blue channels
@@ -72,10 +44,10 @@ static void create_alpha_atlas(const PTerrainTile *tile, PTexture *atlas) {
 static const PTexture *layer_texture(const PTerrainMaterials *materials,
                                      const PTerrainChunk *chunk, u32 layer) {
   if (chunk->layer_count == 0)
-    return &materials->fallback;
+    return materials->missing;
 
   u32 used = layer < chunk->layer_count ? layer : 0;
-  return &materials->textures[chunk->layer_textures[used]];
+  return materials->textures[chunk->layer_textures[used]];
 }
 
 static VkDescriptorPool create_pool(void) {
@@ -127,14 +99,15 @@ static void write_chunk_set(const PTerrainMaterials *materials,
 }
 
 void pe_vk_terrain_materials_create(const PTerrainPipeline *pipeline,
+                                    PTerrainTextures *textures,
                                     const PTerrainTile *tile,
                                     const char *texture_directory,
                                     PTerrainMaterials *materials) {
-  create_fallback(&materials->fallback);
+  materials->missing = pe_vk_terrain_texture_missing(textures);
 
   for (u32 i = 0; i < tile->texture_count; i++)
-    load_texture(&materials->textures[i], texture_directory, tile->textures[i],
-                 &materials->fallback);
+    materials->textures[i] = pe_vk_terrain_texture_get(
+        textures, texture_directory, tile->textures[i]);
 
   create_alpha_atlas(tile, &materials->alpha_atlas);
 
