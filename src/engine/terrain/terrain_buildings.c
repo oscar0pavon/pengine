@@ -135,6 +135,9 @@ static PTerrainGpuBuilding *load_building(const PTerrainPipeline *pipeline,
     gpu->batch_count = source.batch_count;
     gpu->batches = source.batches;
     source.batches = NULL;
+
+    gpu->group_count = source.group_count;
+    memcpy(gpu->groups, source.groups, sizeof(source.groups));
   }
 
   pe_building_free(&source);
@@ -193,12 +196,16 @@ void pe_vk_terrain_buildings_add_tile(const PTerrainPipeline *pipeline,
 
 static void draw_batches(const PTerrainPipeline *pipeline,
                          const PTerrainGpuBuilding *building,
-                         VkCommandBuffer command) {
+                         bool camera_in_a_room, VkCommandBuffer command) {
   u32 last_material = UINT32_MAX;
   float last_cutoff = -1;
 
   for (u32 i = 0; i < building->batch_count; i++) {
     const PBuildingBatch *batch = &building->batches[i];
+
+    if (camera_in_a_room == false &&
+        pe_building_group_is_room(&building->groups[batch->group]))
+      continue;
 
     if (batch->material != last_material) {
       vkCmdBindDescriptorSets(command, VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -275,10 +282,19 @@ u32 pe_vk_terrain_buildings_draw(const PTerrainPipeline *pipeline,
         bound = true;
       }
 
+      //the camera in the building's own axes, which is where its rooms are
+      mat4 inverse;
+      glm_mat4_inv((vec4 *)instance->model, inverse);
+      vec4 local;
+      glm_mat4_mulv(inverse, (float *)frame->camera_position, local);
+
       vkCmdPushConstants(command, pipeline->building_layout,
                          VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mat4),
                          instance->model);
-      draw_batches(pipeline, building, command);
+      draw_batches(pipeline, building,
+                   pe_building_camera_in_a_room(building->groups,
+                                                building->group_count, local),
+                   command);
       drawn++;
     }
   }

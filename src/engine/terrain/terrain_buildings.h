@@ -26,6 +26,10 @@ typedef struct PTerrainGpuBuilding {
   u32 batch_count;
   PBuildingBatch *batches;
 
+  //which batches are rooms is worked out from these
+  u32 group_count;
+  PBuildingGroup groups[PE_BUILDING_GROUPS_MAX];
+
   u32 material_count;
   VkDescriptorSet material_sets[PE_BUILDING_MATERIALS_MAX];
   float alpha_cutoffs[PE_BUILDING_MATERIALS_MAX];
