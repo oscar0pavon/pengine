@@ -85,6 +85,98 @@ static bool read_chunk_layers(const JSON_Object *root, PTerrainTile *tile) {
   return true;
 }
 
+static bool read_building_names(const JSON_Object *root,
+                                PTerrainTile *tile) {
+  const JSON_Array *names = json_object_get_array(root, "wmoNames");
+  size_t count = json_array_get_count(names);
+
+  if (count > PE_TERRAIN_BUILDINGS_MAX) {
+    LOG("terrain: %zu kinds of building, the most a tile takes is %d\n", count,
+        PE_TERRAIN_BUILDINGS_MAX);
+    return false;
+  }
+
+  for (size_t i = 0; i < count; i++) {
+    const char *name = json_array_get_string(names, i);
+    if (name == NULL || strlen(name) >= PE_TERRAIN_BUILDING_PATH_MAX) {
+      LOG("terrain: building name %zu is missing or too long\n", i);
+      return false;
+    }
+    strcpy(tile->buildings[i], name);
+  }
+
+  tile->building_count = count;
+  return true;
+}
+
+static bool read_numbers(const JSON_Object *object, const char *name,
+                         float *out, size_t count) {
+  const JSON_Array *array = json_object_get_array(object, name);
+  if (json_array_get_count(array) != count)
+    return false;
+
+  for (size_t i = 0; i < count; i++) {
+    double value = json_array_get_number(array, i);
+    if (isfinite(value) == false)
+      return false;
+    out[i] = (float)value;
+  }
+  return true;
+}
+
+//INFO the box is a low corner and a high one in the map's own axes, and mapping
+//the two corners does not keep them low and high, since two axes swap and one
+//changes sign. so it is put back in order
+static void box_to_world(const float adt[6], float world[6]) {
+  float low[3], high[3];
+  pe_terrain_adt_to_world(adt, low);
+  pe_terrain_adt_to_world(adt + 3, high);
+
+  for (int i = 0; i < 3; i++) {
+    world[i] = low[i] < high[i] ? low[i] : high[i];
+    world[i + 3] = low[i] < high[i] ? high[i] : low[i];
+  }
+}
+
+static bool read_placement(const JSON_Object *entry, size_t index,
+                           PTerrainTile *tile) {
+  PTerrainPlacement *placement = &tile->placements[index];
+  double name_id = json_object_get_number(entry, "nameId");
+  float position[3], bounds[6];
+
+  if (name_id < 0 || name_id >= tile->building_count ||
+      read_numbers(entry, "pos", position, 3) == false ||
+      read_numbers(entry, "rot", placement->rotation, 3) == false ||
+      read_numbers(entry, "bounds", bounds, 6) == false) {
+    LOG("terrain: building placement %zu is not complete\n", index);
+    return false;
+  }
+
+  placement->building = (u32)name_id;
+  placement->unique_id = (u32)json_object_get_number(entry, "uniqueId");
+  pe_terrain_adt_to_world(position, placement->position);
+  box_to_world(bounds, placement->bounds);
+  return true;
+}
+
+static bool read_placements(const JSON_Object *root, PTerrainTile *tile) {
+  const JSON_Array *entries = json_object_get_array(root, "wmos");
+  size_t count = json_array_get_count(entries);
+
+  if (count > PE_TERRAIN_PLACEMENTS_MAX) {
+    LOG("terrain: %zu buildings placed, the most a tile takes is %d\n", count,
+        PE_TERRAIN_PLACEMENTS_MAX);
+    return false;
+  }
+
+  for (size_t i = 0; i < count; i++)
+    if (read_placement(json_array_get_object(entries, i), i, tile) == false)
+      return false;
+
+  tile->placement_count = count;
+  return true;
+}
+
 static bool read_metadata(const char *path, PTerrainTile *tile) {
   JSON_Value *document = json_parse_file(path);
   const JSON_Object *root = json_value_get_object(document);
@@ -102,7 +194,8 @@ static bool read_metadata(const char *path, PTerrainTile *tile) {
     LOG("terrain: tile %d,%d is outside the %dx%d grid\n", tile->tile_x,
         tile->tile_y, PE_TERRAIN_TILES_PER_SIDE, PE_TERRAIN_TILES_PER_SIDE);
 
-  valid = valid && read_textures(root, tile) && read_chunk_layers(root, tile);
+  valid = valid && read_textures(root, tile) && read_chunk_layers(root, tile) &&
+          read_building_names(root, tile) && read_placements(root, tile);
 
   json_value_free(document);
   return valid;

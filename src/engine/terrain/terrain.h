@@ -29,6 +29,12 @@
 #define PE_TERRAIN_WATER_VERTICES (PE_TERRAIN_WATER_GRID * PE_TERRAIN_WATER_GRID)
 #define PE_TERRAIN_WATER_QUADS 64
 
+//the buildings a tile places: how many kinds, how many placements in all, and
+//how long the path a kind is loaded by can be
+#define PE_TERRAIN_BUILDINGS_MAX 64
+#define PE_TERRAIN_BUILDING_PATH_MAX 128
+#define PE_TERRAIN_PLACEMENTS_MAX 256
+
 #define PE_TERRAIN_TEXTURES_MAX 128
 #define PE_TERRAIN_TEXTURE_PATH_MAX 128
 
@@ -66,6 +72,20 @@ typedef struct PTerrainChunkWater {
   u8 visible[PE_TERRAIN_WATER_QUADS];
 } PTerrainChunkWater;
 
+//one building standing in the world. the position and the box are in the
+//engine's world, but the rotation is the three degrees the game stores, which
+//pe_terrain_placement_matrix() knows how to read
+typedef struct PTerrainPlacement {
+  u32 building;
+  u32 unique_id;
+  float position[3];
+  float rotation[3];
+
+  //the box the game's own tools computed for it, low corner then high, which
+  //is what the placement can be checked against
+  float bounds[6];
+} PTerrainPlacement;
+
 //about 3 MB, so it belongs in static or heap memory and not on a stack
 typedef struct PTerrainTile {
   int tile_x;
@@ -76,6 +96,13 @@ typedef struct PTerrainTile {
 
   PTerrainChunk chunks[PE_TERRAIN_CHUNKS];
   PTerrainChunkWater water[PE_TERRAIN_CHUNKS];
+
+  //what the buildings are called, as a path from the data directory to a .wwb
+  u32 building_count;
+  char buildings[PE_TERRAIN_BUILDINGS_MAX][PE_TERRAIN_BUILDING_PATH_MAX];
+
+  u32 placement_count;
+  PTerrainPlacement placements[PE_TERRAIN_PLACEMENTS_MAX];
 } PTerrainTile;
 
 #define PE_TERRAIN_STEPS_PER_TILE (PE_TERRAIN_CHUNKS_PER_SIDE * 8)
@@ -109,5 +136,17 @@ static inline float pe_terrain_point_y(const PTerrainTile *tile,
 //base_path.wwt, the tile's water, if there is one. a tile without water simply
 //has no .wwt. tile is only meaningful when this returns true
 bool pe_terrain_load(const char *base_path, PTerrainTile *tile);
+
+//a position the way the game's map files store a placement, into the world.
+//that space is measured from the far corner of the map, with height second and
+//X and Z the ground: north is the far end of Z and east the near end of X
+static inline void pe_terrain_adt_to_world(const float adt[3], float world[3]) {
+  const double map_centre =
+      PE_TERRAIN_MAP_CENTRE_TILE * (double)PE_TERRAIN_TILE_SIZE;
+
+  world[0] = (float)-(adt[2] - map_centre);
+  world[1] = (float)(adt[0] - map_centre);
+  world[2] = adt[1];
+}
 
 #endif // !PE_TERRAIN_H
