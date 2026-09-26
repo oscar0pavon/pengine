@@ -23,6 +23,12 @@ typedef struct PTerrainFrame {
 
   //x is the distance fog starts at and y the distance where nothing else shows
   vec4 fog_range;
+
+  //the sky is the fog colour at the horizon and this straight up
+  vec4 sky_zenith;
+
+  //takes a point on the screen back to the world, for the sky's view direction
+  mat4 inverse_view_projection;
 } PTerrainFrame;
 
 //set 0 is the frame, set 1 is one chunk's textures
@@ -31,6 +37,9 @@ typedef struct PTerrainPipeline {
   VkDescriptorSetLayout material_layout;
   VkPipelineLayout layout;
   PShader shader;
+
+  //drawn first, over the whole screen, with the frame set alone
+  PShader sky;
 } PTerrainPipeline;
 
 //one uniform buffer and descriptor set per swap chain image, so writing the

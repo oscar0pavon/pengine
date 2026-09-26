@@ -24,6 +24,10 @@ typedef struct PCreateShaderInfo{
 
     //cull mode and winding. NULL means the engine's default, which culls nothing
     const VkPipelineRasterizationStateCreateInfo* rasterization;
+
+    //depth and stencil testing. NULL means the engine's default, which tests
+    //and writes depth
+    const VkPipelineDepthStencilStateCreateInfo* depth_stencil;
 }PCreateShaderInfo;
 
 void pe_vk_clean_shader(PShader *shader);

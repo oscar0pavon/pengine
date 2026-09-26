@@ -8,6 +8,10 @@ void pe_terrain_frame_set_camera(PTerrainFrame *frame, const PCamera *camera) {
   glm_mat4_copy((vec4 *)camera->view, frame->view);
   glm_mat4_copy((vec4 *)camera->projection, frame->projection);
   glm_vec4((float *)camera->position, 1, frame->camera_position);
+
+  mat4 view_projection;
+  glm_mat4_mul(frame->projection, frame->view, view_projection);
+  glm_mat4_inv(view_projection, frame->inverse_view_projection);
 }
 
 static void matrix_row(const mat4 matrix, int row, vec4 out) {
@@ -46,6 +50,17 @@ static bool sphere_is_visible(vec4 planes[FRUSTUM_PLANES],
   return true;
 }
 
+void pe_vk_terrain_sky_draw(const PTerrainPipeline *pipeline,
+                            const PTerrainFrames *frames,
+                            VkCommandBuffer command, u32 image_index) {
+  vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                    pipeline->sky.pipeline);
+  vkCmdBindDescriptorSets(command, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                          pipeline->layout, 0, 1, &frames->sets[image_index], 0,
+                          NULL);
+  vkCmdDraw(command, 3, 1, 0, 0);
+}
+
 u32 pe_vk_terrain_draw(const PTerrainDrawInfo *draw) {
   VkCommandBuffer command = draw->command_buffer;
   VkDeviceSize no_offset = 0;
@@ -73,6 +88,7 @@ u32 pe_vk_terrain_draw(const PTerrainDrawInfo *draw) {
     if (range->index_count == 0 ||
         sphere_is_visible(planes, draw->mesh->bounds[chunk]) == false)
       continue;
+
 
     vkCmdBindDescriptorSets(command, VK_PIPELINE_BIND_POINT_GRAPHICS,
                             draw->pipeline->layout, 1, 1,

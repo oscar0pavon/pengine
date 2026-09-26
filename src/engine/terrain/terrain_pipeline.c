@@ -57,6 +57,38 @@ static void create_layouts(PTerrainPipeline *pipeline) {
           "Can't create terrain pipeline layout");
 }
 
+//the sky reads no vertex buffer, and neither tests nor writes depth: it is
+//drawn first and everything else goes over it
+static void create_sky(PTerrainPipeline *pipeline) {
+  VkPipelineVertexInputStateCreateInfo no_input = {
+      .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO};
+
+  VkPipelineRasterizationStateCreateInfo rasterization = {
+      .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+      .polygonMode = VK_POLYGON_MODE_FILL,
+      .cullMode = VK_CULL_MODE_NONE,
+      .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+      .lineWidth = 1.0f};
+
+  VkPipelineDepthStencilStateCreateInfo depth_stencil = {
+      .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+      .depthTestEnable = VK_FALSE,
+      .depthWriteEnable = VK_FALSE,
+      .stencilTestEnable = VK_FALSE};
+
+  PCreateShaderInfo info;
+  ZERO(info);
+  info.out_shader = &pipeline->sky;
+  info.vertex_path = file_sky_vert_spv;
+  info.fragment_path = file_sky_frag_spv;
+  info.layout = pipeline->layout;
+  info.vertex_input = &no_input;
+  info.rasterization = &rasterization;
+  info.depth_stencil = &depth_stencil;
+
+  pe_vk_create_shader(&info);
+}
+
 void pe_vk_terrain_pipeline_create(PTerrainPipeline *pipeline) {
   create_layouts(pipeline);
 
@@ -95,6 +127,8 @@ void pe_vk_terrain_pipeline_create(PTerrainPipeline *pipeline) {
   info.rasterization = &rasterization;
 
   pe_vk_create_shader(&info);
+
+  create_sky(pipeline);
 }
 
 static VkDescriptorPool create_frames_pool(u32 count) {

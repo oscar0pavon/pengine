@@ -40,6 +40,9 @@ echo "#define file_color_frag_spv \"${WORKDIR}/src/shaders/color_frag.spv\"" >> 
 echo "#define file_terrain_vert_spv \"${WORKDIR}/src/shaders/terrain_vert.spv\"" >> ${FILE}
 echo "#define file_terrain_frag_spv \"${WORKDIR}/src/shaders/terrain_frag.spv\"" >> ${FILE}
 
+echo "#define file_sky_vert_spv \"${WORKDIR}/src/shaders/sky_vert.spv\"" >> ${FILE}
+echo "#define file_sky_frag_spv \"${WORKDIR}/src/shaders/sky_frag.spv\"" >> ${FILE}
+
 echo "#define file_skinned_spv \"${WORKDIR}/src/shaders/skinned.spv\"" >> ${FILE}
 
 echo "#endif" >> ${FILE}

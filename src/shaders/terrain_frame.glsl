@@ -7,4 +7,6 @@ layout(set = 0, binding = 0) uniform TerrainFrame {
   vec4 camera_position;
   vec4 fog_color;
   vec4 fog_range;
+  vec4 sky_zenith;
+  mat4 inverse_view_projection;
 } frame;

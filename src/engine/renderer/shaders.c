@@ -89,6 +89,9 @@ void pe_vk_create_shader(PCreateShaderInfo* info){
   if (info->rasterization)
     info->vk_create_info->pRasterizationState = info->rasterization;
 
+  if (info->depth_stencil)
+    info->vk_create_info->pDepthStencilState = info->depth_stencil;
+
   info->vk_create_info->layout = info->layout;
 
   int count = 1;
