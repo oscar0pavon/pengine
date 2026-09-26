@@ -402,8 +402,8 @@ void pe_vk_image_generate_mipmaps(VkImage image, uint32_t width,
     VkOffset3D src_offset2 = {mip_width, mip_heigth, 1};
 
     VkOffset3D dst_offset1 = {0, 0, 0};
-    VkOffset3D dst_offset2 = {mip_heigth > 1 ? mip_width / 2 : 1,
-                              mip_width > 1 ? mip_heigth / 2 : 1, 1};
+    VkOffset3D dst_offset2 = {mip_width > 1 ? mip_width / 2 : 1,
+                              mip_heigth > 1 ? mip_heigth / 2 : 1, 1};
 
     blit.srcOffsets[0] = src_offset1;
     blit.srcOffsets[1] = src_offset2;
@@ -577,19 +577,42 @@ void pe_vk_create_texture(PTexture* new_texture, const char* path) {
 //the caller's to free
 void pe_vk_create_texture_from_image(PTexture* new_texture, PImage* image) {
   pe_vk_create_texture_from_image_format(new_texture, image,
-                                         VK_FORMAT_R8G8B8A8_SRGB);
+                                         VK_FORMAT_R8G8B8A8_SRGB, true);
+}
+
+static uint32_t mip_levels_for(uint32_t width, uint32_t heigth) {
+  uint32_t levels = 1;
+
+  for (uint32_t size = width > heigth ? width : heigth; size > 1; size >>= 1)
+    levels++;
+  return levels;
+}
+
+static bool format_can_be_blitted_linearly(VkFormat format) {
+  VkFormatProperties properties;
+  vkGetPhysicalDeviceFormatProperties(vk_physical_device, format, &properties);
+
+  VkFormatFeatureFlags needed = VK_FORMAT_FEATURE_BLIT_SRC_BIT |
+                                VK_FORMAT_FEATURE_BLIT_DST_BIT |
+                                VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
+  return (properties.optimalTilingFeatures & needed) == needed;
 }
 
 //INFO the format decides whether the sampler decodes the bytes as sRGB colour.
 //data that is not colour, an alpha map or a height, has to be UNORM or it comes
-//back bent by the sRGB curve
+//back bent by the sRGB curve.
+//
+//mipmaps are what keeps a texture from shimmering when it covers fewer texels
+//than it has. an image that packs unrelated things side by side, an atlas, has
+//to go without them: the coarse levels average neighbours into each other
 void pe_vk_create_texture_from_image_format(PTexture* new_texture,
-                                            PImage* image, VkFormat format) {
+                                            PImage* image, VkFormat format,
+                                            bool mipmaps) {
   PImage texture = *image;
 
-  // new_texture->mip_level =
-  //     floor(log2(GLM_MAX(texture.width, texture.heigth))) + 1;
   new_texture->mip_level = 1;
+  if (mipmaps && format_can_be_blitted_linearly(format))
+    new_texture->mip_level = mip_levels_for(texture.width, texture.heigth);
 
   VkDeviceSize image_size = texture.width * texture.heigth * 4;
 

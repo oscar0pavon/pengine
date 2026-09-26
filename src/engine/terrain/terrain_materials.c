@@ -63,7 +63,7 @@ static void create_alpha_atlas(const PTerrainTile *tile, PTexture *atlas) {
                   .heigth = ALPHA_ATLAS_DIM,
                   .pixels_data = pixels};
   pe_vk_create_texture_from_image_format(atlas, &image,
-                                         VK_FORMAT_R8G8B8A8_UNORM);
+                                         VK_FORMAT_R8G8B8A8_UNORM, false);
   free(pixels);
 }
 
