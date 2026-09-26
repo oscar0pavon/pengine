@@ -75,6 +75,7 @@ static void upload_tile(PTerrainWorld *world, const PTerrainTile *tile,
   pe_vk_terrain_mesh_upload(mesh, &out->mesh);
   pe_vk_terrain_materials_create(&world->pipeline, &world->textures, tile,
                                  directory, &out->materials);
+  pe_vk_terrain_water_upload(tile, &out->water);
 }
 
 bool pe_vk_terrain_world_load_area(PTerrainWorld *world, const char *directory,
@@ -136,5 +137,10 @@ u32 pe_vk_terrain_world_draw(PTerrainWorld *world, const PTerrainFrame *frame,
                              .image_index = image_index};
     drawn += pe_vk_terrain_draw(&draw);
   }
+
+  for (u32 i = 0; i < world->tile_count; i++)
+    pe_vk_terrain_water_draw(&world->pipeline, &world->frames,
+                             &world->tiles[i].water, command, image_index);
+
   return drawn;
 }

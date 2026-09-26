@@ -10,6 +10,7 @@
 #include <string.h>
 
 #define WHM_MAGIC 0x314D4857
+#define WWT_MAGIC 0x31545757
 #define WHM_ALPHA_BLOB_MAX 65536
 #define ALPHA_PACKED_SIZE (PE_TERRAIN_ALPHA_SIZE / 2)
 
@@ -215,19 +216,73 @@ static bool read_heightmap(const char *path, PTerrainTile *tile) {
   return valid;
 }
 
+static bool read_water_chunk(FILE *file, PTerrainTile *tile) {
+  u32 index;
+  u32 type;
+  if (fread(&index, sizeof(u32), 1, file) != 1 ||
+      fread(&type, sizeof(u32), 1, file) != 1)
+    return false;
+
+  if (index >= PE_TERRAIN_CHUNKS || type > PE_TERRAIN_LIQUID_SLIME) {
+    LOG("terrain: water names chunk %u of type %u\n", index, type);
+    return false;
+  }
+
+  PTerrainChunkWater *water = &tile->water[index];
+  water->present = true;
+  water->type = type;
+
+  if (fread(water->heights, sizeof(float), PE_TERRAIN_WATER_VERTICES, file) !=
+          PE_TERRAIN_WATER_VERTICES ||
+      fread(water->depths, 1, PE_TERRAIN_WATER_VERTICES, file) !=
+          PE_TERRAIN_WATER_VERTICES ||
+      fread(water->visible, 1, PE_TERRAIN_WATER_QUADS, file) !=
+          PE_TERRAIN_WATER_QUADS)
+    return false;
+
+  for (int i = 0; i < PE_TERRAIN_WATER_VERTICES; i++)
+    if (isfinite(water->heights[i]) == false)
+      water->heights[i] = 0;
+  return true;
+}
+
+//a tile with no water has no file, which is not an error
+static bool read_water(const char *path, PTerrainTile *tile) {
+  FILE *file = fopen(path, "rb");
+  if (file == NULL)
+    return true;
+
+  u32 header[2];
+  bool valid = fread(header, sizeof(u32), 2, file) == 2 &&
+               header[0] == WWT_MAGIC && header[1] <= PE_TERRAIN_CHUNKS;
+  if (valid == false)
+    LOG("terrain: %s is not a WWT file\n", path);
+
+  for (u32 i = 0; valid && i < header[1]; i++) {
+    valid = read_water_chunk(file, tile);
+    if (valid == false)
+      LOG("terrain: %s ends inside water chunk %u\n", path, i);
+  }
+
+  fclose(file);
+  return valid;
+}
+
 //INFO the metadata goes first because the layers it lists are what tell
 //read_chunk how to split each chunk's alpha blob
 bool pe_terrain_load(const char *base_path, PTerrainTile *tile) {
   char metadata_path[PATH_MAX];
   char heightmap_path[PATH_MAX];
+  char water_path[PATH_MAX];
 
   if (sibling_path(metadata_path, base_path, ".wot") == false ||
-      sibling_path(heightmap_path, base_path, ".whm") == false) {
+      sibling_path(heightmap_path, base_path, ".whm") == false ||
+      sibling_path(water_path, base_path, ".wwt") == false) {
     LOG("terrain: path too long: %s\n", base_path);
     return false;
   }
 
   ZERO(*tile);
   return read_metadata(metadata_path, tile) &&
-         read_heightmap(heightmap_path, tile);
+         read_heightmap(heightmap_path, tile) && read_water(water_path, tile);
 }

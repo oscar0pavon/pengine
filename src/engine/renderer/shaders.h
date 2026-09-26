@@ -28,6 +28,11 @@ typedef struct PCreateShaderInfo{
     //depth and stencil testing. NULL means the engine's default, which tests
     //and writes depth
     const VkPipelineDepthStencilStateCreateInfo* depth_stencil;
+
+    //how the colour is combined with what is already there. NULL means the
+    //engine's default, which overwrites it. the transparency flag above does
+    //not enable blending, so a pipeline that needs it says so here
+    const VkPipelineColorBlendStateCreateInfo* color_blend;
 }PCreateShaderInfo;
 
 void pe_vk_clean_shader(PShader *shader);

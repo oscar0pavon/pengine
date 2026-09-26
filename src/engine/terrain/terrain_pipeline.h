@@ -30,6 +30,10 @@ typedef struct PTerrainFrame {
 
   //takes a point on the screen back to the world, for the sky's view direction
   mat4 inverse_view_projection;
+
+  //x is seconds, for anything that moves. it comes back round to zero every
+  //hour so the float keeps enough digits for the waves
+  vec4 time;
 } PTerrainFrame;
 
 //set 0 is the frame, set 1 is one chunk's textures
@@ -41,6 +45,9 @@ typedef struct PTerrainPipeline {
 
   //drawn first, over the whole screen, with the frame set alone
   PShader sky;
+
+  //drawn after all the ground, blended over it
+  PShader water;
 } PTerrainPipeline;
 
 //one uniform buffer and descriptor set per swap chain image, so writing the

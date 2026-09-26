@@ -2,7 +2,6 @@
 
 #include <string.h>
 
-#define WORLD_CENTER_TILE 32
 #define STEPS_PER_CHUNK 8
 #define STEPS_PER_TILE (PE_TERRAIN_CHUNKS_PER_SIDE * STEPS_PER_CHUNK)
 #define STEP_SIZE (PE_TERRAIN_TILE_SIZE / STEPS_PER_TILE)
@@ -181,15 +180,8 @@ static void build_chunk_vertices(const PTerrainTile *tile,
     float tile_row = chunk_row * STEPS_PER_CHUNK + row;
     float tile_column = chunk_column * STEPS_PER_CHUNK + column;
 
-    //INFO one multiply from the tile index, not the tile origin minus a chunk
-    //offset minus a step. a border shared by two tiles then comes out bit for
-    //bit the same on both sides and no crack opens between them
-    vertex->position[0] =
-        (WORLD_CENTER_TILE - tile->tile_y - tile_row / STEPS_PER_TILE) *
-        PE_TERRAIN_TILE_SIZE;
-    vertex->position[1] =
-        (WORLD_CENTER_TILE - tile->tile_x - tile_column / STEPS_PER_TILE) *
-        PE_TERRAIN_TILE_SIZE;
+    vertex->position[0] = pe_terrain_point_x(tile, tile_row);
+    vertex->position[1] = pe_terrain_point_y(tile, tile_column);
     vertex->position[2] =
         vertex_height(tile, neighbours, chunk, i, tile_row, tile_column);
 

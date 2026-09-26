@@ -2,6 +2,7 @@
 #define PE_TERRAIN_WORLD_H
 
 #include "terrain_draw.h"
+#include "terrain_water.h"
 
 //how many tiles across a loaded block can be, five by five
 #define PE_TERRAIN_WORLD_SIDE_MAX 5
@@ -13,6 +14,7 @@ typedef struct PTerrainWorldTile {
   int tile_y;
   PTerrainGpuMesh mesh;
   PTerrainMaterials materials;
+  PTerrainGpuWater water;
 } PTerrainWorldTile;
 
 //everything terrain needs on the gpu: the pipeline and the frame's uniforms
@@ -40,8 +42,9 @@ bool pe_vk_terrain_world_load_area(PTerrainWorld *world, const char *directory,
                                    const char *map, int centre_x, int centre_y,
                                    int radius);
 
-//sends the frame to the gpu, then records the sky and every tile. call it from
-//the pe_vk_draw_scene hook. returns how many chunks were drawn
+//sends the frame to the gpu, then records the sky, the ground of every tile
+//and last the water of every tile, which blends over the ground. call it from
+//the pe_vk_draw_scene hook. returns how many chunks of ground were drawn
 u32 pe_vk_terrain_world_draw(PTerrainWorld *world, const PTerrainFrame *frame,
                              VkCommandBuffer command, u32 image_index);
 

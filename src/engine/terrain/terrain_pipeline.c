@@ -1,5 +1,6 @@
 #include "terrain_pipeline.h"
 #include "terrain_mesh.h"
+#include "terrain_water.h"
 
 #include <engine/files.h>
 #include <engine/macros.h>
@@ -89,6 +90,71 @@ static void create_sky(PTerrainPipeline *pipeline) {
   pe_vk_create_shader(&info);
 }
 
+//INFO water is blended over the ground, so it reads the depth the ground left
+//but does not write its own: two surfaces of it that overlap, a river running
+//into a lake, would otherwise hide one another
+static void create_water(PTerrainPipeline *pipeline) {
+  VkVertexInputBindingDescription binding = {
+      .binding = 0,
+      .stride = sizeof(PTerrainWaterVertex),
+      .inputRate = VK_VERTEX_INPUT_RATE_VERTEX};
+
+  VkVertexInputAttributeDescription attributes[] = {
+      {0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(PTerrainWaterVertex, position)},
+      {1, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(PTerrainWaterVertex, depth)}};
+
+  VkPipelineVertexInputStateCreateInfo vertex_input = {
+      .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+      .vertexBindingDescriptionCount = 1,
+      .pVertexBindingDescriptions = &binding,
+      .vertexAttributeDescriptionCount = 2,
+      .pVertexAttributeDescriptions = attributes};
+
+  //seen from above and from below both
+  VkPipelineRasterizationStateCreateInfo rasterization = {
+      .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+      .polygonMode = VK_POLYGON_MODE_FILL,
+      .cullMode = VK_CULL_MODE_NONE,
+      .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+      .lineWidth = 1.0f};
+
+  VkPipelineDepthStencilStateCreateInfo depth_stencil = {
+      .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+      .depthTestEnable = VK_TRUE,
+      .depthWriteEnable = VK_FALSE,
+      .depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
+      .stencilTestEnable = VK_FALSE};
+
+  VkPipelineColorBlendAttachmentState attachment = {
+      .blendEnable = VK_TRUE,
+      .srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
+      .dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+      .colorBlendOp = VK_BLEND_OP_ADD,
+      .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
+      .dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
+      .alphaBlendOp = VK_BLEND_OP_ADD,
+      .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+                        VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT};
+
+  VkPipelineColorBlendStateCreateInfo color_blend = {
+      .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+      .attachmentCount = 1,
+      .pAttachments = &attachment};
+
+  PCreateShaderInfo info;
+  ZERO(info);
+  info.out_shader = &pipeline->water;
+  info.vertex_path = file_water_vert_spv;
+  info.fragment_path = file_water_frag_spv;
+  info.layout = pipeline->layout;
+  info.vertex_input = &vertex_input;
+  info.rasterization = &rasterization;
+  info.depth_stencil = &depth_stencil;
+  info.color_blend = &color_blend;
+
+  pe_vk_create_shader(&info);
+}
+
 void pe_vk_terrain_pipeline_create(PTerrainPipeline *pipeline) {
   create_layouts(pipeline);
 
@@ -129,6 +195,7 @@ void pe_vk_terrain_pipeline_create(PTerrainPipeline *pipeline) {
   pe_vk_create_shader(&info);
 
   create_sky(pipeline);
+  create_water(pipeline);
 }
 
 static VkDescriptorPool create_frames_pool(u32 count) {

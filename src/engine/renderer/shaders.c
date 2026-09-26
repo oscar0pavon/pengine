@@ -92,6 +92,9 @@ void pe_vk_create_shader(PCreateShaderInfo* info){
   if (info->depth_stencil)
     info->vk_create_info->pDepthStencilState = info->depth_stencil;
 
+  if (info->color_blend)
+    info->vk_create_info->pColorBlendState = info->color_blend;
+
   info->vk_create_info->layout = info->layout;
 
   int count = 1;

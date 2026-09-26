@@ -2,6 +2,8 @@
 
 #include <engine/renderer/vulkan.h>
 
+#include <time.h>
+
 #define FRUSTUM_PLANES 6
 
 void pe_terrain_frame_set_camera(PTerrainFrame *frame, const PCamera *camera) {
@@ -12,6 +14,10 @@ void pe_terrain_frame_set_camera(PTerrainFrame *frame, const PCamera *camera) {
   mat4 view_projection;
   glm_mat4_mul(frame->projection, frame->view, view_projection);
   glm_mat4_inv(view_projection, frame->inverse_view_projection);
+
+  struct timespec now;
+  clock_gettime(CLOCK_MONOTONIC, &now);
+  frame->time[0] = (float)(now.tv_sec % 3600) + now.tv_nsec / 1e9f;
 }
 
 static void matrix_row(const mat4 matrix, int row, vec4 out) {
