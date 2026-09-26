@@ -2,6 +2,7 @@
 #define PE_TERRAIN_WORLD_H
 
 #include "terrain_draw.h"
+#include "terrain_height.h"
 #include "terrain_water.h"
 
 //how many tiles across a loaded block can be, five by five
@@ -15,6 +16,7 @@ typedef struct PTerrainWorldTile {
   PTerrainGpuMesh mesh;
   PTerrainMaterials materials;
   PTerrainGpuWater water;
+  PTerrainHeights heights;
 } PTerrainWorldTile;
 
 //everything terrain needs on the gpu: the pipeline and the frame's uniforms
@@ -41,6 +43,13 @@ void pe_vk_terrain_world_create(PTerrainWorld *world);
 bool pe_vk_terrain_world_load_area(PTerrainWorld *world, const char *directory,
                                    const char *map, int centre_x, int centre_y,
                                    int radius);
+
+//the height of the ground at a world position, the surface that is drawn and
+//not a flat guess from its corners. false where there is none: no loaded tile
+//there, or a hole in it, which is a building or a cave where the ground is
+//left out. this is the ground only, and water is not looked at
+bool pe_terrain_world_height_at(const PTerrainWorld *world, float x, float y,
+                                float *height);
 
 //sends the frame to the gpu, then records the sky, the ground of every tile
 //and last the water of every tile, which blends over the ground. call it from

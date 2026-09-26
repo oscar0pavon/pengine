@@ -3,6 +3,7 @@
 #include <engine/log.h>
 
 #include <limits.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -76,6 +77,7 @@ static void upload_tile(PTerrainWorld *world, const PTerrainTile *tile,
   pe_vk_terrain_materials_create(&world->pipeline, &world->textures, tile,
                                  directory, &out->materials);
   pe_vk_terrain_water_upload(tile, &out->water);
+  pe_terrain_heights_from_tile(tile, &out->heights);
 }
 
 bool pe_vk_terrain_world_load_area(PTerrainWorld *world, const char *directory,
@@ -117,6 +119,34 @@ bool pe_vk_terrain_world_load_area(PTerrainWorld *world, const char *directory,
   free(mesh);
 
   return world->tile_count > loaded_before;
+}
+
+static const PTerrainWorldTile *find_tile(const PTerrainWorld *world,
+                                          int tile_x, int tile_y) {
+  for (u32 i = 0; i < world->tile_count; i++)
+    if (world->tiles[i].tile_x == tile_x && world->tiles[i].tile_y == tile_y)
+      return &world->tiles[i];
+  return NULL;
+}
+
+//INFO x and y are worked back to tiles in double. the tile size times a few
+//dozen tiles is a number in the thousands, and a float has about a thousandth
+//of a yard left at that size, which is a tenth of a step of the ground
+bool pe_terrain_world_height_at(const PTerrainWorld *world, float x, float y,
+                                float *height) {
+  double row_position = PE_TERRAIN_MAP_CENTRE_TILE - x / (double)PE_TERRAIN_TILE_SIZE;
+  double column_position = PE_TERRAIN_MAP_CENTRE_TILE - y / (double)PE_TERRAIN_TILE_SIZE;
+
+  int tile_y = (int)floor(row_position);
+  int tile_x = (int)floor(column_position);
+
+  const PTerrainWorldTile *tile = find_tile(world, tile_x, tile_y);
+  if (tile == NULL)
+    return false;
+
+  return pe_terrain_heights_at(
+      &tile->heights, (row_position - tile_y) * PE_TERRAIN_STEPS_PER_TILE,
+      (column_position - tile_x) * PE_TERRAIN_STEPS_PER_TILE, height);
 }
 
 u32 pe_vk_terrain_world_draw(PTerrainWorld *world, const PTerrainFrame *frame,
