@@ -13,3 +13,8 @@ void pe_vk_terrain_mesh_upload(const PTerrainMesh *mesh, PTerrainGpuMesh *gpu) {
   memcpy(gpu->chunks, mesh->chunks, sizeof(gpu->chunks));
   memcpy(gpu->bounds, mesh->bounds, sizeof(gpu->bounds));
 }
+
+void pe_vk_terrain_mesh_free(PTerrainGpuMesh *gpu) {
+  pe_vk_destroy_buffer(&gpu->vertex_buffer);
+  pe_vk_destroy_buffer(&gpu->index_buffer);
+}

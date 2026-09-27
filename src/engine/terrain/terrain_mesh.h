@@ -69,4 +69,7 @@ void pe_terrain_mesh_build(const PTerrainTile *tile,
 //needs the renderer up, so from the game's init or later
 void pe_vk_terrain_mesh_upload(const PTerrainMesh *mesh, PTerrainGpuMesh *gpu);
 
+//gives the buffers back. the gpu must not be drawing it
+void pe_vk_terrain_mesh_free(PTerrainGpuMesh *gpu);
+
 #endif // !PE_TERRAIN_MESH_H

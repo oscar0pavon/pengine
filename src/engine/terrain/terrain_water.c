@@ -104,6 +104,15 @@ void pe_vk_terrain_water_upload(const PTerrainTile *tile,
   free(indices);
 }
 
+void pe_vk_terrain_water_free(PTerrainGpuWater *water) {
+  if (water->index_count == 0)
+    return;
+
+  pe_vk_destroy_buffer(&water->vertex_buffer);
+  pe_vk_destroy_buffer(&water->index_buffer);
+  water->index_count = 0;
+}
+
 void pe_vk_terrain_water_draw(const PTerrainPipeline *pipeline,
                               const PTerrainFrames *frames,
                               const PTerrainGpuWater *water,

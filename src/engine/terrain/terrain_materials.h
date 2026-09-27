@@ -10,6 +10,7 @@
 //256
 typedef struct PTerrainMaterials {
   VkDescriptorPool pool;
+  u32 texture_count;
   const PTexture *textures[PE_TERRAIN_TEXTURES_MAX];
   const PTexture *missing;
   PTexture alpha_atlas;
@@ -27,5 +28,11 @@ void pe_vk_terrain_materials_create(const PTerrainPipeline *pipeline,
                                     const PTerrainTile *tile,
                                     const char *texture_directory,
                                     PTerrainMaterials *materials);
+
+//gives back the alpha atlas and the descriptor sets, and lets go of the
+//textures, which stay in the world's cache. the gpu must not be drawing the
+//tile
+void pe_vk_terrain_materials_free(PTerrainTextures *textures,
+                                  PTerrainMaterials *materials);
 
 #endif // !PE_TERRAIN_MATERIALS_H

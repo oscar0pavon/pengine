@@ -105,6 +105,7 @@ void pe_vk_terrain_materials_create(const PTerrainPipeline *pipeline,
                                     PTerrainMaterials *materials) {
   materials->missing = pe_vk_terrain_texture_missing(textures);
 
+  materials->texture_count = tile->texture_count;
   for (u32 i = 0; i < tile->texture_count; i++)
     materials->textures[i] = pe_vk_terrain_texture_get(
         textures, texture_directory, tile->textures[i]);
@@ -127,4 +128,13 @@ void pe_vk_terrain_materials_create(const PTerrainPipeline *pipeline,
 
   for (int i = 0; i < PE_TERRAIN_CHUNKS; i++)
     write_chunk_set(materials, &tile->chunks[i], materials->chunk_sets[i]);
+}
+
+void pe_vk_terrain_materials_free(PTerrainTextures *textures,
+                                  PTerrainMaterials *materials) {
+  vkDestroyDescriptorPool(vk_device, materials->pool, NULL);
+  pe_vk_clean_image(&materials->alpha_atlas);
+
+  for (u32 i = 0; i < materials->texture_count; i++)
+    pe_vk_terrain_texture_release(textures, materials->textures[i]);
 }

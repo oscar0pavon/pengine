@@ -27,4 +27,8 @@ PBuffer pe_vk_create_buffer(u64 size, void *data, VkBufferUsageFlagBits type);
 //it
 void pe_vk_update_buffer(PBuffer *buffer, void *data, u64 size);
 
+//gives back a buffer and its memory. the gpu must be done with it: nothing
+//recorded that uses it may still be running
+void pe_vk_destroy_buffer(PBuffer *buffer);
+
 #endif

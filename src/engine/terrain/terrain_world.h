@@ -35,20 +35,34 @@ typedef struct PTerrainWorld {
 
   u32 tile_count;
   PTerrainWorldTile tiles[PE_TERRAIN_WORLD_TILES_MAX];
+
+  //the tiles the game has none of, or that could not be read, so that they are
+  //not looked for again every frame. indexed by tile_y and tile_x
+  bool unavailable[PE_TERRAIN_TILES_PER_SIDE][PE_TERRAIN_TILES_PER_SIDE];
 } PTerrainWorld;
 
 //needs the renderer up, so from the game's init or later
 void pe_vk_terrain_world_create(PTerrainWorld *world);
 
-//loads the square of tiles that reaches radius tiles from the centre one, from
-//directory/map_x_y.wot and .whm, textures from the same directory. a tile
-//whose files are not there is left out, and its neighbours are lit as if it
-//were the edge of the world. false if there was no tile at all.
-//tiles stay loaded: there is nothing here yet that gives a tile's gpu memory
-//back
-bool pe_vk_terrain_world_load_area(PTerrainWorld *world, const char *directory,
-                                   const char *map, int centre_x, int centre_y,
-                                   int radius);
+//how far past the streaming distance a loaded tile is kept, so that a camera
+//crossing a border back and forth does not load and unload the tiles there
+//over and over. the distance and this together should stay under two tiles, or
+//more than PE_TERRAIN_WORLD_SIDE_MAX tiles across can be wanted
+#define PE_TERRAIN_STREAM_MARGIN 100.0f
+
+//keeps the tiles within distance yards of a world position loaded, from
+//directory/map_x_y.wot and .whm, textures from the same directory, and gives
+//back the ground, buildings and props of those farther than distance and the
+//margin. a tile whose files are not there is left out, and its neighbours are
+//lit as if it were the edge of the world.
+//it loads one tile at most a call, the nearest first, so the caller can spread
+//the work over frames by calling it every one, or fill the world by calling it
+//until it returns false. it returns whether it loaded or unloaded anything.
+//the gpu is waited for when a tile is unloaded, so that is where a frame is
+//lost. the textures of a tile stay in the world's cache after it is gone
+bool pe_vk_terrain_world_stream(PTerrainWorld *world, const char *directory,
+                                const char *map, float x, float y,
+                                float distance);
 
 //the height of the ground at a world position, the surface that is drawn and
 //not a flat guess from its corners. false where there is none: no loaded tile

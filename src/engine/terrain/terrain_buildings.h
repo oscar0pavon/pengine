@@ -6,17 +6,25 @@
 #include "terrain_pipeline.h"
 #include "terrain_textures.h"
 
-#define PE_TERRAIN_GPU_BUILDINGS_MAX 512
-#define PE_TERRAIN_INSTANCES_MAX 16384
+#define PE_TERRAIN_GPU_BUILDINGS_MAX 1024
+#define PE_TERRAIN_INSTANCES_MAX 65536
 
 //how many descriptor sets, one for each material of each building, the pool
 //can hand out
-#define PE_TERRAIN_MATERIAL_SETS_MAX 4096
+#define PE_TERRAIN_MATERIAL_SETS_MAX 8192
+
+//how many tiles can list the same building at once. one that stands on the
+//corner of four is listed by all four
+#define PE_TERRAIN_INSTANCE_OWNERS_MAX 4
 
 //one kind of building or prop on the gpu. it is read from disk the first time a
-//tile places it and kept for every placement after, in this tile or the next.
+//tile places it and kept for as long as some placement of it stands, in this
+//tile or the next, and given back when the last one goes.
 //a prop is a building of one group
 typedef struct PTerrainGpuBuilding {
+  //false for a slot nothing is loaded in
+  bool in_use;
+
   char name[PE_TERRAIN_BUILDING_PATH_MAX];
 
   //false for one that could not be loaded, kept so it is not tried again for
@@ -40,6 +48,7 @@ typedef struct PTerrainGpuBuilding {
 
   u32 material_count;
   VkDescriptorSet material_sets[PE_BUILDING_MATERIALS_MAX];
+  const PTexture *material_textures[PE_BUILDING_MATERIALS_MAX];
   float alpha_cutoffs[PE_BUILDING_MATERIALS_MAX];
 
   //how each material is drawn, and whether any is blended
@@ -50,7 +59,16 @@ typedef struct PTerrainGpuBuilding {
 //one building or prop standing somewhere
 typedef struct PTerrainBuildingInstance {
   u32 building;
+
+  //the game's id of the placement it is from, and for a prop inside a building
+  //that of the building. 0 if it has none
   u32 unique_id;
+
+  //the tiles that list it, as their pe_terrain_tile_id(). it stands for as long
+  //as one of them is loaded
+  u16 owners[PE_TERRAIN_INSTANCE_OWNERS_MAX];
+  u8 owner_count;
+
   mat4 model;
 
   //a sphere round the whole of it where it stands, for leaving it out when it
@@ -95,6 +113,14 @@ void pe_vk_terrain_buildings_add_tile(const PTerrainPipeline *pipeline,
                                       PTerrainBuildings *buildings,
                                       const PTerrainTile *tile,
                                       const char *directory);
+
+//takes away what a tile put in the world, which is every building and prop of
+//it that no other loaded tile lists, and gives back the kinds of building that
+//are left with no placement. the gpu must not be drawing any of it, so wait for
+//it to be idle first
+void pe_vk_terrain_buildings_remove_tile(PTerrainBuildings *buildings,
+                                         PTerrainTextures *textures,
+                                         int tile_x, int tile_y);
 
 //how far below a point a floor is looked for
 #define PE_TERRAIN_FLOOR_REACH 60.0f

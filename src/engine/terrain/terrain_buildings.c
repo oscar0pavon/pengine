@@ -21,6 +21,7 @@ void pe_vk_terrain_buildings_create(PTerrainBuildings *buildings) {
       .descriptorCount = PE_TERRAIN_MATERIAL_SETS_MAX};
   VkDescriptorPoolCreateInfo info = {
       .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+      .flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
       .maxSets = PE_TERRAIN_MATERIAL_SETS_MAX,
       .poolSizeCount = 1,
       .pPoolSizes = &size};
@@ -32,9 +33,20 @@ void pe_vk_terrain_buildings_create(PTerrainBuildings *buildings) {
 static PTerrainGpuBuilding *find_building(PTerrainBuildings *buildings,
                                           const char *name) {
   for (u32 i = 0; i < buildings->building_count; i++)
-    if (strcmp(buildings->buildings[i].name, name) == 0)
+    if (buildings->buildings[i].in_use &&
+        strcmp(buildings->buildings[i].name, name) == 0)
       return &buildings->buildings[i];
   return NULL;
+}
+
+static PTerrainGpuBuilding *take_slot(PTerrainBuildings *buildings) {
+  for (u32 i = 0; i < buildings->building_count; i++)
+    if (buildings->buildings[i].in_use == false)
+      return &buildings->buildings[i];
+
+  if (buildings->building_count == PE_TERRAIN_GPU_BUILDINGS_MAX)
+    return NULL;
+  return &buildings->buildings[buildings->building_count++];
 }
 
 static bool allocate_material_set(const PTerrainPipeline *pipeline,
@@ -83,25 +95,27 @@ static PBuildingShader material_shader(const PBuildingMaterial *material) {
              : PE_BUILDING_SHADER_ONE_SIDED;
 }
 
+//material_count is how many are made, so that what is left of a building that
+//ran out of room can be given back
 static bool create_materials(const PTerrainPipeline *pipeline,
                              PTerrainTextures *textures,
                              PTerrainBuildings *buildings,
                              const PBuilding *source, const char *directory,
                              PTerrainGpuBuilding *gpu) {
-  gpu->material_count = source->material_count;
-
   for (u32 i = 0; i < source->material_count; i++) {
     const PBuildingMaterial *material = &source->materials[i];
+
+    if (allocate_material_set(pipeline, buildings, &gpu->material_sets[i]) ==
+        false)
+      return false;
+    gpu->material_count++;
 
     const PTexture *texture =
         material->texture == PE_BUILDING_NO_TEXTURE
             ? pe_vk_terrain_texture_missing(textures)
             : pe_vk_terrain_texture_get(textures, directory,
                                         source->textures[material->texture]);
-
-    if (allocate_material_set(pipeline, buildings, &gpu->material_sets[i]) ==
-        false)
-      return false;
+    gpu->material_textures[i] = texture;
 
     write_material_set(gpu->material_sets[i], texture);
     gpu->alpha_cutoffs[i] =
@@ -138,19 +152,47 @@ static void load_collision(const PBuilding *source, const char *name,
   pe_collision_mesh_load(path, mesh);
 }
 
+static void free_materials(PTerrainBuildings *buildings,
+                           PTerrainTextures *textures,
+                           PTerrainGpuBuilding *gpu) {
+  if (gpu->material_count == 0)
+    return;
+
+  vkFreeDescriptorSets(vk_device, buildings->pool, gpu->material_count,
+                       gpu->material_sets);
+  buildings->sets_used -= gpu->material_count;
+
+  for (u32 i = 0; i < gpu->material_count; i++)
+    pe_vk_terrain_texture_release(textures, gpu->material_textures[i]);
+  gpu->material_count = 0;
+}
+
+static void free_building(PTerrainBuildings *buildings,
+                          PTerrainTextures *textures,
+                          PTerrainGpuBuilding *gpu) {
+  free_materials(buildings, textures, gpu);
+  pe_vk_destroy_buffer(&gpu->vertex_buffer);
+  pe_vk_destroy_buffer(&gpu->index_buffer);
+  free(gpu->batches);
+  pe_collision_mesh_free(&gpu->collision);
+  pe_building_doodads_free(&gpu->doodads);
+  ZERO(*gpu);
+}
+
 static PTerrainGpuBuilding *load_building(const PTerrainPipeline *pipeline,
                                           PTerrainTextures *textures,
                                           PTerrainBuildings *buildings,
                                           const char *name,
                                           const char *directory,
                                           bool collision_as_drawn) {
-  if (buildings->building_count == PE_TERRAIN_GPU_BUILDINGS_MAX) {
+  PTerrainGpuBuilding *gpu = take_slot(buildings);
+  if (gpu == NULL) {
     LOG("terrain: no room for building %s\n", name);
     return NULL;
   }
 
-  PTerrainGpuBuilding *gpu = &buildings->buildings[buildings->building_count++];
   ZERO(*gpu);
+  gpu->in_use = true;
   strcpy(gpu->name, name);
 
   char path[PATH_MAX];
@@ -162,8 +204,10 @@ static PTerrainGpuBuilding *load_building(const PTerrainPipeline *pipeline,
 
   gpu->usable = create_materials(pipeline, textures, buildings, &source,
                                  directory, gpu);
-  if (gpu->usable == false)
+  if (gpu->usable == false) {
     LOG("terrain: no room for the materials of %s\n", name);
+    free_materials(buildings, textures, gpu);
+  }
 
   if (gpu->usable) {
     gpu->vertex_buffer = pe_vk_create_buffer(
@@ -192,15 +236,39 @@ static PTerrainGpuBuilding *load_building(const PTerrainPipeline *pipeline,
   return gpu;
 }
 
-static bool is_already_placed(const PTerrainBuildings *buildings,
-                              u32 unique_id) {
+static bool is_owned_by(const PTerrainBuildingInstance *instance, u16 owner) {
+  for (u32 i = 0; i < instance->owner_count; i++)
+    if (instance->owners[i] == owner)
+      return true;
+  return false;
+}
+
+//a placement that is already in the world, because another tile listed it
+//first, is not added again but stands for this tile too, so it is still there
+//when the first tile is gone. false for one that is not in the world
+static bool share_placement(PTerrainBuildings *buildings, u32 unique_id,
+                            u16 owner) {
+  bool found = false;
+
   if (unique_id == 0)
     return false;
 
-  for (u32 i = 0; i < buildings->instance_count; i++)
-    if (buildings->instances[i].unique_id == unique_id)
-      return true;
-  return false;
+  for (u32 i = 0; i < buildings->instance_count; i++) {
+    PTerrainBuildingInstance *instance = &buildings->instances[i];
+
+    if (instance->unique_id != unique_id)
+      continue;
+
+    found = true;
+    if (is_owned_by(instance, owner) == false &&
+        instance->owner_count < PE_TERRAIN_INSTANCE_OWNERS_MAX)
+      instance->owners[instance->owner_count++] = owner;
+  }
+  return found;
+}
+
+static u16 tile_owner(int tile_x, int tile_y) {
+  return tile_y * PE_TERRAIN_TILES_PER_SIDE + tile_x;
 }
 
 //how much bigger than its model an instance is drawn
@@ -219,7 +287,7 @@ static void place_sphere(const PTerrainGpuBuilding *building,
 
 static bool add_instance(PTerrainBuildings *buildings,
                          const PTerrainGpuBuilding *gpu, u32 unique_id,
-                         const mat4 model) {
+                         u16 owner, const mat4 model) {
   if (buildings->instance_count == PE_TERRAIN_INSTANCES_MAX) {
     LOG("terrain: no room for more than %d buildings and props\n",
         PE_TERRAIN_INSTANCES_MAX);
@@ -230,6 +298,8 @@ static bool add_instance(PTerrainBuildings *buildings,
       &buildings->instances[buildings->instance_count++];
   instance->building = gpu - buildings->buildings;
   instance->unique_id = unique_id;
+  instance->owners[0] = owner;
+  instance->owner_count = 1;
   glm_mat4_copy((vec4 *)model, instance->model);
   place_sphere(gpu, instance);
   return true;
@@ -249,12 +319,13 @@ static PTerrainGpuBuilding *usable_building(const PTerrainPipeline *pipeline,
 }
 
 //the props inside a building, of set 0 and of the set this placement chose. they
-//have no unique id of their own, and the building's own stops a second copy
+//have no unique id of their own, they carry the building's, and it stops a second
+//copy and gives them the same owners
 static bool add_doodad_set(const PTerrainPipeline *pipeline,
                            PTerrainTextures *textures,
                            PTerrainBuildings *buildings, const char *directory,
                            const PTerrainGpuBuilding *building, u32 set,
-                           const mat4 model) {
+                           u32 unique_id, u16 owner, const mat4 model) {
   const PBuildingDoodads *doodads = &building->doodads;
   if (set >= doodads->set_count)
     return true;
@@ -271,7 +342,7 @@ static bool add_doodad_set(const PTerrainPipeline *pipeline,
 
     mat4 placed;
     pe_building_doodad_matrix(model, doodad, placed);
-    if (add_instance(buildings, gpu, 0, placed) == false)
+    if (add_instance(buildings, gpu, unique_id, owner, placed) == false)
       return false;
   }
   return true;
@@ -281,14 +352,16 @@ static bool add_doodads(const PTerrainPipeline *pipeline,
                         PTerrainTextures *textures, PTerrainBuildings *buildings,
                         const char *directory,
                         const PTerrainGpuBuilding *building,
-                        const PTerrainPlacement *placement, const mat4 model) {
+                        const PTerrainPlacement *placement, u16 owner,
+                        const mat4 model) {
   if (add_doodad_set(pipeline, textures, buildings, directory, building, 0,
-                     model) == false)
+                     placement->unique_id, owner, model) == false)
     return false;
 
   return placement->doodad_set == 0 ||
          add_doodad_set(pipeline, textures, buildings, directory, building,
-                        placement->doodad_set, model);
+                        placement->doodad_set, placement->unique_id, owner,
+                        model);
 }
 
 static void add_placements(const PTerrainPipeline *pipeline,
@@ -296,11 +369,11 @@ static void add_placements(const PTerrainPipeline *pipeline,
                            PTerrainBuildings *buildings, const char *directory,
                            const char (*names)[PE_TERRAIN_BUILDING_PATH_MAX],
                            const PTerrainPlacement *placements, u32 count,
-                           bool collision_as_drawn) {
+                           u16 owner, bool collision_as_drawn) {
   for (u32 i = 0; i < count; i++) {
     const PTerrainPlacement *placement = &placements[i];
 
-    if (is_already_placed(buildings, placement->unique_id))
+    if (share_placement(buildings, placement->unique_id, owner))
       continue;
 
     PTerrainGpuBuilding *gpu = usable_building(
@@ -311,9 +384,10 @@ static void add_placements(const PTerrainPipeline *pipeline,
 
     mat4 model;
     pe_terrain_placement_matrix(placement, model);
-    if (add_instance(buildings, gpu, placement->unique_id, model) == false ||
+    if (add_instance(buildings, gpu, placement->unique_id, owner, model) ==
+            false ||
         add_doodads(pipeline, textures, buildings, directory, gpu, placement,
-                    model) == false)
+                    owner, model) == false)
       return;
   }
 }
@@ -330,15 +404,64 @@ void pe_vk_terrain_buildings_add_tile(const PTerrainPipeline *pipeline,
                                       PTerrainBuildings *buildings,
                                       const PTerrainTile *tile,
                                       const char *directory) {
+  u16 owner = tile_owner(tile->tile_x, tile->tile_y);
+
   add_placements(pipeline, textures, buildings, directory,
                  (const char(*)[PE_TERRAIN_BUILDING_PATH_MAX])tile->buildings,
-                 tile->placements, tile->placement_count, true);
+                 tile->placements, tile->placement_count, owner, true);
   add_placements(pipeline, textures, buildings, directory,
                  (const char(*)[PE_TERRAIN_BUILDING_PATH_MAX])tile->props,
-                 tile->prop_placements, tile->prop_placement_count, false);
+                 tile->prop_placements, tile->prop_placement_count, owner,
+                 false);
 
   qsort(buildings->instances, buildings->instance_count,
         sizeof(buildings->instances[0]), compare_buildings);
+}
+
+static void disown(PTerrainBuildingInstance *instance, u16 owner) {
+  for (u32 i = 0; i < instance->owner_count; i++) {
+    if (instance->owners[i] != owner)
+      continue;
+
+    instance->owners[i] = instance->owners[--instance->owner_count];
+    return;
+  }
+}
+
+//one that could not be loaded holds nothing, and is kept so it is not tried
+//again by every tile that places it
+static void free_unplaced_buildings(PTerrainBuildings *buildings,
+                                    PTerrainTextures *textures) {
+  static bool placed[PE_TERRAIN_GPU_BUILDINGS_MAX];
+  memset(placed, 0, sizeof(placed));
+
+  for (u32 i = 0; i < buildings->instance_count; i++)
+    placed[buildings->instances[i].building] = true;
+
+  for (u32 i = 0; i < buildings->building_count; i++) {
+    PTerrainGpuBuilding *gpu = &buildings->buildings[i];
+
+    if (gpu->in_use && gpu->usable && placed[i] == false)
+      free_building(buildings, textures, gpu);
+  }
+}
+
+void pe_vk_terrain_buildings_remove_tile(PTerrainBuildings *buildings,
+                                         PTerrainTextures *textures,
+                                         int tile_x, int tile_y) {
+  u16 owner = tile_owner(tile_x, tile_y);
+  u32 kept = 0;
+
+  for (u32 i = 0; i < buildings->instance_count; i++) {
+    PTerrainBuildingInstance *instance = &buildings->instances[i];
+
+    disown(instance, owner);
+    if (instance->owner_count > 0)
+      buildings->instances[kept++] = *instance;
+  }
+
+  buildings->instance_count = kept;
+  free_unplaced_buildings(buildings, textures);
 }
 
 //what the fragment shader is told about a material: where it cuts out, and 0

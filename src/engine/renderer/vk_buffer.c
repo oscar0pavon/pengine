@@ -80,3 +80,25 @@ void pe_vk_update_buffer(PBuffer *buffer, void *data, u64 size) {
   memcpy(vulkan_memory, data, size);
   vkUnmapMemory(vk_device, buffer->memory);
 }
+
+//the buffers are registered so that pe_vk_end() destroys the ones still alive,
+//and one that is destroyed here must not be destroyed there again
+static void forget_buffer(VkBuffer buffer) {
+  for (u32 i = 0; i < buffers.count; i++) {
+    VkBuffer *registered = array_get(&buffers, i);
+    if (*registered != buffer)
+      continue;
+
+    *registered = *(VkBuffer *)array_get(&buffers, buffers.count - 1);
+    buffers.count--;
+    buffers.bytes_size -= sizeof(VkBuffer);
+    return;
+  }
+}
+
+void pe_vk_destroy_buffer(PBuffer *buffer) {
+  forget_buffer(buffer->buffer);
+  vkDestroyBuffer(vk_device, buffer->buffer, NULL);
+  vkFreeMemory(vk_device, buffer->memory, NULL);
+  ZERO(*buffer);
+}

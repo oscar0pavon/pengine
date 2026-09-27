@@ -30,6 +30,9 @@ typedef struct PTerrainGpuWater {
 void pe_vk_terrain_water_upload(const PTerrainTile *tile,
                                 PTerrainGpuWater *water);
 
+//gives the buffers back, if it has any. the gpu must not be drawing it
+void pe_vk_terrain_water_free(PTerrainGpuWater *water);
+
 //call it after the ground of every tile, since it blends over what is there
 void pe_vk_terrain_water_draw(const PTerrainPipeline *pipeline,
                               const PTerrainFrames *frames,
