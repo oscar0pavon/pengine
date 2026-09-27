@@ -29,7 +29,8 @@ typedef struct PTerrainWorld {
   PTerrainTextures textures;
   PTerrainBuildings buildings;
 
-  //how many buildings the last draw recorded, for whoever wants to know
+  //how many buildings and props the last draw recorded, for whoever wants to
+  //know
   u32 buildings_drawn;
 
   u32 tile_count;
@@ -57,8 +58,9 @@ bool pe_terrain_world_height_at(const PTerrainWorld *world, float x, float y,
                                 float *height);
 
 //sends the frame to the gpu, then records the sky, the ground of every tile,
-//the buildings on it, and last the water of every tile, which blends over both. call it from
-//the pe_vk_draw_scene hook. returns how many chunks of ground were drawn
+//the buildings and props on it, and last the water of every tile, which blends
+//over both. call it from the pe_vk_draw_scene hook. returns how many chunks of
+//ground were drawn
 u32 pe_vk_terrain_world_draw(PTerrainWorld *world, const PTerrainFrame *frame,
                              VkCommandBuffer command, u32 image_index);
 

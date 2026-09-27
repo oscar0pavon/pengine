@@ -7,6 +7,7 @@
 
 #include <limits.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 //INFO what is cut out and what is not: an opaque material keeps every pixel
@@ -138,6 +139,12 @@ static PTerrainGpuBuilding *load_building(const PTerrainPipeline *pipeline,
 
     gpu->group_count = source.group_count;
     memcpy(gpu->groups, source.groups, sizeof(source.groups));
+    for (u32 i = 0; i < source.group_count; i++)
+      gpu->has_rooms |= pe_building_group_is_room(&source.groups[i]);
+
+    glm_vec3_center(&source.bounds[0], &source.bounds[3], gpu->sphere);
+    gpu->sphere[3] =
+        glm_vec3_distance(&source.bounds[0], &source.bounds[3]) / 2;
   }
 
   pe_building_free(&source);
@@ -155,24 +162,34 @@ static bool is_already_placed(const PTerrainBuildings *buildings,
   return false;
 }
 
-void pe_vk_terrain_buildings_add_tile(const PTerrainPipeline *pipeline,
-                                      PTerrainTextures *textures,
-                                      PTerrainBuildings *buildings,
-                                      const PTerrainTile *tile,
-                                      const char *directory) {
-  for (u32 i = 0; i < tile->placement_count; i++) {
-    const PTerrainPlacement *placement = &tile->placements[i];
+//the sphere round a building where it stands: the one round its model, moved
+//and grown as it is
+static void place_sphere(const PTerrainGpuBuilding *building,
+                         const PTerrainPlacement *placement,
+                         PTerrainBuildingInstance *instance) {
+  glm_mat4_mulv3(instance->model, (float *)building->sphere, 1,
+                 instance->sphere);
+  instance->sphere[3] = building->sphere[3] * placement->scale;
+}
+
+static void add_placements(const PTerrainPipeline *pipeline,
+                           PTerrainTextures *textures,
+                           PTerrainBuildings *buildings, const char *directory,
+                           const char (*names)[PE_TERRAIN_BUILDING_PATH_MAX],
+                           const PTerrainPlacement *placements, u32 count) {
+  for (u32 i = 0; i < count; i++) {
+    const PTerrainPlacement *placement = &placements[i];
 
     if (is_already_placed(buildings, placement->unique_id))
       continue;
 
     if (buildings->instance_count == PE_TERRAIN_INSTANCES_MAX) {
-      LOG("terrain: no room for more than %d buildings\n",
+      LOG("terrain: no room for more than %d buildings and props\n",
           PE_TERRAIN_INSTANCES_MAX);
       return;
     }
 
-    const char *name = tile->buildings[placement->building];
+    const char *name = names[placement->model];
     PTerrainGpuBuilding *gpu = find_building(buildings, name);
     if (gpu == NULL)
       gpu = load_building(pipeline, textures, buildings, name, directory);
@@ -184,14 +201,31 @@ void pe_vk_terrain_buildings_add_tile(const PTerrainPipeline *pipeline,
     instance->building = gpu - buildings->buildings;
     instance->unique_id = placement->unique_id;
     pe_terrain_placement_matrix(placement, instance->model);
-
-    //the box the game stored for it is the box round all of it where it stands
-    glm_vec3_center((float *)&placement->bounds[0],
-                    (float *)&placement->bounds[3], instance->sphere);
-    instance->sphere[3] = glm_vec3_distance((float *)&placement->bounds[0],
-                                            (float *)&placement->bounds[3]) /
-                          2;
+    place_sphere(gpu, placement, instance);
   }
+}
+
+static int compare_buildings(const void *left, const void *right) {
+  const PTerrainBuildingInstance *a = left;
+  const PTerrainBuildingInstance *b = right;
+
+  return (a->building > b->building) - (a->building < b->building);
+}
+
+void pe_vk_terrain_buildings_add_tile(const PTerrainPipeline *pipeline,
+                                      PTerrainTextures *textures,
+                                      PTerrainBuildings *buildings,
+                                      const PTerrainTile *tile,
+                                      const char *directory) {
+  add_placements(pipeline, textures, buildings, directory,
+                 (const char(*)[PE_TERRAIN_BUILDING_PATH_MAX])tile->buildings,
+                 tile->placements, tile->placement_count);
+  add_placements(pipeline, textures, buildings, directory,
+                 (const char(*)[PE_TERRAIN_BUILDING_PATH_MAX])tile->props,
+                 tile->prop_placements, tile->prop_placement_count);
+
+  qsort(buildings->instances, buildings->instance_count,
+        sizeof(buildings->instances[0]), compare_buildings);
 }
 
 static void draw_batches(const PTerrainPipeline *pipeline,
@@ -237,6 +271,22 @@ static void bind_building(const PTerrainGpuBuilding *building,
                        VK_INDEX_TYPE_UINT32);
 }
 
+//the camera in the building's own axes, which is where its rooms are
+static bool camera_in_a_room(const PTerrainGpuBuilding *building,
+                             const PTerrainBuildingInstance *instance,
+                             const PTerrainFrame *frame) {
+  if (building->has_rooms == false)
+    return false;
+
+  mat4 inverse;
+  glm_mat4_inv((vec4 *)instance->model, inverse);
+  vec4 local;
+  glm_mat4_mulv(inverse, (float *)frame->camera_position, local);
+
+  return pe_building_camera_in_a_room(building->groups, building->group_count,
+                                      local);
+}
+
 u32 pe_vk_terrain_buildings_draw(const PTerrainPipeline *pipeline,
                                  const PTerrainFrames *frames,
                                  const PTerrainBuildings *buildings,
@@ -258,45 +308,32 @@ u32 pe_vk_terrain_buildings_draw(const PTerrainPipeline *pipeline,
                           &frames->sets[image_index], 0, NULL);
 
   u32 drawn = 0;
+  u32 bound = UINT32_MAX;
 
-  //one building at a time, so its buffers are bound once for every placement
-  //of it rather than once for each
-  for (u32 b = 0; b < buildings->building_count; b++) {
-    const PTerrainGpuBuilding *building = &buildings->buildings[b];
-    bool bound = false;
+  for (u32 i = 0; i < buildings->instance_count; i++) {
+    const PTerrainBuildingInstance *instance = &buildings->instances[i];
+    const PTerrainGpuBuilding *building =
+        &buildings->buildings[instance->building];
 
-    for (u32 i = 0; i < buildings->instance_count; i++) {
-      const PTerrainBuildingInstance *instance = &buildings->instances[i];
+    if (pe_terrain_sphere_in_frustum(planes, instance->sphere) == false)
+      continue;
 
-      if (instance->building != b ||
-          pe_terrain_sphere_in_frustum(planes, instance->sphere) == false)
-        continue;
+    if (view_distance > 0 &&
+        pe_terrain_sphere_within(instance->sphere, frame->camera_position,
+                                 view_distance) == false)
+      continue;
 
-      if (view_distance > 0 &&
-          pe_terrain_sphere_within(instance->sphere, frame->camera_position,
-                                   view_distance) == false)
-        continue;
-
-      if (bound == false) {
-        bind_building(building, command);
-        bound = true;
-      }
-
-      //the camera in the building's own axes, which is where its rooms are
-      mat4 inverse;
-      glm_mat4_inv((vec4 *)instance->model, inverse);
-      vec4 local;
-      glm_mat4_mulv(inverse, (float *)frame->camera_position, local);
-
-      vkCmdPushConstants(command, pipeline->building_layout,
-                         VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mat4),
-                         instance->model);
-      draw_batches(pipeline, building,
-                   pe_building_camera_in_a_room(building->groups,
-                                                building->group_count, local),
-                   command);
-      drawn++;
+    if (instance->building != bound) {
+      bind_building(building, command);
+      bound = instance->building;
     }
+
+    vkCmdPushConstants(command, pipeline->building_layout,
+                       VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mat4),
+                       instance->model);
+    draw_batches(pipeline, building,
+                 camera_in_a_room(building, instance, frame), command);
+    drawn++;
   }
   return drawn;
 }

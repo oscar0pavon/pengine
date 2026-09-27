@@ -85,27 +85,28 @@ static bool read_chunk_layers(const JSON_Object *root, PTerrainTile *tile) {
   return true;
 }
 
-static bool read_building_names(const JSON_Object *root,
-                                PTerrainTile *tile) {
-  const JSON_Array *names = json_object_get_array(root, "wmoNames");
+static bool read_names(const JSON_Object *root, const char *key,
+                       u32 capacity, char (*out)[PE_TERRAIN_BUILDING_PATH_MAX],
+                       u32 *out_count) {
+  const JSON_Array *names = json_object_get_array(root, key);
   size_t count = json_array_get_count(names);
 
-  if (count > PE_TERRAIN_BUILDINGS_MAX) {
-    LOG("terrain: %zu kinds of building, the most a tile takes is %d\n", count,
-        PE_TERRAIN_BUILDINGS_MAX);
+  if (count > capacity) {
+    LOG("terrain: %zu %s, the most a tile takes is %u\n", count, key,
+        capacity);
     return false;
   }
 
   for (size_t i = 0; i < count; i++) {
     const char *name = json_array_get_string(names, i);
     if (name == NULL || strlen(name) >= PE_TERRAIN_BUILDING_PATH_MAX) {
-      LOG("terrain: building name %zu is missing or too long\n", i);
+      LOG("terrain: %s name %zu is missing or too long\n", key, i);
       return false;
     }
-    strcpy(tile->buildings[i], name);
+    strcpy(out[i], name);
   }
 
-  tile->building_count = count;
+  *out_count = count;
   return true;
 }
 
@@ -138,42 +139,54 @@ static void box_to_world(const float adt[6], float world[6]) {
   }
 }
 
+//the game's 1024 is life size. a scale it leaves out or writes as 0 is life size
+static float scale_from_json(const JSON_Object *entry) {
+  double scale = json_object_get_number(entry, "scale");
+
+  return scale > 0 ? (float)scale / PE_TERRAIN_SCALE_ONE : 1.0f;
+}
+
 static bool read_placement(const JSON_Object *entry, size_t index,
-                           PTerrainTile *tile) {
-  PTerrainPlacement *placement = &tile->placements[index];
+                           u32 model_count, bool has_bounds,
+                           PTerrainPlacement *placement) {
   double name_id = json_object_get_number(entry, "nameId");
   float position[3], bounds[6];
 
-  if (name_id < 0 || name_id >= tile->building_count ||
+  if (name_id < 0 || name_id >= model_count ||
       read_numbers(entry, "pos", position, 3) == false ||
       read_numbers(entry, "rot", placement->rotation, 3) == false ||
-      read_numbers(entry, "bounds", bounds, 6) == false) {
-    LOG("terrain: building placement %zu is not complete\n", index);
+      (has_bounds && read_numbers(entry, "bounds", bounds, 6) == false)) {
+    LOG("terrain: placement %zu is not complete\n", index);
     return false;
   }
 
-  placement->building = (u32)name_id;
+  placement->model = (u32)name_id;
   placement->unique_id = (u32)json_object_get_number(entry, "uniqueId");
+  placement->scale = has_bounds ? 1.0f : scale_from_json(entry);
   pe_terrain_adt_to_world(position, placement->position);
-  box_to_world(bounds, placement->bounds);
+  if (has_bounds)
+    box_to_world(bounds, placement->bounds);
   return true;
 }
 
-static bool read_placements(const JSON_Object *root, PTerrainTile *tile) {
-  const JSON_Array *entries = json_object_get_array(root, "wmos");
+static bool read_placements(const JSON_Object *root, const char *key,
+                            u32 capacity, u32 model_count, bool has_bounds,
+                            PTerrainPlacement *out, u32 *out_count) {
+  const JSON_Array *entries = json_object_get_array(root, key);
   size_t count = json_array_get_count(entries);
 
-  if (count > PE_TERRAIN_PLACEMENTS_MAX) {
-    LOG("terrain: %zu buildings placed, the most a tile takes is %d\n", count,
-        PE_TERRAIN_PLACEMENTS_MAX);
+  if (count > capacity) {
+    LOG("terrain: %zu %s placed, the most a tile takes is %u\n", count, key,
+        capacity);
     return false;
   }
 
   for (size_t i = 0; i < count; i++)
-    if (read_placement(json_array_get_object(entries, i), i, tile) == false)
+    if (read_placement(json_array_get_object(entries, i), i, model_count,
+                       has_bounds, &out[i]) == false)
       return false;
 
-  tile->placement_count = count;
+  *out_count = count;
   return true;
 }
 
@@ -195,7 +208,16 @@ static bool read_metadata(const char *path, PTerrainTile *tile) {
         tile->tile_y, PE_TERRAIN_TILES_PER_SIDE, PE_TERRAIN_TILES_PER_SIDE);
 
   valid = valid && read_textures(root, tile) && read_chunk_layers(root, tile) &&
-          read_building_names(root, tile) && read_placements(root, tile);
+          read_names(root, "wmoNames", PE_TERRAIN_BUILDINGS_MAX,
+                     tile->buildings, &tile->building_count) &&
+          read_placements(root, "wmos", PE_TERRAIN_PLACEMENTS_MAX,
+                          tile->building_count, true, tile->placements,
+                          &tile->placement_count) &&
+          read_names(root, "doodadNames", PE_TERRAIN_PROPS_MAX, tile->props,
+                     &tile->prop_count) &&
+          read_placements(root, "doodads", PE_TERRAIN_PROP_PLACEMENTS_MAX,
+                          tile->prop_count, false, tile->prop_placements,
+                          &tile->prop_placement_count);
 
   json_value_free(document);
   return valid;

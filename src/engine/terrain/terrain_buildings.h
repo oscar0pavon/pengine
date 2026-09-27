@@ -5,15 +5,16 @@
 #include "terrain_pipeline.h"
 #include "terrain_textures.h"
 
-#define PE_TERRAIN_GPU_BUILDINGS_MAX 64
-#define PE_TERRAIN_INSTANCES_MAX 512
+#define PE_TERRAIN_GPU_BUILDINGS_MAX 512
+#define PE_TERRAIN_INSTANCES_MAX 16384
 
 //how many descriptor sets, one for each material of each building, the pool
 //can hand out
 #define PE_TERRAIN_MATERIAL_SETS_MAX 4096
 
-//one kind of building on the gpu. it is read from disk the first time a tile
-//places it and kept for every placement after, in this tile or the next
+//one kind of building or prop on the gpu. it is read from disk the first time a
+//tile places it and kept for every placement after, in this tile or the next.
+//a prop is a building of one group
 typedef struct PTerrainGpuBuilding {
   char name[PE_TERRAIN_BUILDING_PATH_MAX];
 
@@ -26,6 +27,13 @@ typedef struct PTerrainGpuBuilding {
   u32 batch_count;
   PBuildingBatch *batches;
 
+  //a sphere round the whole of it, the centre in its own axes and then the radius
+  vec4 sphere;
+
+  //whether any group is a room, which is what says the camera is to be looked
+  //for in it
+  bool has_rooms;
+
   //which batches are rooms is worked out from these
   u32 group_count;
   PBuildingGroup groups[PE_BUILDING_GROUPS_MAX];
@@ -35,13 +43,14 @@ typedef struct PTerrainGpuBuilding {
   float alpha_cutoffs[PE_BUILDING_MATERIALS_MAX];
 } PTerrainGpuBuilding;
 
-//one building standing somewhere
+//one building or prop standing somewhere
 typedef struct PTerrainBuildingInstance {
   u32 building;
   u32 unique_id;
   mat4 model;
 
-  //a sphere round the whole of it, for leaving it out when it cannot be seen
+  //a sphere round the whole of it where it stands, for leaving it out when it
+  //cannot be seen
   vec4 sphere;
 } PTerrainBuildingInstance;
 
@@ -52,6 +61,8 @@ typedef struct PTerrainBuildings {
   u32 building_count;
   PTerrainGpuBuilding buildings[PE_TERRAIN_GPU_BUILDINGS_MAX];
 
+  //kept in the order of the buildings, so that one is bound once for all the
+  //places it stands
   u32 instance_count;
   PTerrainBuildingInstance instances[PE_TERRAIN_INSTANCES_MAX];
 } PTerrainBuildings;
@@ -59,11 +70,11 @@ typedef struct PTerrainBuildings {
 //needs the renderer up, so from the game's init or later
 void pe_vk_terrain_buildings_create(PTerrainBuildings *buildings);
 
-//puts the buildings a tile places in the world. the buildings themselves and
+//puts the buildings and props a tile places in the world. they themselves and
 //their textures are read from directory, "world/wmo/.../x.wwb" and the like,
-//and a building that is not there is logged once and left out. a placement
-//with the unique id of one already in the world is left out too, because a
-//building that stands across two tiles is listed by each
+//and one that is not there is logged once and left out. a placement with the
+//unique id of one already in the world is left out too, because a building
+//that stands across two tiles is listed by each, and so is a prop
 void pe_vk_terrain_buildings_add_tile(const PTerrainPipeline *pipeline,
                                       PTerrainTextures *textures,
                                       PTerrainBuildings *buildings,

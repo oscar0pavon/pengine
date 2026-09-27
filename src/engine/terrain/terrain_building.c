@@ -186,6 +186,7 @@ void pe_terrain_placement_matrix(const PTerrainPlacement *placement,
   glm_rotate_z(matrix, about_z, matrix);
   glm_rotate_y(matrix, about_y, matrix);
   glm_rotate_x(matrix, about_x, matrix);
+  glm_scale_uni(matrix, placement->scale);
 }
 
 bool pe_building_group_is_room(const PBuildingGroup *group) {

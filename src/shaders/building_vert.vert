@@ -21,8 +21,9 @@ void main() {
   vec4 world = placement.model * vec4(position, 1.0);
 
   out_position = world.xyz;
-  //the placement is a rotation, and a reflection of one axis, and no scale, so
-  //the normals turn with it as they are
+  //the placement is a rotation, a reflection of one axis and an even scale, so
+  //the normals turn with it as they are, and the fragment shader sets their
+  //length back
   out_normal = mat3(placement.model) * normal;
   out_uv = uv;
   out_color = color;

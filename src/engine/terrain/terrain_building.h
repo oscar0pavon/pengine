@@ -113,7 +113,8 @@ bool pe_building_camera_in_a_room(const PBuildingGroup *groups, u32 count,
 //(rotation[2], rotation[0], rotation[1] + 180). the +180 is not optional: left
 //out, the boxes are ten yards out. in front of all that sits the reflection of
 //Y that makes the world east and not west, so the building's own vertices stay
-//as the game wrote them
+//as the game wrote them. the scale of a prop comes last, so it grows about its
+//own origin
 void pe_terrain_placement_matrix(const PTerrainPlacement *placement,
                                  mat4 matrix);
 

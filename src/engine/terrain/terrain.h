@@ -30,10 +30,16 @@
 #define PE_TERRAIN_WATER_QUADS 64
 
 //the buildings a tile places: how many kinds, how many placements in all, and
-//how long the path a kind is loaded by can be
+//how long the path a kind is loaded by can be. the props, the trees and fences
+//and barrels, are far more of both
 #define PE_TERRAIN_BUILDINGS_MAX 64
 #define PE_TERRAIN_BUILDING_PATH_MAX 128
 #define PE_TERRAIN_PLACEMENTS_MAX 256
+#define PE_TERRAIN_PROPS_MAX 512
+#define PE_TERRAIN_PROP_PLACEMENTS_MAX 8192
+
+//a prop's scale in the game's map files, where this is life size
+#define PE_TERRAIN_SCALE_ONE 1024.0f
 
 #define PE_TERRAIN_TEXTURES_MAX 128
 #define PE_TERRAIN_TEXTURE_PATH_MAX 128
@@ -72,21 +78,25 @@ typedef struct PTerrainChunkWater {
   u8 visible[PE_TERRAIN_WATER_QUADS];
 } PTerrainChunkWater;
 
-//one building standing in the world. the position and the box are in the
-//engine's world, but the rotation is the three degrees the game stores, which
-//pe_terrain_placement_matrix() knows how to read
+//one building or prop standing in the world. the position and the box are in
+//the engine's world, but the rotation is the three degrees the game stores,
+//which pe_terrain_placement_matrix() knows how to read
 typedef struct PTerrainPlacement {
-  u32 building;
+  //which of the tile's buildings or props it is
+  u32 model;
   u32 unique_id;
   float position[3];
   float rotation[3];
 
+  //1 for a building
+  float scale;
+
   //the box the game's own tools computed for it, low corner then high, which
-  //is what the placement can be checked against
+  //is what the placement can be checked against. a prop has none
   float bounds[6];
 } PTerrainPlacement;
 
-//about 3 MB, so it belongs in static or heap memory and not on a stack
+//about 4 MB, so it belongs in static or heap memory and not on a stack
 typedef struct PTerrainTile {
   int tile_x;
   int tile_y;
@@ -103,6 +113,13 @@ typedef struct PTerrainTile {
 
   u32 placement_count;
   PTerrainPlacement placements[PE_TERRAIN_PLACEMENTS_MAX];
+
+  //the same for the props, named by a path to a .wwb as well
+  u32 prop_count;
+  char props[PE_TERRAIN_PROPS_MAX][PE_TERRAIN_BUILDING_PATH_MAX];
+
+  u32 prop_placement_count;
+  PTerrainPlacement prop_placements[PE_TERRAIN_PROP_PLACEMENTS_MAX];
 } PTerrainTile;
 
 #define PE_TERRAIN_STEPS_PER_TILE (PE_TERRAIN_CHUNKS_PER_SIDE * 8)
