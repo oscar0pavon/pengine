@@ -58,14 +58,15 @@ bool pe_terrain_world_height_at(const PTerrainWorld *world, float x, float y,
                                 float *height);
 
 //the height of the floor a walker stands on at x and y, when it is at z: the
-//ground, or the highest floor of a building at or below z, whichever is higher.
+//ground, or the highest floor of a building or a prop at or below z, whichever
+//is higher.
 //a roof or an upper floor over its head is not looked at. false where there is
 //neither
 bool pe_terrain_world_floor_at(const PTerrainWorld *world, float x, float y,
                                float z, float *height);
 
-//moves the centre of a sphere out of the walls of the buildings, and returns
-//whether it moved. this is for a walker's body, and it leaves the ground and the
+//moves the centre of a sphere out of the walls of the buildings and props, and
+//returns whether it moved. this is for a walker's body, and it leaves the ground and the
 //floors to pe_terrain_world_floor_at()
 bool pe_terrain_world_push_out(const PTerrainWorld *world, vec3 centre,
                                float radius);

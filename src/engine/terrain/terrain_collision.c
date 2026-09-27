@@ -1,6 +1,9 @@
 #include "terrain_collision.h"
 
+#include <engine/log.h>
+
 #include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -32,19 +35,16 @@ static bool is_degenerate(const float *a, const float *b, const float *c) {
   return glm_vec3_norm2(normal) < 1e-12f;
 }
 
-static bool copy_triangles(const PBuilding *source, PCollisionMesh *mesh) {
-  mesh->vertex_count = source->vertex_count;
-  mesh->positions = malloc(source->vertex_count * sizeof(*mesh->positions));
-  mesh->triangles = malloc((source->index_count / 3 + 1) * sizeof(*mesh->triangles));
-  if (mesh->positions == NULL || mesh->triangles == NULL)
+//keeps the triangles that have an area, out of index_count indices that count
+//from the mesh's own positions
+static bool keep_triangles(PCollisionMesh *mesh, const u32 *indices,
+                           u32 index_count) {
+  mesh->triangles = malloc((index_count / 3 + 1) * sizeof(*mesh->triangles));
+  if (mesh->triangles == NULL)
     return false;
 
-  for (u32 i = 0; i < source->vertex_count; i++)
-    memcpy(mesh->positions[i], source->vertices[i].position,
-           sizeof(mesh->positions[i]));
-
-  for (u32 i = 0; i + 2 < source->index_count; i += 3) {
-    const u32 *corners = &source->indices[i];
+  for (u32 i = 0; i + 2 < index_count; i += 3) {
+    const u32 *corners = &indices[i];
 
     if (is_degenerate(mesh->positions[corners[0]], mesh->positions[corners[1]],
                       mesh->positions[corners[2]]))
@@ -145,10 +145,9 @@ static void fill_cells(PCollisionMesh *mesh, bool fill) {
   free(next);
 }
 
-bool pe_collision_mesh_build(const PBuilding *source, PCollisionMesh *mesh) {
-  memset(mesh, 0, sizeof(*mesh));
-
-  if (copy_triangles(source, mesh) == false) {
+static bool make_mesh(PCollisionMesh *mesh, const u32 *indices,
+                      u32 index_count) {
+  if (mesh->positions == NULL || keep_triangles(mesh, indices, index_count) == false) {
     pe_collision_mesh_free(mesh);
     return false;
   }
@@ -157,6 +156,62 @@ bool pe_collision_mesh_build(const PBuilding *source, PCollisionMesh *mesh) {
   fill_cells(mesh, false);
   fill_cells(mesh, true);
   return true;
+}
+
+bool pe_collision_mesh_from_building(const PBuilding *source,
+                                     PCollisionMesh *mesh) {
+  memset(mesh, 0, sizeof(*mesh));
+
+  mesh->vertex_count = source->vertex_count;
+  mesh->positions = malloc((source->vertex_count + 1) * sizeof(*mesh->positions));
+  for (u32 i = 0; mesh->positions && i < source->vertex_count; i++)
+    memcpy(mesh->positions[i], source->vertices[i].position,
+           sizeof(mesh->positions[i]));
+
+  return make_mesh(mesh, source->indices, source->index_count);
+}
+
+#define WWC_MAGIC 0x31435757
+#define WWC_POSITIONS_MAX 65536
+#define WWC_INDICES_MAX (3 * 65536)
+
+bool pe_collision_mesh_load(const char *path, PCollisionMesh *mesh) {
+  memset(mesh, 0, sizeof(*mesh));
+
+  FILE *file = fopen(path, "rb");
+  if (file == NULL)
+    return false;
+
+  u32 header[3];
+  u32 *indices = NULL;
+  bool valid = fread(header, sizeof(u32), 3, file) == 3 &&
+               header[0] == WWC_MAGIC && header[1] > 0 &&
+               header[1] <= WWC_POSITIONS_MAX && header[2] > 0 &&
+               header[2] <= WWC_INDICES_MAX;
+
+  if (valid) {
+    mesh->vertex_count = header[1];
+    mesh->positions = malloc(header[1] * sizeof(*mesh->positions));
+    indices = malloc(header[2] * sizeof(u32));
+
+    valid = mesh->positions != NULL && indices != NULL &&
+            fread(mesh->positions, sizeof(*mesh->positions), header[1], file) ==
+                header[1] &&
+            fread(indices, sizeof(u32), header[2], file) == header[2];
+  }
+  fclose(file);
+
+  for (u32 i = 0; valid && i < header[2]; i++)
+    valid = indices[i] < header[1];
+
+  if (valid == false)
+    LOG("terrain: %s is not a usable file of collision\n", path);
+
+  bool made = valid && make_mesh(mesh, indices, header[2]);
+  if (valid == false)
+    pe_collision_mesh_free(mesh);
+  free(indices);
+  return made;
 }
 
 void pe_collision_mesh_free(PCollisionMesh *mesh) {

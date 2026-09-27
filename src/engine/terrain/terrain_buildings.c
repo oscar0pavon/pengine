@@ -122,12 +122,28 @@ static void load_doodads(const char *name, const char *directory,
   pe_building_doodads_load(path, &gpu->doodads);
 }
 
+//a building is walked into by the triangles it is drawn with, and a prop by the
+//few of its own in the .wwc beside its .wwb, if it has any
+static void load_collision(const PBuilding *source, const char *name,
+                           const char *directory, bool as_drawn,
+                           PCollisionMesh *mesh) {
+  if (as_drawn) {
+    pe_collision_mesh_from_building(source, mesh);
+    return;
+  }
+
+  char path[PATH_MAX];
+  snprintf(path, sizeof(path), "%s/%.*s.wwc", directory, (int)strlen(name) - 4,
+           name);
+  pe_collision_mesh_load(path, mesh);
+}
+
 static PTerrainGpuBuilding *load_building(const PTerrainPipeline *pipeline,
                                           PTerrainTextures *textures,
                                           PTerrainBuildings *buildings,
                                           const char *name,
                                           const char *directory,
-                                          bool collidable) {
+                                          bool collision_as_drawn) {
   if (buildings->building_count == PE_TERRAIN_GPU_BUILDINGS_MAX) {
     LOG("terrain: no room for building %s\n", name);
     return NULL;
@@ -166,8 +182,9 @@ static PTerrainGpuBuilding *load_building(const PTerrainPipeline *pipeline,
         glm_vec3_distance(&source.bounds[0], &source.bounds[3]) / 2;
   }
 
-  if (gpu->usable && collidable)
-    pe_collision_mesh_build(&source, &gpu->collision);
+  if (gpu->usable)
+    load_collision(&source, name, directory, collision_as_drawn,
+                   &gpu->collision);
 
   pe_building_free(&source);
   if (gpu->usable)
@@ -186,13 +203,18 @@ static bool is_already_placed(const PTerrainBuildings *buildings,
   return false;
 }
 
+//how much bigger than its model an instance is drawn
+static float instance_scale(const PTerrainBuildingInstance *instance) {
+  return glm_vec3_norm((float *)instance->model[0]);
+}
+
 //the sphere round a building where it stands: the one round its model, moved
 //and grown as it is
 static void place_sphere(const PTerrainGpuBuilding *building,
                          PTerrainBuildingInstance *instance) {
   glm_mat4_mulv3(instance->model, (float *)building->sphere, 1,
                  instance->sphere);
-  instance->sphere[3] = building->sphere[3] * glm_vec3_norm(instance->model[0]);
+  instance->sphere[3] = building->sphere[3] * instance_scale(instance);
 }
 
 static bool add_instance(PTerrainBuildings *buildings,
@@ -218,11 +240,11 @@ static PTerrainGpuBuilding *usable_building(const PTerrainPipeline *pipeline,
                                             PTerrainBuildings *buildings,
                                             const char *name,
                                             const char *directory,
-                                            bool collidable) {
+                                            bool collision_as_drawn) {
   PTerrainGpuBuilding *gpu = find_building(buildings, name);
   if (gpu == NULL)
     gpu = load_building(pipeline, textures, buildings, name, directory,
-                        collidable);
+                        collision_as_drawn);
   return gpu != NULL && gpu->usable ? gpu : NULL;
 }
 
@@ -274,7 +296,7 @@ static void add_placements(const PTerrainPipeline *pipeline,
                            PTerrainBuildings *buildings, const char *directory,
                            const char (*names)[PE_TERRAIN_BUILDING_PATH_MAX],
                            const PTerrainPlacement *placements, u32 count,
-                           bool collidable) {
+                           bool collision_as_drawn) {
   for (u32 i = 0; i < count; i++) {
     const PTerrainPlacement *placement = &placements[i];
 
@@ -283,7 +305,7 @@ static void add_placements(const PTerrainPipeline *pipeline,
 
     PTerrainGpuBuilding *gpu = usable_building(
         pipeline, textures, buildings, names[placement->model], directory,
-        collidable);
+        collision_as_drawn);
     if (gpu == NULL)
       continue;
 
@@ -509,17 +531,19 @@ bool pe_terrain_buildings_floor_at(const PTerrainBuildings *buildings,
     mat4 inverse;
     glm_mat4_inv((vec4 *)instance->model, inverse);
 
-    //the way down in the building's own axes, which are tilted if it is
+    //the way down in the model's own axes, which are tilted if it is, and its
+    //own units, which are the world's divided by its scale
+    float scale = instance_scale(instance);
     vec3 origin, down;
     glm_mat4_mulv3(inverse, (float *)from, 1, origin);
     glm_mat4_mulv3(inverse, (vec3){0, 0, -1}, 0, down);
     glm_vec3_normalize(down);
 
     float distance;
-    if (pe_collision_mesh_floor(mesh, origin, down, PE_TERRAIN_FLOOR_REACH,
-                                &distance) &&
-        from[2] - distance > *height) {
-      *height = from[2] - distance;
+    if (pe_collision_mesh_floor(mesh, origin, down,
+                                PE_TERRAIN_FLOOR_REACH / scale, &distance) &&
+        from[2] - distance * scale > *height) {
+      *height = from[2] - distance * scale;
       found = true;
     }
   }
@@ -547,7 +571,9 @@ bool pe_terrain_buildings_push_out(const PTerrainBuildings *buildings,
 
     vec3 before;
     glm_vec3_copy(local, before);
-    if (pe_collision_mesh_push_out(mesh, local, radius, up) == false)
+    if (pe_collision_mesh_push_out(mesh, local,
+                                   radius / instance_scale(instance),
+                                   up) == false)
       continue;
 
     vec3 push;

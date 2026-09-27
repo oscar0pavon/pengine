@@ -34,7 +34,8 @@ typedef struct PTerrainGpuBuilding {
   //the props inside it, none for most
   PBuildingDoodads doodads;
 
-  //what can be walked on and into, only for a building and not a prop
+  //what can be walked on and into. a building has all it is drawn with, a prop
+  //the few triangles of its own, and one that is walked through has none
   PCollisionMesh collision;
 
   u32 material_count;
@@ -98,14 +99,14 @@ void pe_vk_terrain_buildings_add_tile(const PTerrainPipeline *pipeline,
 //how far below a point a floor is looked for
 #define PE_TERRAIN_FLOOR_REACH 60.0f
 
-//the height of the highest floor of a building that is at or below from, straight
-//under it, and so the one a walker at from stands on. false if there is none
-//within PE_TERRAIN_FLOOR_REACH. props are not looked at, only buildings
+//the height of the highest floor of a building or a prop that is at or below
+//from, straight under it, and so the one a walker at from stands on. false if
+//there is none within PE_TERRAIN_FLOOR_REACH
 bool pe_terrain_buildings_floor_at(const PTerrainBuildings *buildings,
                                    const vec3 from, float *height);
 
-//moves the centre of a sphere out of the walls of the buildings, and returns
-//whether it moved. a floor or a ceiling is not a wall
+//moves the centre of a sphere out of the walls of the buildings and props, and
+//returns whether it moved. a floor or a ceiling is not a wall
 bool pe_terrain_buildings_push_out(const PTerrainBuildings *buildings,
                                    vec3 centre, float radius);
 

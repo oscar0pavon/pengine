@@ -32,7 +32,14 @@ typedef struct PCollisionMesh {
 
 //every triangle of the building, the ones it is drawn with and those it only
 //collides with. false for a building with none
-bool pe_collision_mesh_build(const PBuilding *source, PCollisionMesh *mesh);
+bool pe_collision_mesh_from_building(const PBuilding *source,
+                                     PCollisionMesh *mesh);
+
+//the triangles a model is walked into by, from the .wwc beside its .wwb: a count
+//of positions, a count of indices, the positions and the indices. false, with
+//nothing left allocated, for a model with no file, which is one that is walked
+//through, and for a file that is not one or that points outside itself
+bool pe_collision_mesh_load(const char *path, PCollisionMesh *mesh);
 
 void pe_collision_mesh_free(PCollisionMesh *mesh);
 
