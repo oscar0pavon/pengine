@@ -72,6 +72,17 @@ static void write_material_set(VkDescriptorSet set, const PTexture *texture) {
   vkUpdateDescriptorSets(vk_device, 1, &write, 0, NULL);
 }
 
+static PBuildingShader material_shader(const PBuildingMaterial *material) {
+  if (material->blend == PE_BUILDING_BLEND_ALPHA)
+    return PE_BUILDING_SHADER_ALPHA;
+  if (material->blend == PE_BUILDING_BLEND_ADD)
+    return PE_BUILDING_SHADER_ADD;
+
+  return material->flags & PE_BUILDING_MATERIAL_TWO_SIDED
+             ? PE_BUILDING_SHADER_TWO_SIDED
+             : PE_BUILDING_SHADER_ONE_SIDED;
+}
+
 static bool create_materials(const PTerrainPipeline *pipeline,
                              PTerrainTextures *textures,
                              PTerrainBuildings *buildings,
@@ -95,7 +106,8 @@ static bool create_materials(const PTerrainPipeline *pipeline,
     write_material_set(gpu->material_sets[i], texture);
     gpu->alpha_cutoffs[i] =
         material->blend == PE_BUILDING_BLEND_ALPHA_TEST ? ALPHA_TEST_CUTOFF : 0;
-    gpu->two_sided[i] = material->flags & PE_BUILDING_MATERIAL_TWO_SIDED;
+    gpu->shaders[i] = material_shader(material);
+    gpu->has_blended |= gpu->shaders[i] >= PE_BUILDING_SHADER_ALPHA;
   }
   return true;
 }
@@ -299,38 +311,47 @@ void pe_vk_terrain_buildings_add_tile(const PTerrainPipeline *pipeline,
         sizeof(buildings->instances[0]), compare_buildings);
 }
 
-//two_sided is which of the two pipelines is bound, and is left as it is at the
-//end so the next building need not bind it again
+//what the fragment shader is told about a material: where it cuts out, and 0
+//if it is solid, 1 if it is blended over what is behind, 2 if added to it
+typedef struct MaterialConstants {
+  float alpha_cutoff;
+  float blend;
+} MaterialConstants;
+
+//draws the batches of one building that are blended, or all those that are
+//solid. bound is which pipeline is bound, and is left as it is at the end, so
+//the next building need not bind it again
 static void draw_batches(const PTerrainPipeline *pipeline,
-                         const PTerrainGpuBuilding *building,
-                         bool *two_sided, VkCommandBuffer command) {
+                         const PTerrainGpuBuilding *building, bool blended,
+                         PBuildingShader *bound, VkCommandBuffer command) {
   u32 last_material = UINT32_MAX;
-  float last_cutoff = -1;
 
   for (u32 i = 0; i < building->batch_count; i++) {
     const PBuildingBatch *batch = &building->batches[i];
+    PBuildingShader shader = building->shaders[batch->material];
 
-    if (building->two_sided[batch->material] != *two_sided) {
-      *two_sided = building->two_sided[batch->material];
+    if ((shader >= PE_BUILDING_SHADER_ALPHA) != blended)
+      continue;
+
+    if (shader != *bound) {
       vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                        *two_sided ? pipeline->building_two_sided.pipeline
-                                   : pipeline->building.pipeline);
+                        pipeline->building_shaders[shader].pipeline);
+      *bound = shader;
     }
 
     if (batch->material != last_material) {
+      MaterialConstants constants = {
+          .alpha_cutoff = building->alpha_cutoffs[batch->material],
+          .blend = blended ? shader - PE_BUILDING_SHADER_TWO_SIDED : 0};
+
       vkCmdBindDescriptorSets(command, VK_PIPELINE_BIND_POINT_GRAPHICS,
                               pipeline->building_layout, 1, 1,
                               &building->material_sets[batch->material], 0,
                               NULL);
-      last_material = batch->material;
-    }
-
-    float cutoff = building->alpha_cutoffs[batch->material];
-    if (cutoff != last_cutoff) {
       vkCmdPushConstants(command, pipeline->building_layout,
                          VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(mat4),
-                         sizeof(cutoff), &cutoff);
-      last_cutoff = cutoff;
+                         sizeof(constants), &constants);
+      last_material = batch->material;
     }
 
     vkCmdDrawIndexed(command, batch->index_count, 1, batch->first_index, 0, 0);
@@ -347,9 +368,95 @@ static void bind_building(const PTerrainGpuBuilding *building,
                        VK_INDEX_TYPE_UINT32);
 }
 
+static bool is_visible(const PTerrainBuildingInstance *instance,
+                       vec4 *planes, const PTerrainFrame *frame) {
+  float view_distance = frame->fog_range[1];
+
+  return pe_terrain_sphere_in_frustum(planes, instance->sphere) &&
+         (view_distance <= 0 ||
+          pe_terrain_sphere_within(instance->sphere, frame->camera_position,
+                                   view_distance));
+}
+
+static void push_model(const PTerrainPipeline *pipeline,
+                       const PTerrainBuildingInstance *instance,
+                       VkCommandBuffer command) {
+  vkCmdPushConstants(command, pipeline->building_layout,
+                     VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mat4),
+                     instance->model);
+}
+
+static int farther_first(const void *left, const void *right) {
+  const PTerrainBlendedInstance *a = left;
+  const PTerrainBlendedInstance *b = right;
+
+  return (a->distance < b->distance) - (a->distance > b->distance);
+}
+
+//what is solid first, remembering which of what it drew has something blended
+//in it. returns how many were drawn
+static u32 draw_solid(const PTerrainPipeline *pipeline,
+                      PTerrainBuildings *buildings, vec4 *planes,
+                      const PTerrainFrame *frame, PBuildingShader *bound,
+                      VkCommandBuffer command) {
+  u32 drawn = 0;
+  u32 bound_building = UINT32_MAX;
+  buildings->blended_count = 0;
+
+  for (u32 i = 0; i < buildings->instance_count; i++) {
+    const PTerrainBuildingInstance *instance = &buildings->instances[i];
+    const PTerrainGpuBuilding *building =
+        &buildings->buildings[instance->building];
+
+    if (is_visible(instance, planes, frame) == false)
+      continue;
+
+    if (instance->building != bound_building) {
+      bind_building(building, command);
+      bound_building = instance->building;
+    }
+
+    push_model(pipeline, instance, command);
+    draw_batches(pipeline, building, false, bound, command);
+    drawn++;
+
+    if (building->has_blended)
+      buildings->blended[buildings->blended_count++] =
+          (PTerrainBlendedInstance){
+              .instance = i,
+              .distance = glm_vec3_distance2(
+                  (float *)instance->sphere, (float *)frame->camera_position)};
+  }
+  return drawn;
+}
+
+static void draw_blended(const PTerrainPipeline *pipeline,
+                         PTerrainBuildings *buildings, PBuildingShader *bound,
+                         VkCommandBuffer command) {
+  u32 bound_building = UINT32_MAX;
+
+  qsort(buildings->blended, buildings->blended_count,
+        sizeof(buildings->blended[0]), farther_first);
+
+  for (u32 i = 0; i < buildings->blended_count; i++) {
+    const PTerrainBuildingInstance *instance =
+        &buildings->instances[buildings->blended[i].instance];
+    const PTerrainGpuBuilding *building =
+        &buildings->buildings[instance->building];
+
+    if (instance->building != bound_building) {
+      bind_building(building, command);
+      bound_building = instance->building;
+    }
+
+    push_model(pipeline, instance, command);
+    draw_batches(pipeline, building, true, bound, command);
+  }
+}
+
 u32 pe_vk_terrain_buildings_draw(const PTerrainPipeline *pipeline,
                                  const PTerrainFrames *frames,
-                                 const PTerrainBuildings *buildings,
+                                 PTerrainBuildings *buildings,
                                  const PTerrainFrame *frame,
                                  VkCommandBuffer command, u32 image_index) {
   if (buildings->instance_count == 0)
@@ -359,41 +466,15 @@ u32 pe_vk_terrain_buildings_draw(const PTerrainPipeline *pipeline,
   glm_mat4_mul((vec4 *)frame->projection, (vec4 *)frame->view, view_projection);
   vec4 planes[PE_TERRAIN_FRUSTUM_PLANES];
   pe_terrain_frustum_planes(view_projection, planes);
-  float view_distance = frame->fog_range[1];
 
+  PBuildingShader bound = PE_BUILDING_SHADER_ONE_SIDED;
   vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                    pipeline->building.pipeline);
+                    pipeline->building_shaders[bound].pipeline);
   vkCmdBindDescriptorSets(command, VK_PIPELINE_BIND_POINT_GRAPHICS,
                           pipeline->building_layout, 0, 1,
                           &frames->sets[image_index], 0, NULL);
 
-  u32 drawn = 0;
-  u32 bound = UINT32_MAX;
-  bool two_sided = false;
-
-  for (u32 i = 0; i < buildings->instance_count; i++) {
-    const PTerrainBuildingInstance *instance = &buildings->instances[i];
-    const PTerrainGpuBuilding *building =
-        &buildings->buildings[instance->building];
-
-    if (pe_terrain_sphere_in_frustum(planes, instance->sphere) == false)
-      continue;
-
-    if (view_distance > 0 &&
-        pe_terrain_sphere_within(instance->sphere, frame->camera_position,
-                                 view_distance) == false)
-      continue;
-
-    if (instance->building != bound) {
-      bind_building(building, command);
-      bound = instance->building;
-    }
-
-    vkCmdPushConstants(command, pipeline->building_layout,
-                       VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mat4),
-                       instance->model);
-    draw_batches(pipeline, building, &two_sided, command);
-    drawn++;
-  }
+  u32 drawn = draw_solid(pipeline, buildings, planes, frame, &bound, command);
+  draw_blended(pipeline, buildings, &bound, command);
   return drawn;
 }

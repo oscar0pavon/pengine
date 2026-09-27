@@ -157,8 +157,8 @@ static void create_water(PTerrainPipeline *pipeline) {
 }
 
 //INFO the model matrix is 64 bytes for the vertex stage and the alpha cutoff
-//is 4 more for the fragment stage, at 64: both fit in the 128 bytes every
-//device has, and neither needs a descriptor set of its own, which would have to
+//and the blend, a float each, are 8 more for the fragment stage, at 64: both
+//fit in the 128 bytes every device has, and neither needs a descriptor set of its own, which would have to
 //be rewritten for every placement of every building
 static void create_building_layout(PTerrainPipeline *pipeline) {
   VkDescriptorSetLayoutBinding texture = {
@@ -174,7 +174,7 @@ static void create_building_layout(PTerrainPipeline *pipeline) {
        .size = sizeof(mat4)},
       {.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
        .offset = sizeof(mat4),
-       .size = sizeof(float)}};
+       .size = 2 * sizeof(float)}};
 
   VkDescriptorSetLayout set_layouts[] = {pipeline->frame_layout,
                                          pipeline->building_material_layout};
@@ -196,9 +196,7 @@ static void create_building_layout(PTerrainPipeline *pipeline) {
 #define BUILDING_FRONT_FACE VK_FRONT_FACE_COUNTER_CLOCKWISE
 
 static void create_building_shader(PTerrainPipeline *pipeline,
-                                   VkCullModeFlags cull_mode,
-                                   PShader *shader) {
-
+                                   PBuildingShader kind) {
   VkVertexInputBindingDescription binding = {
       .binding = 0,
       .stride = sizeof(PBuildingVertex),
@@ -217,30 +215,66 @@ static void create_building_shader(PTerrainPipeline *pipeline,
       .vertexAttributeDescriptionCount = 4,
       .pVertexAttributeDescriptions = attributes};
 
+  bool blended = kind >= PE_BUILDING_SHADER_ALPHA;
+
+  //a blended material is not culled, since a leaf or a pane is seen from both
+  //sides
   VkPipelineRasterizationStateCreateInfo rasterization = {
       .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
       .polygonMode = VK_POLYGON_MODE_FILL,
-      .cullMode = cull_mode,
+      .cullMode = kind == PE_BUILDING_SHADER_ONE_SIDED ? VK_CULL_MODE_BACK_BIT
+                                                       : VK_CULL_MODE_NONE,
       .frontFace = BUILDING_FRONT_FACE,
       .lineWidth = 1.0f};
 
+  //what is blended is tested against the depth of what is solid, and does not
+  //write its own, or what is behind it would be lost
+  VkPipelineDepthStencilStateCreateInfo depth_stencil = {
+      .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+      .depthTestEnable = VK_TRUE,
+      .depthWriteEnable = VK_FALSE,
+      .depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
+      .stencilTestEnable = VK_FALSE};
+
+  VkPipelineColorBlendAttachmentState attachment = {
+      .blendEnable = VK_TRUE,
+      .srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
+      .dstColorBlendFactor = kind == PE_BUILDING_SHADER_ADD
+                                 ? VK_BLEND_FACTOR_ONE
+                                 : VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+      .colorBlendOp = VK_BLEND_OP_ADD,
+      .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
+      .dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
+      .alphaBlendOp = VK_BLEND_OP_ADD,
+      .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+                        VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT};
+
+  VkPipelineColorBlendStateCreateInfo color_blend = {
+      .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+      .attachmentCount = 1,
+      .pAttachments = &attachment};
+
   PCreateShaderInfo info;
   ZERO(info);
-  info.out_shader = shader;
+  info.out_shader = &pipeline->building_shaders[kind];
   info.vertex_path = file_building_vert_spv;
   info.fragment_path = file_building_frag_spv;
   info.layout = pipeline->building_layout;
   info.vertex_input = &vertex_input;
   info.rasterization = &rasterization;
+  if (blended) {
+    info.depth_stencil = &depth_stencil;
+    info.color_blend = &color_blend;
+  }
 
   pe_vk_create_shader(&info);
 }
 
 static void create_building(PTerrainPipeline *pipeline) {
   create_building_layout(pipeline);
-  create_building_shader(pipeline, VK_CULL_MODE_BACK_BIT, &pipeline->building);
-  create_building_shader(pipeline, VK_CULL_MODE_NONE,
-                         &pipeline->building_two_sided);
+
+  for (int kind = 0; kind < PE_BUILDING_SHADERS; kind++)
+    create_building_shader(pipeline, kind);
 }
 
 void pe_vk_terrain_pipeline_create(PTerrainPipeline *pipeline) {

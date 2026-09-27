@@ -3,9 +3,12 @@
 
 #include "terrain_frame.glsl"
 
-layout(push_constant) uniform Cutoff {
-  layout(offset = 64) float alpha;
-} cutoff;
+//blend is 0 for a solid material, 1 for one blended over what is behind it and
+//2 for one added to it
+layout(push_constant) uniform Material {
+  layout(offset = 64) float cutoff;
+  layout(offset = 68) float blend;
+} material;
 
 layout(set = 1, binding = 0) uniform sampler2D albedo;
 
@@ -21,7 +24,7 @@ void main() {
 
   //a cutoff of 0 keeps everything, and a material that is cut out, a window or
   //a leaf, sets it to where the mostly transparent part begins
-  if (texel.a < cutoff.alpha)
+  if (texel.a < material.cutoff)
     discard;
 
   vec3 to_camera = frame.camera_position.xyz - position;
@@ -42,5 +45,10 @@ void main() {
   float fog_end = frame.fog_range.y;
   float clear = clamp((fog_end - distance_to_camera) / (fog_end - fog_start), 0.0, 1.0);
 
-  out_color = vec4(mix(frame.fog_color.rgb, lit, clear), 1.0);
+  //what is added to the picture fades to nothing in the distance, and not to
+  //the fog's colour, which added on would brighten what is behind it
+  vec3 fog = material.blend == 2.0 ? vec3(0.0) : frame.fog_color.rgb;
+  float alpha = material.blend == 0.0 ? 1.0 : texel.a;
+
+  out_color = vec4(mix(fog, lit, clear), alpha);
 }

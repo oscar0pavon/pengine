@@ -36,7 +36,10 @@ typedef struct PTerrainGpuBuilding {
   u32 material_count;
   VkDescriptorSet material_sets[PE_BUILDING_MATERIALS_MAX];
   float alpha_cutoffs[PE_BUILDING_MATERIALS_MAX];
-  bool two_sided[PE_BUILDING_MATERIALS_MAX];
+
+  //how each material is drawn, and whether any is blended
+  PBuildingShader shaders[PE_BUILDING_MATERIALS_MAX];
+  bool has_blended;
 } PTerrainGpuBuilding;
 
 //one building or prop standing somewhere
@@ -50,6 +53,13 @@ typedef struct PTerrainBuildingInstance {
   vec4 sphere;
 } PTerrainBuildingInstance;
 
+//a building with something blended in it that can be seen, and how far off, to
+//draw those after everything solid, the far ones first
+typedef struct PTerrainBlendedInstance {
+  u32 instance;
+  float distance;
+} PTerrainBlendedInstance;
+
 typedef struct PTerrainBuildings {
   VkDescriptorPool pool;
   u32 sets_used;
@@ -61,6 +71,9 @@ typedef struct PTerrainBuildings {
   //places it stands
   u32 instance_count;
   PTerrainBuildingInstance instances[PE_TERRAIN_INSTANCES_MAX];
+
+  u32 blended_count;
+  PTerrainBlendedInstance blended[PE_TERRAIN_INSTANCES_MAX];
 } PTerrainBuildings;
 
 //needs the renderer up, so from the game's init or later
@@ -79,10 +92,11 @@ void pe_vk_terrain_buildings_add_tile(const PTerrainPipeline *pipeline,
                                       const char *directory);
 
 //records every building the camera can see, and returns how many. a building
-//past the distance where the fog hides everything is not drawn
+//past the distance where the fog hides everything is not drawn. what is solid
+//in them is drawn first and what is blended over it after, the far ones first
 u32 pe_vk_terrain_buildings_draw(const PTerrainPipeline *pipeline,
                                  const PTerrainFrames *frames,
-                                 const PTerrainBuildings *buildings,
+                                 PTerrainBuildings *buildings,
                                  const PTerrainFrame *frame,
                                  VkCommandBuffer command, u32 image_index);
 

@@ -11,11 +11,15 @@
 //a material that names no texture
 #define PE_BUILDING_NO_TEXTURE 0xFFFFFFFFu
 
-//how a material's alpha is used: 0 draws it as it is and 1 throws away what is
-//mostly transparent, which is how a window or a leaf is cut out of a quad. the
-//buildings in the Goldshire tiles use nothing else
+//how a material's alpha is used, the game's own numbers for it: 0 draws it as
+//it is, 1 throws away what is mostly transparent, which is how a window or a
+//leaf is cut out of a quad, 2 blends it over what is behind, as glass or a
+//petal, and 3 adds it to what is behind, as a candle's glow or a shaft of
+//light. anything above that is drawn as 0
 #define PE_BUILDING_BLEND_OPAQUE 0
 #define PE_BUILDING_BLEND_ALPHA_TEST 1
+#define PE_BUILDING_BLEND_ALPHA 2
+#define PE_BUILDING_BLEND_ADD 3
 
 typedef struct PBuildingVertex {
   float position[3];

@@ -36,6 +36,17 @@ typedef struct PTerrainFrame {
   vec4 time;
 } PTerrainFrame;
 
+//how a building's material is drawn. the two solid ones are for what is opaque
+//or cut out, culled from behind or not. the other two blend over what is
+//already drawn, and so are drawn after all the solid ones, far to near
+typedef enum PBuildingShader {
+  PE_BUILDING_SHADER_ONE_SIDED,
+  PE_BUILDING_SHADER_TWO_SIDED,
+  PE_BUILDING_SHADER_ALPHA,
+  PE_BUILDING_SHADER_ADD,
+  PE_BUILDING_SHADERS
+} PBuildingShader;
+
 //set 0 is the frame, set 1 is one chunk's textures
 typedef struct PTerrainPipeline {
   VkDescriptorSetLayout frame_layout;
@@ -50,14 +61,11 @@ typedef struct PTerrainPipeline {
   PShader water;
 
   //a building takes its own layout: the frame set, a set for the one texture of
-  //a material, and the placement's matrix and the material's alpha cutoff as
-  //push constants
+  //a material, and the placement's matrix and the material's alpha cutoff and
+  //blend as push constants
   VkDescriptorSetLayout building_material_layout;
   VkPipelineLayout building_layout;
-  PShader building;
-
-  //the same, for a material that is drawn from both sides
-  PShader building_two_sided;
+  PShader building_shaders[PE_BUILDING_SHADERS];
 } PTerrainPipeline;
 
 //one uniform buffer and descriptor set per swap chain image, so writing the
