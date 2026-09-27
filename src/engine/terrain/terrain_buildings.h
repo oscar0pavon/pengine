@@ -2,6 +2,7 @@
 #define PE_TERRAIN_BUILDINGS_H
 
 #include "terrain_building.h"
+#include "terrain_collision.h"
 #include "terrain_pipeline.h"
 #include "terrain_textures.h"
 
@@ -32,6 +33,9 @@ typedef struct PTerrainGpuBuilding {
 
   //the props inside it, none for most
   PBuildingDoodads doodads;
+
+  //what can be walked on and into, only for a building and not a prop
+  PCollisionMesh collision;
 
   u32 material_count;
   VkDescriptorSet material_sets[PE_BUILDING_MATERIALS_MAX];
@@ -90,6 +94,20 @@ void pe_vk_terrain_buildings_add_tile(const PTerrainPipeline *pipeline,
                                       PTerrainBuildings *buildings,
                                       const PTerrainTile *tile,
                                       const char *directory);
+
+//how far below a point a floor is looked for
+#define PE_TERRAIN_FLOOR_REACH 60.0f
+
+//the height of the highest floor of a building that is at or below from, straight
+//under it, and so the one a walker at from stands on. false if there is none
+//within PE_TERRAIN_FLOOR_REACH. props are not looked at, only buildings
+bool pe_terrain_buildings_floor_at(const PTerrainBuildings *buildings,
+                                   const vec3 from, float *height);
+
+//moves the centre of a sphere out of the walls of the buildings, and returns
+//whether it moved. a floor or a ceiling is not a wall
+bool pe_terrain_buildings_push_out(const PTerrainBuildings *buildings,
+                                   vec3 centre, float radius);
 
 //records every building the camera can see, and returns how many. a building
 //past the distance where the fog hides everything is not drawn. what is solid

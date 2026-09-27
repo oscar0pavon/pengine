@@ -152,6 +152,25 @@ bool pe_terrain_world_height_at(const PTerrainWorld *world, float x, float y,
       (column_position - tile_x) * PE_TERRAIN_STEPS_PER_TILE, height);
 }
 
+bool pe_terrain_world_floor_at(const PTerrainWorld *world, float x, float y,
+                               float z, float *height) {
+  float ground, floor;
+  bool on_ground = pe_terrain_world_height_at(world, x, y, &ground);
+  bool on_floor =
+      pe_terrain_buildings_floor_at(&world->buildings, (vec3){x, y, z}, &floor);
+
+  if (on_ground == false && on_floor == false)
+    return false;
+
+  *height = on_ground && (on_floor == false || ground > floor) ? ground : floor;
+  return true;
+}
+
+bool pe_terrain_world_push_out(const PTerrainWorld *world, vec3 centre,
+                               float radius) {
+  return pe_terrain_buildings_push_out(&world->buildings, centre, radius);
+}
+
 u32 pe_vk_terrain_world_draw(PTerrainWorld *world, const PTerrainFrame *frame,
                              VkCommandBuffer command, u32 image_index) {
   u32 drawn = 0;
