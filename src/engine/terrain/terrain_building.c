@@ -7,6 +7,10 @@
 #include <string.h>
 
 #define WWB_MAGIC 0x32425757
+#define WWD_MAGIC 0x31445757
+#define DOODAD_MODELS_MAX 1024
+#define DOODAD_SETS_MAX 64
+#define DOODADS_MAX 65536
 #define GROUP_VERTICES_MAX 65536
 #define BUILDING_INDICES_MAX (16 * 1024 * 1024)
 
@@ -146,6 +150,97 @@ static bool read_building(FILE *file, PBuilding *building) {
       return false;
 
   return building->vertex_count > 0 && building->batch_count > 0;
+}
+
+static bool read_doodad_models(FILE *file, PBuildingDoodads *doodads) {
+  if (read_u32(file, &doodads->model_count) == false ||
+      doodads->model_count > DOODAD_MODELS_MAX)
+    return false;
+
+  doodads->models =
+      calloc(doodads->model_count + 1, sizeof(*doodads->models));
+
+  for (u32 i = 0; i < doodads->model_count; i++) {
+    u16 length;
+    if (read_exact(file, &length, sizeof(length)) == false ||
+        length >= PE_TERRAIN_BUILDING_PATH_MAX ||
+        read_exact(file, doodads->models[i], length) == false)
+      return false;
+  }
+  return true;
+}
+
+static bool read_doodad_sets(FILE *file, PBuildingDoodads *doodads) {
+  if (read_u32(file, &doodads->set_count) == false ||
+      doodads->set_count > DOODAD_SETS_MAX)
+    return false;
+
+  doodads->sets = calloc(doodads->set_count + 1, sizeof(*doodads->sets));
+  return read_exact(file, doodads->sets,
+                    doodads->set_count * sizeof(*doodads->sets));
+}
+
+static bool read_doodad_items(FILE *file, PBuildingDoodads *doodads) {
+  if (read_u32(file, &doodads->count) == false || doodads->count > DOODADS_MAX)
+    return false;
+
+  doodads->items = calloc(doodads->count + 1, sizeof(*doodads->items));
+  if (read_exact(file, doodads->items, doodads->count * sizeof(*doodads->items)) ==
+      false)
+    return false;
+
+  for (u32 i = 0; i < doodads->count; i++)
+    if (doodads->items[i].model >= doodads->model_count)
+      return false;
+
+  for (u32 i = 0; i < doodads->set_count; i++)
+    if ((u64)doodads->sets[i].first + doodads->sets[i].count > doodads->count)
+      return false;
+  return true;
+}
+
+bool pe_building_doodads_load(const char *path, PBuildingDoodads *doodads) {
+  memset(doodads, 0, sizeof(*doodads));
+
+  FILE *file = fopen(path, "rb");
+  if (file == NULL)
+    return true;
+
+  u32 magic;
+  bool valid = read_u32(file, &magic) && magic == WWD_MAGIC &&
+               read_doodad_models(file, doodads) &&
+               read_doodad_sets(file, doodads) &&
+               read_doodad_items(file, doodads);
+  fclose(file);
+
+  if (valid == false) {
+    LOG("terrain: %s is not a usable file of props\n", path);
+    pe_building_doodads_free(doodads);
+  }
+  return valid;
+}
+
+void pe_building_doodads_free(PBuildingDoodads *doodads) {
+  free(doodads->models);
+  free(doodads->sets);
+  free(doodads->items);
+  memset(doodads, 0, sizeof(*doodads));
+}
+
+void pe_building_doodad_matrix(const mat4 building, const PBuildingDoodad *doodad,
+                               mat4 matrix) {
+  //the quaternion is copied because the file's own is not aligned for cglm
+  versor quaternion;
+  memcpy(quaternion, doodad->rotation, sizeof(quaternion));
+
+  mat4 local;
+  glm_translate_make(local, (float *)doodad->position);
+  mat4 rotation;
+  glm_quat_mat4(quaternion, rotation);
+  glm_mul(local, rotation, local);
+  glm_scale_uni(local, doodad->scale);
+
+  glm_mul((vec4 *)building, local, matrix);
 }
 
 bool pe_building_load(const char *path, PBuilding *building) {

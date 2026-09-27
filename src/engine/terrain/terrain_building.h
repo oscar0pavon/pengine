@@ -82,6 +82,50 @@ typedef struct PBuilding {
   PBuildingBatch *batches;
 } PBuilding;
 
+//the props inside a building, its tables and lamps and barrels, read from the
+//.wwd beside its .wwb. each is a model, a .wwb of its own, put at a place in the
+//building's own axes. a placement of the building chooses one set of them, and
+//set 0 goes with every placement
+typedef struct PBuildingDoodad {
+  u32 model;
+  float position[3];
+
+  //x, y, z, w
+  float rotation[4];
+  float scale;
+} PBuildingDoodad;
+
+_Static_assert(sizeof(PBuildingDoodad) == 36,
+               "the file holds these as nine words with no padding");
+
+typedef struct PBuildingDoodadSet {
+  u32 first;
+  u32 count;
+} PBuildingDoodadSet;
+
+typedef struct PBuildingDoodads {
+  u32 model_count;
+  char (*models)[PE_TERRAIN_BUILDING_PATH_MAX];
+
+  u32 set_count;
+  PBuildingDoodadSet *sets;
+
+  u32 count;
+  PBuildingDoodad *items;
+} PBuildingDoodads;
+
+//reads a .wwd. a building without one, and a prop never has one, is one with
+//no props inside, and that is true with nothing left allocated. false for a
+//file that is not a .wwd or that points outside itself
+bool pe_building_doodads_load(const char *path, PBuildingDoodads *doodads);
+
+void pe_building_doodads_free(PBuildingDoodads *doodads);
+
+//where a prop inside a building is in the world: the building's matrix, and in
+//front of it the prop's own place in the building
+void pe_building_doodad_matrix(const mat4 building, const PBuildingDoodad *doodad,
+                               mat4 matrix);
+
 //reads a .wwb, the building format the converter writes. false, with nothing
 //left allocated, for a file that is not one or that points outside itself
 bool pe_building_load(const char *path, PBuilding *building);

@@ -163,6 +163,7 @@ static bool read_placement(const JSON_Object *entry, size_t index,
   placement->model = (u32)name_id;
   placement->unique_id = (u32)json_object_get_number(entry, "uniqueId");
   placement->scale = has_bounds ? 1.0f : scale_from_json(entry);
+  placement->doodad_set = (u32)json_object_get_number(entry, "doodadSet");
   pe_terrain_adt_to_world(position, placement->position);
   if (has_bounds)
     box_to_world(bounds, placement->bounds);

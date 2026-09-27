@@ -100,6 +100,16 @@ static bool create_materials(const PTerrainPipeline *pipeline,
   return true;
 }
 
+//the props inside a building are in the .wwd beside its .wwb
+static void load_doodads(const char *name, const char *directory,
+                         PTerrainGpuBuilding *gpu) {
+  char path[PATH_MAX];
+  snprintf(path, sizeof(path), "%s/%.*s.wwd", directory,
+           (int)strlen(name) - 4, name);
+
+  pe_building_doodads_load(path, &gpu->doodads);
+}
+
 static PTerrainGpuBuilding *load_building(const PTerrainPipeline *pipeline,
                                           PTerrainTextures *textures,
                                           PTerrainBuildings *buildings,
@@ -144,6 +154,8 @@ static PTerrainGpuBuilding *load_building(const PTerrainPipeline *pipeline,
   }
 
   pe_building_free(&source);
+  if (gpu->usable)
+    load_doodads(name, directory, gpu);
   return gpu;
 }
 
@@ -161,11 +173,82 @@ static bool is_already_placed(const PTerrainBuildings *buildings,
 //the sphere round a building where it stands: the one round its model, moved
 //and grown as it is
 static void place_sphere(const PTerrainGpuBuilding *building,
-                         const PTerrainPlacement *placement,
                          PTerrainBuildingInstance *instance) {
   glm_mat4_mulv3(instance->model, (float *)building->sphere, 1,
                  instance->sphere);
-  instance->sphere[3] = building->sphere[3] * placement->scale;
+  instance->sphere[3] = building->sphere[3] * glm_vec3_norm(instance->model[0]);
+}
+
+static bool add_instance(PTerrainBuildings *buildings,
+                         const PTerrainGpuBuilding *gpu, u32 unique_id,
+                         const mat4 model) {
+  if (buildings->instance_count == PE_TERRAIN_INSTANCES_MAX) {
+    LOG("terrain: no room for more than %d buildings and props\n",
+        PE_TERRAIN_INSTANCES_MAX);
+    return false;
+  }
+
+  PTerrainBuildingInstance *instance =
+      &buildings->instances[buildings->instance_count++];
+  instance->building = gpu - buildings->buildings;
+  instance->unique_id = unique_id;
+  glm_mat4_copy((vec4 *)model, instance->model);
+  place_sphere(gpu, instance);
+  return true;
+}
+
+static PTerrainGpuBuilding *usable_building(const PTerrainPipeline *pipeline,
+                                            PTerrainTextures *textures,
+                                            PTerrainBuildings *buildings,
+                                            const char *name,
+                                            const char *directory) {
+  PTerrainGpuBuilding *gpu = find_building(buildings, name);
+  if (gpu == NULL)
+    gpu = load_building(pipeline, textures, buildings, name, directory);
+  return gpu != NULL && gpu->usable ? gpu : NULL;
+}
+
+//the props inside a building, of set 0 and of the set this placement chose. they
+//have no unique id of their own, and the building's own stops a second copy
+static bool add_doodad_set(const PTerrainPipeline *pipeline,
+                           PTerrainTextures *textures,
+                           PTerrainBuildings *buildings, const char *directory,
+                           const PTerrainGpuBuilding *building, u32 set,
+                           const mat4 model) {
+  const PBuildingDoodads *doodads = &building->doodads;
+  if (set >= doodads->set_count)
+    return true;
+
+  for (u32 i = 0; i < doodads->sets[set].count; i++) {
+    const PBuildingDoodad *doodad =
+        &doodads->items[doodads->sets[set].first + i];
+
+    PTerrainGpuBuilding *gpu = usable_building(
+        pipeline, textures, buildings, doodads->models[doodad->model],
+        directory);
+    if (gpu == NULL)
+      continue;
+
+    mat4 placed;
+    pe_building_doodad_matrix(model, doodad, placed);
+    if (add_instance(buildings, gpu, 0, placed) == false)
+      return false;
+  }
+  return true;
+}
+
+static bool add_doodads(const PTerrainPipeline *pipeline,
+                        PTerrainTextures *textures, PTerrainBuildings *buildings,
+                        const char *directory,
+                        const PTerrainGpuBuilding *building,
+                        const PTerrainPlacement *placement, const mat4 model) {
+  if (add_doodad_set(pipeline, textures, buildings, directory, building, 0,
+                     model) == false)
+    return false;
+
+  return placement->doodad_set == 0 ||
+         add_doodad_set(pipeline, textures, buildings, directory, building,
+                        placement->doodad_set, model);
 }
 
 static void add_placements(const PTerrainPipeline *pipeline,
@@ -179,25 +262,17 @@ static void add_placements(const PTerrainPipeline *pipeline,
     if (is_already_placed(buildings, placement->unique_id))
       continue;
 
-    if (buildings->instance_count == PE_TERRAIN_INSTANCES_MAX) {
-      LOG("terrain: no room for more than %d buildings and props\n",
-          PE_TERRAIN_INSTANCES_MAX);
-      return;
-    }
-
-    const char *name = names[placement->model];
-    PTerrainGpuBuilding *gpu = find_building(buildings, name);
+    PTerrainGpuBuilding *gpu = usable_building(
+        pipeline, textures, buildings, names[placement->model], directory);
     if (gpu == NULL)
-      gpu = load_building(pipeline, textures, buildings, name, directory);
-    if (gpu == NULL || gpu->usable == false)
       continue;
 
-    PTerrainBuildingInstance *instance =
-        &buildings->instances[buildings->instance_count++];
-    instance->building = gpu - buildings->buildings;
-    instance->unique_id = placement->unique_id;
-    pe_terrain_placement_matrix(placement, instance->model);
-    place_sphere(gpu, placement, instance);
+    mat4 model;
+    pe_terrain_placement_matrix(placement, model);
+    if (add_instance(buildings, gpu, placement->unique_id, model) == false ||
+        add_doodads(pipeline, textures, buildings, directory, gpu, placement,
+                    model) == false)
+      return;
   }
 }
 

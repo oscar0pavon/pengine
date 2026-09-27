@@ -30,6 +30,9 @@ typedef struct PTerrainGpuBuilding {
   //a sphere round the whole of it, the centre in its own axes and then the radius
   vec4 sphere;
 
+  //the props inside it, none for most
+  PBuildingDoodads doodads;
+
   u32 material_count;
   VkDescriptorSet material_sets[PE_BUILDING_MATERIALS_MAX];
   float alpha_cutoffs[PE_BUILDING_MATERIALS_MAX];
@@ -63,7 +66,8 @@ typedef struct PTerrainBuildings {
 //needs the renderer up, so from the game's init or later
 void pe_vk_terrain_buildings_create(PTerrainBuildings *buildings);
 
-//puts the buildings and props a tile places in the world. they themselves and
+//puts the buildings and props a tile places in the world, and the props inside
+//each building. they themselves and
 //their textures are read from directory, "world/wmo/.../x.wwb" and the like,
 //and one that is not there is logged once and left out. a placement with the
 //unique id of one already in the world is left out too, because a building

@@ -91,6 +91,10 @@ typedef struct PTerrainPlacement {
   //1 for a building
   float scale;
 
+  //which set of the props inside a building goes with this one, a building's
+  //own choice. a prop has none
+  u32 doodad_set;
+
   //the box the game's own tools computed for it, low corner then high, which
   //is what the placement can be checked against. a prop has none
   float bounds[6];
