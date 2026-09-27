@@ -30,31 +30,28 @@ typedef struct PBuildingVertex {
 _Static_assert(sizeof(PBuildingVertex) == 36,
                "the pipeline reads this as nine words with no padding");
 
-//one run of indices drawn with one material. it belongs to one group, which is
-//not in the file, where a batch is only its first three fields, but is worked
-//out as the file is read
+//one run of indices drawn with one material
 typedef struct PBuildingBatch {
   u32 first_index;
   u32 index_count;
   u32 material;
-  u32 group;
 } PBuildingBatch;
 
 #define PE_BUILDING_GROUPS_MAX 64
 
-//the game gives each group of a building two flags that matter here. an
-//exterior group is what is seen from outside. an interior group is a room, and
-//the game draws it only when the camera is in it, or looks into it through a
-//door, so a building's rooms are not on show from the street
-#define PE_BUILDING_GROUP_EXTERIOR 0x8
-#define PE_BUILDING_GROUP_INTERIOR 0x2000
-
+//the file keeps each group's flags and box. they are read and not used to
+//draw: every room is drawn, since a triangle seen from behind is culled, and
+//the inside of a wall is behind
 typedef struct PBuildingGroup {
   u32 flags;
 
   //the box round the group, low corner then high, in the building's own axes
   float bounds[6];
 } PBuildingGroup;
+
+//a material flag, the same bit in a building's materials and a model's: the
+//back of its triangles is drawn too
+#define PE_BUILDING_MATERIAL_TWO_SIDED 0x4
 
 typedef struct PBuildingMaterial {
   u32 texture;
@@ -90,21 +87,6 @@ typedef struct PBuilding {
 bool pe_building_load(const char *path, PBuilding *building);
 
 void pe_building_free(PBuilding *building);
-
-//a room that is not to be drawn from outside: interior, and not also exterior
-bool pe_building_group_is_room(const PBuildingGroup *group);
-
-//INFO the game draws a room only when the camera is in it or sees into it
-//through a door. there are no doors here, and drawing every room from outside
-//puts them inside the walls, where they fight the outside for the pixels: the
-//barracks has 27 rooms and one exterior shell, 18 times more geometry inside
-//the walls than in them, and the towers came out streaked with the plaster and
-//beams of their own insides. so a room is drawn when the camera is inside the
-//box of any of them, and then all of them are, since the doors that would say
-//which are not there. camera is given in the building's own axes. a building
-//with no exterior group at all is always drawn whole, or it would vanish
-bool pe_building_camera_in_a_room(const PBuildingGroup *groups, u32 count,
-                                  const vec3 camera);
 
 //INFO where the game puts a building and which way it faces. the rule is not
 //obvious and was not guessed: it is the one that reproduces, for every

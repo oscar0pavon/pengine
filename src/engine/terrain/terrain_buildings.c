@@ -95,6 +95,7 @@ static bool create_materials(const PTerrainPipeline *pipeline,
     write_material_set(gpu->material_sets[i], texture);
     gpu->alpha_cutoffs[i] =
         material->blend == PE_BUILDING_BLEND_ALPHA_TEST ? ALPHA_TEST_CUTOFF : 0;
+    gpu->two_sided[i] = material->flags & PE_BUILDING_MATERIAL_TWO_SIDED;
   }
   return true;
 }
@@ -136,11 +137,6 @@ static PTerrainGpuBuilding *load_building(const PTerrainPipeline *pipeline,
     gpu->batch_count = source.batch_count;
     gpu->batches = source.batches;
     source.batches = NULL;
-
-    gpu->group_count = source.group_count;
-    memcpy(gpu->groups, source.groups, sizeof(source.groups));
-    for (u32 i = 0; i < source.group_count; i++)
-      gpu->has_rooms |= pe_building_group_is_room(&source.groups[i]);
 
     glm_vec3_center(&source.bounds[0], &source.bounds[3], gpu->sphere);
     gpu->sphere[3] =
@@ -228,18 +224,23 @@ void pe_vk_terrain_buildings_add_tile(const PTerrainPipeline *pipeline,
         sizeof(buildings->instances[0]), compare_buildings);
 }
 
+//two_sided is which of the two pipelines is bound, and is left as it is at the
+//end so the next building need not bind it again
 static void draw_batches(const PTerrainPipeline *pipeline,
                          const PTerrainGpuBuilding *building,
-                         bool camera_in_a_room, VkCommandBuffer command) {
+                         bool *two_sided, VkCommandBuffer command) {
   u32 last_material = UINT32_MAX;
   float last_cutoff = -1;
 
   for (u32 i = 0; i < building->batch_count; i++) {
     const PBuildingBatch *batch = &building->batches[i];
 
-    if (camera_in_a_room == false &&
-        pe_building_group_is_room(&building->groups[batch->group]))
-      continue;
+    if (building->two_sided[batch->material] != *two_sided) {
+      *two_sided = building->two_sided[batch->material];
+      vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                        *two_sided ? pipeline->building_two_sided.pipeline
+                                   : pipeline->building.pipeline);
+    }
 
     if (batch->material != last_material) {
       vkCmdBindDescriptorSets(command, VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -271,22 +272,6 @@ static void bind_building(const PTerrainGpuBuilding *building,
                        VK_INDEX_TYPE_UINT32);
 }
 
-//the camera in the building's own axes, which is where its rooms are
-static bool camera_in_a_room(const PTerrainGpuBuilding *building,
-                             const PTerrainBuildingInstance *instance,
-                             const PTerrainFrame *frame) {
-  if (building->has_rooms == false)
-    return false;
-
-  mat4 inverse;
-  glm_mat4_inv((vec4 *)instance->model, inverse);
-  vec4 local;
-  glm_mat4_mulv(inverse, (float *)frame->camera_position, local);
-
-  return pe_building_camera_in_a_room(building->groups, building->group_count,
-                                      local);
-}
-
 u32 pe_vk_terrain_buildings_draw(const PTerrainPipeline *pipeline,
                                  const PTerrainFrames *frames,
                                  const PTerrainBuildings *buildings,
@@ -309,6 +294,7 @@ u32 pe_vk_terrain_buildings_draw(const PTerrainPipeline *pipeline,
 
   u32 drawn = 0;
   u32 bound = UINT32_MAX;
+  bool two_sided = false;
 
   for (u32 i = 0; i < buildings->instance_count; i++) {
     const PTerrainBuildingInstance *instance = &buildings->instances[i];
@@ -331,8 +317,7 @@ u32 pe_vk_terrain_buildings_draw(const PTerrainPipeline *pipeline,
     vkCmdPushConstants(command, pipeline->building_layout,
                        VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mat4),
                        instance->model);
-    draw_batches(pipeline, building,
-                 camera_in_a_room(building, instance, frame), command);
+    draw_batches(pipeline, building, &two_sided, command);
     drawn++;
   }
   return drawn;

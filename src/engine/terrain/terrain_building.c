@@ -119,7 +119,6 @@ static bool read_group(FILE *file, PBuilding *building, u32 group_index) {
     batch->first_index = records[i].first_index + first_index;
     batch->index_count = records[i].index_count;
     batch->material = records[i].material;
-    batch->group = group_index;
   }
   free(records);
 
@@ -187,33 +186,4 @@ void pe_terrain_placement_matrix(const PTerrainPlacement *placement,
   glm_rotate_y(matrix, about_y, matrix);
   glm_rotate_x(matrix, about_x, matrix);
   glm_scale_uni(matrix, placement->scale);
-}
-
-bool pe_building_group_is_room(const PBuildingGroup *group) {
-  return (group->flags & PE_BUILDING_GROUP_INTERIOR) &&
-         (group->flags & PE_BUILDING_GROUP_EXTERIOR) == 0;
-}
-
-bool pe_building_camera_in_a_room(const PBuildingGroup *groups, u32 count,
-                                  const vec3 camera) {
-  const float margin = 0.5f;
-  bool has_exterior = false;
-
-  for (u32 i = 0; i < count; i++)
-    has_exterior |= pe_building_group_is_room(&groups[i]) == false;
-  if (has_exterior == false)
-    return true;
-
-  for (u32 i = 0; i < count; i++) {
-    const float *box = groups[i].bounds;
-
-    if (pe_building_group_is_room(&groups[i]) == false)
-      continue;
-
-    if (camera[0] >= box[0] - margin && camera[0] <= box[3] + margin &&
-        camera[1] >= box[1] - margin && camera[1] <= box[4] + margin &&
-        camera[2] >= box[2] - margin && camera[2] <= box[5] + margin)
-      return true;
-  }
-  return false;
 }

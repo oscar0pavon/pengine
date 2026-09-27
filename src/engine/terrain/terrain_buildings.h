@@ -30,17 +30,10 @@ typedef struct PTerrainGpuBuilding {
   //a sphere round the whole of it, the centre in its own axes and then the radius
   vec4 sphere;
 
-  //whether any group is a room, which is what says the camera is to be looked
-  //for in it
-  bool has_rooms;
-
-  //which batches are rooms is worked out from these
-  u32 group_count;
-  PBuildingGroup groups[PE_BUILDING_GROUPS_MAX];
-
   u32 material_count;
   VkDescriptorSet material_sets[PE_BUILDING_MATERIALS_MAX];
   float alpha_cutoffs[PE_BUILDING_MATERIALS_MAX];
+  bool two_sided[PE_BUILDING_MATERIALS_MAX];
 } PTerrainGpuBuilding;
 
 //one building or prop standing somewhere

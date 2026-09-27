@@ -55,6 +55,9 @@ typedef struct PTerrainPipeline {
   VkDescriptorSetLayout building_material_layout;
   VkPipelineLayout building_layout;
   PShader building;
+
+  //the same, for a material that is drawn from both sides
+  PShader building_two_sided;
 } PTerrainPipeline;
 
 //one uniform buffer and descriptor set per swap chain image, so writing the

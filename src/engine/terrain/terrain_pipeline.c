@@ -189,10 +189,15 @@ static void create_building_layout(PTerrainPipeline *pipeline) {
           "Can't create building pipeline layout");
 }
 
-//nothing is culled: a wall is a single sheet with two sides, and the
-//placement's reflection turns the winding of every triangle inside out
-static void create_building(PTerrainPipeline *pipeline) {
-  create_building_layout(pipeline);
+//INFO the game draws the back of a triangle only for a material marked two
+//sided, a leaf card or a flag or a sheet of wall, and culls it from every
+//other. the placement's reflection of Y turns every triangle's winding inside
+//out, which is why the front is not the terrain's
+#define BUILDING_FRONT_FACE VK_FRONT_FACE_COUNTER_CLOCKWISE
+
+static void create_building_shader(PTerrainPipeline *pipeline,
+                                   VkCullModeFlags cull_mode,
+                                   PShader *shader) {
 
   VkVertexInputBindingDescription binding = {
       .binding = 0,
@@ -215,13 +220,13 @@ static void create_building(PTerrainPipeline *pipeline) {
   VkPipelineRasterizationStateCreateInfo rasterization = {
       .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
       .polygonMode = VK_POLYGON_MODE_FILL,
-      .cullMode = VK_CULL_MODE_NONE,
-      .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+      .cullMode = cull_mode,
+      .frontFace = BUILDING_FRONT_FACE,
       .lineWidth = 1.0f};
 
   PCreateShaderInfo info;
   ZERO(info);
-  info.out_shader = &pipeline->building;
+  info.out_shader = shader;
   info.vertex_path = file_building_vert_spv;
   info.fragment_path = file_building_frag_spv;
   info.layout = pipeline->building_layout;
@@ -229,6 +234,13 @@ static void create_building(PTerrainPipeline *pipeline) {
   info.rasterization = &rasterization;
 
   pe_vk_create_shader(&info);
+}
+
+static void create_building(PTerrainPipeline *pipeline) {
+  create_building_layout(pipeline);
+  create_building_shader(pipeline, VK_CULL_MODE_BACK_BIT, &pipeline->building);
+  create_building_shader(pipeline, VK_CULL_MODE_NONE,
+                         &pipeline->building_two_sided);
 }
 
 void pe_vk_terrain_pipeline_create(PTerrainPipeline *pipeline) {
