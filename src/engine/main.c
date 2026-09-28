@@ -2,6 +2,7 @@
 #include <engine/base.h>
 #include <engine/engine.h>
 #include <engine/renderer/render_thread.h>
+#include <stdio.h>
 
 //INFO the signature pthread_create() wants, not a void() cast into place. the
 //return value is never read - the loop does not end - but a thread entry with
@@ -37,7 +38,7 @@ void pengine_run(PGame* created_game){
   pengine_initialized = true;
 
   //Main loop 
-  while (1) { //TODO: window should close
+  while (pe_running) { //TODO: window should close
     
     game->update();
 
@@ -48,5 +49,7 @@ void pengine_run(PGame* created_game){
     update_delta_time();
 
   }
+
+  LOG("end pengine\n");
 
 }

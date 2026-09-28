@@ -87,7 +87,7 @@ void pe_th_exec_function(PEThreadID id , void(*function)() ){
 	command.command_function = function;;
 
 	if(id == pe_th_render_id){
-		array_add(&render_thread_commads,&command);	
+		//array_add(&render_thread_commads,&command);	
 		LOG("exec in renderen therd\n");
 	}
 
@@ -110,7 +110,7 @@ void pe_th_exec_in_with_type(PEThreadID to_id , void(*func)(void*), void* argmen
 	command.data = argment;
 
 	if(to_id == pe_th_render_id){
-		array_add(&render_thread_commads,&command);	
+		//array_add(&render_thread_commads,&command);	
 		LOG("exec in renderen therd\n");
 	}
 
@@ -131,7 +131,7 @@ void pe_th_exec_in(PEThreadID to_id , void(*func)(void*), void* argment){
 	command.data = argment;
 
 	if(to_id == pe_th_render_id){
-		array_add(&render_thread_commads,&command);	
+		//array_add(&render_thread_commads,&command);	
 		LOG("exec in renderen therd\n");
 	}
 }

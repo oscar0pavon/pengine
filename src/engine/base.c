@@ -1,7 +1,7 @@
 #include "engine.h"
 
 void pe_end(){
-    engine_running = false;   
+    pe_running = false;   
     clear_engine_memory();
 }
 
@@ -25,12 +25,5 @@ void pe_init() {
   LOG("pengine initialized\n");
 
  
-  //INFO one window, made here. the pway_create_window("peditor") that used to
-  //follow had no prototype in scope - pway.h is included by window_manager.c
-  //and nothing else - so it passed whatever happened to be in the width and
-  //height registers as the size
-  pe_create_window();
 
-  //INFO no pe_render_thread_init() here. pe_main_loop() calls it as the step
-  //after pe_init(), and doing it in both ran pe_vk_init() twice
 }

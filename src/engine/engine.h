@@ -79,21 +79,19 @@ void pe_init_arrays();
 void update_mvp(mat4 model, mat4 mvp_out);
 
 
+void pe_terminate(void);
+
 void pengine_run(PGame*);
-void pe_main_loop();
+
 //
 // Global variables
 //
 
-bool engine_running;
+bool pe_running;
 
 bool pengine_initialized;
 
-bool should_close;
-
 float frame_time;
-
-bool game_initialized;
 
 int action_pointer_id_count;
 
@@ -122,7 +120,6 @@ Array pe_arr_models_paths;
 Array pe_arr_tex_paths;
 
 // ThreadsCommads
-Array render_thread_commads;
 Array main_thread_commads;
 
 vec4 pe_background_color;

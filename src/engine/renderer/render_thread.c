@@ -5,13 +5,6 @@
 #include <engine/threads.h>
 #include <engine/types.h>
 
-void pe_frame_clean() {}
-
-void pe_render_thread_init() {
-
-  pe_vk_init();
-}
-
 
 //INFO the engine has no scene of its own to walk. the render pass calls the
 //application back through pe_vk_draw_scene, and that hook is where the models

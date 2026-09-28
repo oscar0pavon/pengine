@@ -111,12 +111,6 @@ void pe_init_arrays() {
 
   array_init(&array_animation_play_list, sizeof(PEAnimationPlay), 100);
 
-  array_init(&array_render_thread_init_commmands, sizeof(ExecuteCommand), 5);
-
-  array_init(&array_render_thread_commands, sizeof(ExecuteCommand), 100);
-
-  array_init(&render_thread_commads, sizeof(PEThreadCommand), 100);
-
   array_init(&pe_array_textures, sizeof(PTexture), 100);
 
   current_textures_array = &pe_array_textures;
@@ -136,8 +130,12 @@ void pe_init_global_variables() {
 
   pe_data_loader_models_loaded_count = 0;
 
-  engine_running = true;
+  pe_running = true;
 
+}
+
+void pe_terminate(void){
+ pe_running = false; 
 }
 
 
