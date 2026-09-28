@@ -203,6 +203,60 @@ void pe_vk_descriptor_update(PModel *model, PRenderTarget *target) {
   }
 }
 
+void pe_vk_descriptor_skinned_update(PModel *model, PSkin *skin,
+                                     PRenderTarget *target) {
+
+  u32 count = pe_vk_targets_max_images_count();
+
+  for (u32 i = 0; i < count; i++) {
+
+    VkBuffer *uniform_buffer = array_get(&model->uniform_buffers, i);
+    VkDescriptorBufferInfo uniform_info = {
+        .buffer = *uniform_buffer,
+        .offset = 0,
+        .range = sizeof(PUniformBufferObject)};
+
+    VkDescriptorImageInfo image_info = {
+        .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        .imageView = model->texture.image_view,
+        .sampler = model->texture.sampler};
+
+    VkBuffer *storage_buffer = array_get(&skin->shader_storage_buffers, i);
+    VkDescriptorBufferInfo storage_info = {
+        .buffer = *storage_buffer,
+        .offset = 0,
+        .range = sizeof(skin->node_uniform.joints_matrix)};
+
+    VkDescriptorSet *descriptor_set = array_get(&model->descriptor_sets, i);
+
+    VkWriteDescriptorSet des_write[3] = {
+        {.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+         .dstSet = *descriptor_set,
+         .dstBinding = 0,
+         .dstArrayElement = 0,
+         .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+         .descriptorCount = 1,
+         .pBufferInfo = &uniform_info},
+        {.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+         .dstSet = *descriptor_set,
+         .dstBinding = 1,
+         .dstArrayElement = 0,
+         .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+         .descriptorCount = 1,
+         .pImageInfo = &image_info},
+        {.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+         .dstSet = *descriptor_set,
+         .dstBinding = 2,
+         .dstArrayElement = 0,
+         .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+         .descriptorCount = 1,
+         .pBufferInfo = &storage_info},
+    };
+
+    vkUpdateDescriptorSets(vk_device, 3, des_write, 0, NULL);
+  }
+}
+
 void pe_vk_create_descriptor_sets(PModel *model, VkDescriptorSetLayout layout,
                                   PRenderTarget *target) {
 

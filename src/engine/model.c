@@ -32,27 +32,30 @@ cgltf_data *current_data;
 PSkin *current_skin;
 
 
+//INFO only the first call sizes the array; the calls after it, one per
+//further primitive of the same mesh, add their indices to that same one.
+//array_init() cannot be left to refuse the later calls itself - it zeroes
+//the Array before testing whether it was already initialized, so its own
+//guard never fires and it would start the array over every primitive,
+//leaving a mesh with only its last primitive's indices
 void pe_loader_mesh_read_accessor_indices(Array *index_array,
                                           cgltf_accessor *accessor) {
-  switch (accessor->component_type) {
-  case cgltf_component_type_r_8:
-    break;
-  case cgltf_component_type_r_16:
-    break;
-  case cgltf_component_type_r_8u:
-
-    array_init(index_array, sizeof(u8), accessor->count);
-    break;
-  case cgltf_component_type_r_16u:
-
-    array_init(index_array, sizeof(unsigned short), accessor->count);
-    break;
-  case cgltf_component_type_r_32f:
-    break;
-  case cgltf_component_type_r_32u:
-    array_init(index_array, sizeof(unsigned int), accessor->count);
-    break;
+  if (index_array->initialized == false) {
+    switch (accessor->component_type) {
+    case cgltf_component_type_r_8u:
+      array_init(index_array, sizeof(u8), accessor->count);
+      break;
+    case cgltf_component_type_r_16u:
+      array_init(index_array, sizeof(unsigned short), accessor->count);
+      break;
+    case cgltf_component_type_r_32u:
+      array_init(index_array, sizeof(unsigned int), accessor->count);
+      break;
+    default:
+      break;
+    }
   }
+
   for (size_t i = 0; i < accessor->count; i++) {
     size_t index = cgltf_accessor_read_index(accessor, i);
     array_add(index_array, &index);
@@ -251,30 +254,39 @@ static void pe_loader_flat_normals(Array *vertex_array, Array *index_array) {
   }
 }
 
-void pe_loader_mesh_load_primitive(Array *vertex_array, Array *index_array,
-                                   cgltf_primitive *primitive) {
-
-  bool has_normals = false;
-
-  for (int i = 0; i < primitive->attributes_count; i++) {
-    if (primitive->attributes[i].type == cgltf_attribute_type_normal)
-      has_normals = true;
-    pe_load_attribute(vertex_array, &primitive->attributes[i]);
-  }
-
-  pe_loader_mesh_read_accessor_indices(index_array, primitive->indices);
-
-  if (!has_normals)
-    pe_loader_flat_normals(vertex_array, index_array);
-}
-
+//INFO a mesh's attributes are read once, from its first primitive, and every
+//primitive after that only adds its own indices to the same shared vertex
+//array. that is the shape a mesh split by material has - one vertex set,
+//one primitive per material, each naming the same POSITION/NORMAL/...
+//accessors and differing only in which slice of indices it draws - and it
+//is what m22gltf writes for a model whose 70 batches all index the same
+//2737 vertices. a mesh whose primitives carried genuinely different vertex
+//data would need each one appended with its own vertex range and its
+//indices offset past the ranges before it, which this does not do.
+//
+//reading every primitive's attributes instead, as this used to, rebuilt the
+//vertex array per primitive and left only the last primitive's indices,
+//because array_init() zeroes an Array before it checks whether it was
+//already initialized - so the guard meant to refuse a second init never
+//fires and each call silently starts the array over
 void pe_load_mesh(PModel *model, cgltf_mesh *mesh) {
 
-  for (int i = 0; i < mesh->primitives_count; i++) {
-    pe_loader_mesh_load_primitive(&model->vertex_array, &model->index_array,
-                                  &mesh->primitives[i]);
+  if (mesh->primitives_count == 0)
+    return;
+
+  bool has_normals = false;
+  for (int i = 0; i < mesh->primitives[0].attributes_count; i++) {
+    if (mesh->primitives[0].attributes[i].type == cgltf_attribute_type_normal)
+      has_normals = true;
+    pe_load_attribute(&model->vertex_array, &mesh->primitives[0].attributes[i]);
   }
-  
+
+  for (int i = 0; i < mesh->primitives_count; i++)
+    pe_loader_mesh_read_accessor_indices(&model->index_array,
+                                         mesh->primitives[i].indices);
+
+  if (!has_normals)
+    pe_loader_flat_normals(&model->vertex_array, &model->index_array);
 }
 
 //INFO joints are only ever bound skin->joints and pe_load_skin()'s own

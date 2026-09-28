@@ -6,6 +6,7 @@
 #include <vulkan/vulkan.h>
 
 #include <engine/model.h>
+#include <engine/skeletal.h>
 
 typedef struct PRenderTarget PRenderTarget;
 
@@ -30,5 +31,10 @@ void pe_vk_create_descriptor_set_layout_skinned();
 void pe_vk_descriptor_update(PModel *model, PRenderTarget *target);
 void pe_vk_create_descriptor_sets(PModel *model, VkDescriptorSetLayout layout,
                                   PRenderTarget *target);
+
+//uniform buffer (binding 0), texture (binding 1) and skin's joint matrix
+//storage buffer (binding 2) - call once, after pe_vk_skin_create_storage_buffers()
+void pe_vk_descriptor_skinned_update(PModel *model, PSkin *skin,
+                                     PRenderTarget *target);
 
 #endif

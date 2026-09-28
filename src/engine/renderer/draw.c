@@ -22,6 +22,16 @@ void (*pe_vk_draw_scene)(PRenderTarget *target, VkCommandBuffer *cmd_buffer,
 
 #include "descriptor_set.h"
 
+//the accessor a model's indices were loaded from decides how wide they are
+//(pe_loader_mesh_read_accessor_indices() sizes index_array to match) - a
+//glTF exporter that can produce more than 65535 vertices, m22gltf among
+//them, writes them as 32 bit, and binding that here as UINT16 would read
+//every pair of indices as one, wrecking the mesh's topology
+static VkIndexType pe_vk_model_index_type(PModel *model) {
+  return model->index_array.element_bytes_size == 4 ? VK_INDEX_TYPE_UINT32
+                                                     : VK_INDEX_TYPE_UINT16;
+}
+
 void pe_vk_draw_model(PDrawModelCommand *draw_model) {
 
   VkDeviceSize offsets[] = {0};
@@ -39,7 +49,7 @@ void pe_vk_draw_model(PDrawModelCommand *draw_model) {
 
   vkCmdBindVertexBuffers(command, 0, 1, &draw_model->model->vertex_buffer.buffer, offsets);
   vkCmdBindIndexBuffer(command, draw_model->model->index_buffer.buffer, 0,
-                       VK_INDEX_TYPE_UINT16);
+                       pe_vk_model_index_type(draw_model->model));
   vkCmdDrawIndexed(command, draw_model->model->index_array.count, 1, 0, 0, 0);
 }
 
@@ -66,7 +76,7 @@ void pe_vk_draw_model_instanced(PDrawModelCommand *draw_model,
   vkCmdBindVertexBuffers(command, 1, 1, &instance_buffer, offsets);
 
   vkCmdBindIndexBuffer(command, draw_model->model->index_buffer.buffer, 0,
-                       VK_INDEX_TYPE_UINT16);
+                       pe_vk_model_index_type(draw_model->model));
 
   vkCmdDrawIndexed(command, draw_model->model->index_array.count,
                    instance_count, 0, 0, 0);

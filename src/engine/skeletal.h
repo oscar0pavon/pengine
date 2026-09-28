@@ -55,5 +55,13 @@ void get_global_matrix(Node* node, mat4 out_mat);
 //skin still loads as a plain mesh; skin is left zeroed
 PModel *pe_vk_load_skin(PSkin *skin, PModel *model, const char *path);
 
+//one joint matrix storage buffer per swap chain image - call once after
+//pe_vk_load_skin(), before the skin's descriptor sets are written
+void pe_vk_skin_create_storage_buffers(PSkin *skin);
+
+//uploads this frame's skin->node_uniform (pe_anim_nodes_update() fills it)
+//into the storage buffer the given swap chain image's descriptor set reads
+void pe_vk_skin_send_storage_buffer(PSkin *skin, unsigned int image_index);
+
 
 #endif

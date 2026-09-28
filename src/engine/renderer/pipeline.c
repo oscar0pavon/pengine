@@ -76,7 +76,13 @@ pe_vk_pipeline_get_default_depth_stencil() {
   info.depthBoundsTestEnable = VK_FALSE;
   info.minDepthBounds = 0.0f;
   info.maxDepthBounds = 1.0f;
-  info.stencilTestEnable = VK_TRUE;
+  //INFO off, where it used to be on: front and back are left zeroed above,
+  //and a zeroed VkStencilOpState compares with VK_COMPARE_OP_NEVER, so the
+  //stencil test failed for every fragment and a pipeline built on this
+  //default drew nothing at all. nothing caught it because nothing used the
+  //default - terrain, buildings, water and the sky all pass a depth stencil
+  //state of their own, and those leave stencil testing off
+  info.stencilTestEnable = VK_FALSE;
 
   return info;
 }
