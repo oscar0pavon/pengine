@@ -16,9 +16,15 @@ typedef struct Skeletal{
     unsigned short int joints_count;
 }Skeletal;
 
+//INFO 256, not the 35 this used to be: a classic WoW model's own MAX_BONES is
+//0x100, and a player character (all the attachment points a piece of gear
+//can ride on, on top of the real skeleton) uses most of it - taurenmale.m2
+//alone has 134
+#define PE_SKELETAL_JOINTS_MAX 256
+
 typedef struct SkeletalNodeUniform{
     int joint_count;
-    mat4 joints_matrix[35];
+    mat4 joints_matrix[PE_SKELETAL_JOINTS_MAX];
 }SkeletalNodeUniform;
 
 //INFO one skinned mesh: the geometry, its joint hierarchy and the joint
@@ -42,6 +48,12 @@ void free_node(Node*);
 
 void get_local_matrix(Node* node, mat4 out_mat);
 void get_global_matrix(Node* node, mat4 out_mat);
+
+//loads a rigged model's mesh into model (same as pe_vk_load_model()) and, if
+//the glTF file has a skin, its joints/inverse bind matrices/animations into
+//skin, which the caller owns (skin->mesh is set to model). a model with no
+//skin still loads as a plain mesh; skin is left zeroed
+PModel *pe_vk_load_skin(PSkin *skin, PModel *model, const char *path);
 
 
 #endif

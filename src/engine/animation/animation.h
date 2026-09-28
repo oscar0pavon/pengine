@@ -22,7 +22,7 @@ typedef struct AnimationChannel {
 typedef struct Animation {
   float time;
   bool loop;
-  char name[20];
+  char name[48];
   Array channels; // AnimationChannel
   float start;
   float end;

@@ -19,7 +19,17 @@
 #include "renderer/descriptor_set.h"
 #include "renderer/uniform_buffer.h"
 
+#include "skeletal.h"
+#include "animation/animation.h"
+
 cgltf_data *current_data;
+
+//INFO set by pe_vk_load_skin() before the parse below, the same way
+//current_data is: pe_node_load() and the skin/animation blocks in
+//pe_loader_model_from_memory() only have this one call stack to fill a
+//PSkin in, since the cgltf_skin and cgltf_animation they read from are
+//freed at the end of it
+PSkin *current_skin;
 
 
 void pe_loader_mesh_read_accessor_indices(Array *index_array,
@@ -151,8 +161,36 @@ void pe_load_attribute(Array* vertex_array, cgltf_attribute *attribute) {
 
     break;
   }
+  //INFO JOINTS_0 is usually unsigned byte or short, never normalized, so
+  //cgltf_accessor_read_float() (via cgltf_component_read_float()) hands back
+  //the plain index 0..255 as a float rather than scaling it - exactly what
+  //int(joint.x) in the skinned vertex shader wants
+  case cgltf_attribute_type_joints: {
+    vec4 joints[attribute->data->count];
+    ZERO(joints);
 
+    pe_loader_read_accessor(vertex_array, attribute->data, (float *)joints);
 
+    for (int i = 0; i < attribute->data->count; i++) {
+      PVertex *vertex = array_get(vertex_array, i);
+      glm_vec4_copy(joints[i], vertex->joint);
+    }
+
+    break;
+  }
+  case cgltf_attribute_type_weights: {
+    vec4 weights[attribute->data->count];
+    ZERO(weights);
+
+    pe_loader_read_accessor(vertex_array, attribute->data, (float *)weights);
+
+    for (int i = 0; i < attribute->data->count; i++) {
+      PVertex *vertex = array_get(vertex_array, i);
+      glm_vec4_copy(weights[i], vertex->weight);
+    }
+
+    break;
+  }
 
   } // end switch
 
@@ -239,6 +277,148 @@ void pe_load_mesh(PModel *model, cgltf_mesh *mesh) {
   
 }
 
+//INFO joints are only ever bound skin->joints and pe_load_skin()'s own
+//cgltf_joints, never freed early, so this is safe to call from
+//pe_load_animations() right after
+static Node *pe_find_joint_node(PSkin *skin, cgltf_skin *in_skin,
+                                cgltf_node *target) {
+  for (u32 i = 0; i < in_skin->joints_count; i++)
+    if (in_skin->joints[i] == target)
+      return array_get(&skin->joints, i);
+  return NULL;
+}
+
+//one PSkin per file is all this reads, which is all m22gltf (and every other
+//glTF exporter meant for a single rigged character) ever writes
+static void pe_load_skin(PSkin *skin, cgltf_skin *in_skin) {
+  u32 joint_count = in_skin->joints_count;
+  cgltf_node *cgltf_joints[joint_count];
+
+  array_init(&skin->joints, sizeof(Node), joint_count);
+  array_init(&skin->inverse_bind_matrices, sizeof(mat4), joint_count);
+
+  for (u32 i = 0; i < joint_count; i++) {
+    cgltf_node *in_node = in_skin->joints[i];
+    cgltf_joints[i] = in_node;
+
+    Node node;
+    ZERO(node);
+    node.id = i;
+    snprintf(node.name, sizeof(node.name), "%s",
+            in_node->name ? in_node->name : "");
+
+    if (in_node->has_translation)
+      glm_vec3_copy(in_node->translation, node.translation);
+    if (in_node->has_rotation)
+      glm_vec4_copy(in_node->rotation, node.rotation);
+    else
+      glm_quat_identity(node.rotation);
+
+    array_add(&skin->joints, &node);
+
+    mat4 inverse_bind;
+    glm_mat4_identity(inverse_bind);
+    if (in_skin->inverse_bind_matrices != NULL)
+      cgltf_accessor_read_float(in_skin->inverse_bind_matrices, i,
+                                (float *)inverse_bind, 16);
+    array_add(&skin->inverse_bind_matrices, inverse_bind);
+  }
+
+  //INFO parents are only wired up now that every joint has its final,
+  //settled place in skin->joints - array_add() above may have moved the
+  //array when it grew, and a parent pointer taken before that would dangle
+  for (u32 i = 0; i < joint_count; i++) {
+    Node *child = array_get(&skin->joints, i);
+    child->parent = NULL;
+
+    cgltf_node *parent = cgltf_joints[i]->parent;
+    for (u32 p = 0; p < joint_count; p++) {
+      if (cgltf_joints[p] == parent) {
+        child->parent = array_get(&skin->joints, p);
+        break;
+      }
+    }
+  }
+
+  skin->node_uniform.joint_count = joint_count;
+}
+
+//translation and rotation channels only: PSkin's Node has no scale, matching
+//what m22gltf's bones actually need it for (Blizzard's own tooling, not
+//gear or squash-and-stretch effects)
+static void pe_load_animations(PSkin *skin, cgltf_data *data) {
+  if (data->skins_count == 0)
+    return;
+  cgltf_skin *in_skin = &data->skins[0];
+
+  array_init(&skin->animations, sizeof(Animation), data->animations_count);
+
+  for (u32 a = 0; a < data->animations_count; a++) {
+    cgltf_animation *in_animation = &data->animations[a];
+
+    Animation animation;
+    ZERO(animation);
+    snprintf(animation.name, sizeof(animation.name), "%s",
+            in_animation->name ? in_animation->name : "");
+
+    array_init(&animation.channels, sizeof(AnimationChannel),
+              in_animation->channels_count);
+
+    for (u32 c = 0; c < in_animation->channels_count; c++) {
+      cgltf_animation_channel *in_channel = &in_animation->channels[c];
+
+      unsigned short path_type;
+      int floats_per;
+      if (in_channel->target_path == cgltf_animation_path_type_translation) {
+        path_type = PATH_TYPE_TRANSLATION;
+        floats_per = 3;
+      } else if (in_channel->target_path ==
+                cgltf_animation_path_type_rotation) {
+        path_type = PATH_TYPE_ROTATION;
+        floats_per = 4;
+      } else {
+        continue;
+      }
+
+      Node *node = pe_find_joint_node(skin, in_skin, in_channel->target_node);
+      if (node == NULL)
+        continue;
+
+      cgltf_animation_sampler *in_sampler = in_channel->sampler;
+      u32 key_count = in_sampler->input->count;
+
+      AnimationChannel channel;
+      ZERO(channel);
+      channel.path_type = path_type;
+      channel.node = node;
+
+      array_init(&channel.sampler.inputs, sizeof(float), key_count);
+      array_init(&channel.sampler.outputs, sizeof(float) * floats_per,
+                key_count);
+
+      for (u32 k = 0; k < key_count; k++) {
+        float time;
+        cgltf_accessor_read_float(in_sampler->input, k, &time, 1);
+        array_add(&channel.sampler.inputs, &time);
+
+        float value[4];
+        cgltf_accessor_read_float(in_sampler->output, k, value, floats_per);
+        array_add(&channel.sampler.outputs, value);
+      }
+
+      if (key_count > 0) {
+        float last_time = *(float *)array_get_last(&channel.sampler.inputs);
+        if (last_time > animation.end)
+          animation.end = last_time;
+      }
+
+      array_add(&animation.channels, &channel);
+    }
+
+    array_add(&skin->animations, &animation);
+  }
+}
+
 int pe_node_load(PModel* model, cgltf_node *in_cgltf_node) {
 
 
@@ -287,9 +467,8 @@ cgltf_result pe_loader_model_from_memory(PModel* model, void *gltf_data, u32 siz
   }
 
 
-  if (data->skins_count >= 1) {
-
-  }
+  if (current_skin != NULL && data->skins_count >= 1)
+    pe_load_skin(current_skin, &data->skins[0]);
 
   //  LOG("******************Loading nodes");
 
@@ -298,9 +477,8 @@ cgltf_result pe_loader_model_from_memory(PModel* model, void *gltf_data, u32 siz
   }
 
 
-  if (data->animations_count >= 1) {
-
-  }
+  if (current_skin != NULL && data->animations_count >= 1)
+    pe_load_animations(current_skin, data);
 
   cgltf_free(data);
   current_data = NULL;
@@ -335,6 +513,25 @@ PModel *pe_vk_load_model(PModel* model, const char *path) {
   glm_mat4_copy(model->model_mat,model->uniform_buffer_object.model);
   glm_mat4_copy(main_camera.projection, model->uniform_buffer_object.projection);
   glm_mat4_copy(main_camera.view, model->uniform_buffer_object.view);
+
+  return model;
+}
+
+//INFO reuses pe_vk_load_model() as-is for the mesh, vertex/index buffers and
+//uniform buffer - current_skin just gives pe_loader_model_from_memory()
+//somewhere to put the skin and animations it finds along the way. what this
+//does not yet do: model's descriptor sets and pool here are still the plain
+//(uniform buffer only) ones pe_vk_load_model() always makes, not the
+//uniform+texture+joint matrices SSBO layout skinned.vert needs - drawing a
+//skin still wants a pipeline, descriptor layout and per frame joint matrix
+//upload of its own, none of which exist yet
+PModel *pe_vk_load_skin(PSkin *skin, PModel *model, const char *path) {
+  ZERO(*skin);
+  skin->mesh = model;
+
+  current_skin = skin;
+  pe_vk_load_model(model, path);
+  current_skin = NULL;
 
   return model;
 }
