@@ -52,7 +52,7 @@ void pe_create_window(){
   //INFO no pway_init_egl() here. it binds a desktop GL context and hangs a
   //wl_egl_window off pway_surface - the same wl_surface pe_vk_create_surface
   //hands to VkWaylandSurfaceKHR, so both would be driving one surface
-  pway_create_window("peditor", INIT_WINDOW_SIZE_X, INIT_WINDOW_SIZE_Y);
+  pway_create_window(game->name, INIT_WINDOW_SIZE_X, INIT_WINDOW_SIZE_Y);
 
   //INFO the camera aspect, the 2D projection and the viewport all read these,
   //so they come from the window rather than from a constant repeated here. pway

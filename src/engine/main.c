@@ -17,11 +17,15 @@ void *pe_input_thread(void *argument) {
   return NULL;
 }
 
-void pe_main_loop() {
+void pengine_run(PGame* created_game){
+
+  game = created_game; 
 
   pe_init();
 
-  pe_render_thread_init();
+  pe_create_window();
+
+  pe_vk_init();
 
   game->init();
 
@@ -44,4 +48,5 @@ void pe_main_loop() {
     update_delta_time();
 
   }
+
 }
