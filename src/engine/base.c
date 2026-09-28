@@ -1,7 +1,12 @@
 #include "engine.h"
 
+//INFO called once, after pengine_run()'s main loop has already exited -
+//pe_terminate() is what breaks that loop by clearing pe_running. tearing
+//vulkan down needs the device idle first: the loop's last frame can still be
+//in flight on the GPU when pe_running goes false
 void pe_end(){
-    pe_running = false;   
+    vkDeviceWaitIdle(vk_device);
+    pe_vk_end();
     clear_engine_memory();
 }
 

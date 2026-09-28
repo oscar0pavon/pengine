@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 
+#include <engine/engine.h>
 #include <engine/game.h>
 #include <engine/input.h>
 
@@ -17,6 +18,13 @@ bool pe_wm_swapped = false;
 //PE_KEY_PRESSED/RELEASED are those two values, so the state goes straight on
 static void pe_wm_key_event(uint32_t key_code, uint32_t state) {
   pe_parse_key_event(key_code, state);
+}
+
+//fires from pway_handle_events() once the compositor has already torn the
+//toplevel down (the close button, or the connection being lost), so this
+//only has to stop the main loop - pe_end() does the real teardown afterwards
+static void pe_wm_exit_event(void) {
+  pe_terminate();
 }
 
 void pe_wm_input_update() {
@@ -48,6 +56,7 @@ void pe_create_window(){
   pway = pway_init();
 
   pway->key = &pe_wm_key_event;
+  pway->exit = &pe_wm_exit_event;
 
   //INFO no pway_init_egl() here. it binds a desktop GL context and hangs a
   //wl_egl_window off pway_surface - the same wl_surface pe_vk_create_surface

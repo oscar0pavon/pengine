@@ -52,4 +52,6 @@ void pengine_run(PGame* created_game){
 
   LOG("end pengine\n");
 
+  pe_end();
+
 }
