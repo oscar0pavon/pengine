@@ -254,6 +254,48 @@ static void pe_loader_flat_normals(Array *vertex_array, Array *index_array) {
   }
 }
 
+//INFO m22gltf's own format (tools/m22gltf.c in pwow): a primitive carrying a
+//geoset writes extras as exactly {"geoset":N}, the classic skin submesh's
+//skinSectionId. cgltf leaves extras unparsed, as a byte range into the
+//original JSON text, so this reads it straight out of current_data->json
+//rather than pulling in a JSON parser for one integer. A primitive with no
+//extras (any other glTF, cube.glb among them) has start_offset == end_offset
+//and this returns false, which pe_load_mesh takes to mean "not part of a
+//group, always keep"
+static bool pe_primitive_geoset(cgltf_primitive *primitive, u32 *geoset) {
+  cgltf_extras *extras = &primitive->extras;
+  if (extras->end_offset <= extras->start_offset)
+    return false;
+  return sscanf(current_data->json + extras->start_offset, "{\"geoset\":%u}",
+               geoset) == 1;
+}
+
+//INFO a model carries every alternative a geoset group has - every hairstyle,
+//every cloak, gloves and bare forearms both - since the file is the same one
+//WoWee's own DBC-driven equipment code would filter at runtime. Without that
+//data this can only pick one default per group, so it keeps the lowest id
+//(group*100+variant): the group's own "none" when the group has one (a bare
+//variant is always 0 or 1, e.g. no cloak, no gloves), and otherwise the first
+//alternative, same as WoWee's resolveGeoset() falls back to. Primitives that
+//share the true minimum (the tauren body is two, one material per texture
+//layer) are all kept; nothing here decides between materials, only groups
+static bool pe_primitive_is_default(cgltf_mesh *mesh, int index) {
+  u32 geoset;
+  if (!pe_primitive_geoset(&mesh->primitives[index], &geoset))
+    return true;
+
+  u32 group = geoset / 100;
+  for (int i = 0; i < mesh->primitives_count; i++) {
+    if (i == index)
+      continue;
+    u32 other;
+    if (pe_primitive_geoset(&mesh->primitives[i], &other) &&
+       other / 100 == group && other < geoset)
+      return false;
+  }
+  return true;
+}
+
 //INFO a mesh's attributes are read once, from its first primitive, and every
 //primitive after that only adds its own indices to the same shared vertex
 //array. that is the shape a mesh split by material has - one vertex set,
@@ -281,9 +323,12 @@ void pe_load_mesh(PModel *model, cgltf_mesh *mesh) {
     pe_load_attribute(&model->vertex_array, &mesh->primitives[0].attributes[i]);
   }
 
-  for (int i = 0; i < mesh->primitives_count; i++)
+  for (int i = 0; i < mesh->primitives_count; i++) {
+    if (!pe_primitive_is_default(mesh, i))
+      continue;
     pe_loader_mesh_read_accessor_indices(&model->index_array,
                                          mesh->primitives[i].indices);
+  }
 
   if (!has_normals)
     pe_loader_flat_normals(&model->vertex_array, &model->index_array);
