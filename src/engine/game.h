@@ -15,12 +15,10 @@ typedef struct PGame{
 	void(*update)(void);
 	void(*end)(void);
 	void(*input)(void);
-	void(*draw)(void);
 #ifdef ANDROID
 	struct android_app* app; 
 #endif
 }PGame;
-
 
 
 int load_gamplay_code();

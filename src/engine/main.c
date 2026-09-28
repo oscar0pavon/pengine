@@ -41,8 +41,6 @@ void pe_main_loop() {
 
     pe_frame_draw();
 
-    game->draw();
-
     update_delta_time();
 
   }
