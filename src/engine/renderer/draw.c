@@ -16,6 +16,7 @@
 #include "vk_images.h"
 
 #include "engine/renderer/renderer.h"
+#include "engine/text.h"
 
 void (*pe_vk_draw_scene)(PRenderTarget *target, VkCommandBuffer *cmd_buffer,
                          uint32_t index) = NULL;
@@ -148,6 +149,12 @@ void pe_vk_draw_frame(PRenderTarget *target) {
 
   VkCommandBuffer current_command =
       pe_vk_start_record_command(target, image_index);
+
+  //INFO pfonts_vulkan_sync_atlas() (called through here) records and submits
+  //its own one-shot transfer command buffer to upload the glyph atlas -
+  //Vulkan does not allow that inside an active render pass instance, so this
+  //has to run before pe_vk_start_render_pass() opens one, not after
+  pe_text_sync();
 
   pe_vk_start_render_pass(target, current_command, image_index);//INFO this is where we draw things
 

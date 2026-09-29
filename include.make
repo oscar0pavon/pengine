@@ -31,6 +31,15 @@ WAYLAND_LIBS += -lxkbcommon
 LIBRARIES := $(WAYLAND_LIBS) -lvulkan -lm -lpthread -ldl
 LIBRARIES += -lpway -llodepng
 
+#INFO engine/text.c wraps pfonts (/root/pfonts) for on screen text. its own
+#Vulkan backend never creates a GL context, but truetype.o (font loading, the
+#glyph atlas) is one translation unit with the parts of pfonts that do -
+#pfonts_init()/pfonts_atlas_upload()/pfonts_free_atlas() call real GL entry
+#points for the OpenGL backend - so pulling in anything from truetype.o pulls
+#in undefined references to those too, and the link needs -lGL to resolve
+#them even though nothing here ever calls them
+LIBRARIES += -lpfonts -lGL
+
 #INFO wowauth needs OpenSSL's bignum/SHA1 for SRP6. named by full path, not
 #-lcrypto: this host also has an old OpenSSL 1.1 under /usr/local/lib, and
 #the plain flag's default search order picks that one over /usr/lib's 3.x -
