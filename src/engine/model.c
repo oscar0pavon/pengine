@@ -273,22 +273,28 @@ static bool pe_primitive_geoset(cgltf_primitive *primitive, u32 *geoset) {
 //INFO a model carries every alternative a geoset group has - every hairstyle,
 //every cloak, gloves and bare forearms both - since the file is the same one
 //WoWee's own DBC-driven equipment code would filter at runtime. Without that
-//data this can only pick one default per group, so it keeps the lowest id
-//(group*100+variant): the group's own "none" when the group has one (a bare
-//variant is always 0 or 1, e.g. no cloak, no gloves), and otherwise the first
-//alternative, same as WoWee's resolveGeoset() falls back to. Primitives that
-//share the true minimum (the tauren body is two, one material per texture
-//layer) are all kept; nothing here decides between materials, only groups
+//data this can only pick one default per group (group*100+variant).
 //
 //group 0 is not a normal choice group: id 0 is the body, always drawn, and
 //ids 1.. are alternative scalp meshes layered on top of it (WoWee's own
-//entity_spawner.cpp: "group 0 holds the body plus one scalp"). Treating id 0
-//as competing with them the way a group's own "none" would picked id 0 and
-//nothing else, dropping every one of them - harmless for a human, whose
-//lowest scalp id is a bald cap, but a Tauren has no bald equivalent among
-//them; every id is an actual horn style, so dropping them all drew a Tauren
-//with no horns. id 0 is kept unconditionally below, and the floor of 1 on
-//group 0 keeps it from also winning the "lowest id" contest among the scalps
+//entity_spawner.cpp: "group 0 holds the body plus one scalp"). Every
+//character needs one of them - even a bald human draws a bald-cap mesh, there
+//is no "nothing" option - so the lowest of 1.. is kept as the stand-in
+//default, same as a Tauren's lowest id there is its first horn style.
+//
+//every other group's own "none" is a real, drawn variant, and it is always at
+//variant 00 or 01 (WoWee's kGeosetBareForearms = 401, kGeosetBarePants =
+//1301, kGeosetNoCape = 1501: no gloves, no leggings, no cape). When a group's
+//lowest exported id already sits at variant 0 or 1, that is its bare state
+//and this keeps it, same as before. When it does not - this Tauren's facial-
+//hair-shaped groups 1, 2 and 3 export only variants 2 and up, because
+//CharFacialHairStyles never gives Tauren anything in those slots and a
+//variant nobody selects has no blank mesh to export in the first place - the
+//group has no way to say "none", so guessing its first real style drew a
+//warrior in a mane like a shaman's cloth nobody equipped. Rather than guess,
+//the whole group is left off; a caller that does have the DBC's per-character
+//variant can still ask a loaded model for that geoset directly, this only
+//decides what shows with none of that data
 static bool pe_primitive_is_default(cgltf_mesh *mesh, int index) {
   u32 geoset;
   if (!pe_primitive_geoset(&mesh->primitives[index], &geoset))
@@ -298,15 +304,21 @@ static bool pe_primitive_is_default(cgltf_mesh *mesh, int index) {
 
   u32 group = geoset / 100;
   u32 floor = (group == 0) ? 1 : 0;
+
+  //the group's true lowest id, over every primitive - not just the ones
+  //checked so far - so a group with no bare variant is recognised as such
+  //regardless of which of its primitives happens to be asked about first
+  u32 group_min = geoset;
   for (int i = 0; i < mesh->primitives_count; i++) {
-    if (i == index)
-      continue;
     u32 other;
-    if (pe_primitive_geoset(&mesh->primitives[i], &other) &&
-       other / 100 == group && other >= floor && other < geoset)
-      return false;
+    if (i != index && pe_primitive_geoset(&mesh->primitives[i], &other) &&
+        other / 100 == group && other >= floor && other < group_min)
+      group_min = other;
   }
-  return true;
+
+  if (group != 0 && group_min % 100 > 1)
+    return false;
+  return geoset == group_min;
 }
 
 //INFO a mesh's attributes are read once, from its first primitive, and every
