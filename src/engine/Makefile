@@ -4,7 +4,9 @@ include ../../include.make
 
 .PHONY: all clean install
 
-all: libpengine.a
+LIB := $(WORKDIR)/lib/libpengine.a
+
+all: $(LIB)
 
 renderer_src := $(wildcard ./renderer/*.c)
 renderer_objs := $(renderer_src:%.c=%.o)
@@ -59,14 +61,14 @@ ALL_DEPS := $(ALL_OBJS:.o=.d)
 #so two sources sharing a basename both wanted the same member name - one of
 #the two silently lost, and edits to it stopped reaching the library. P keeps
 #the paths apart
-libpengine.a: $(ALL_OBJS)
-	rm -f $(WORKDIR)/lib/libpengine.a
-	ar rcsP $(WORKDIR)/lib/libpengine.a $^
+$(LIB): $(ALL_OBJS)
+	rm -f $@
+	ar rcsP $@ $^
 
 
 clean:
 	rm -f *.o *.d
-	rm -f $(WORKDIR)/lib/libpengine.a
+	rm -f $(LIB)
 	rm -f $(ALL_OBJS)
 	rm -f $(ALL_DEPS)
 
