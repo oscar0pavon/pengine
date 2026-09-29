@@ -8,6 +8,7 @@
 
 #include "../array.h"
 #include "../skeletal.h"
+
 typedef struct AnimationSampler {
   Array inputs;  // int
   Array outputs; // vec3 or vec4
@@ -35,12 +36,10 @@ typedef struct PEAnimationPlay {
 
 Array array_animation_play_list;
 
-void play_animation_by_name(PSkin *skin_component,
-                            const char *name, bool loop);
-
-void play_animation_list();
-
-void pe_anim_nodes_update(PSkin *);
+void play_animation_by_name(PSkin *skin_component, const char *name,
+                            bool loop);
+void play_animation_list(void);
+void pe_anim_nodes_update(PSkin *skin_component);
 
 #ifdef DEBUG
 bool update_vertex_bones_gizmos;
