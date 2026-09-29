@@ -279,18 +279,31 @@ static bool pe_primitive_geoset(cgltf_primitive *primitive, u32 *geoset) {
 //alternative, same as WoWee's resolveGeoset() falls back to. Primitives that
 //share the true minimum (the tauren body is two, one material per texture
 //layer) are all kept; nothing here decides between materials, only groups
+//
+//group 0 is not a normal choice group: id 0 is the body, always drawn, and
+//ids 1.. are alternative scalp meshes layered on top of it (WoWee's own
+//entity_spawner.cpp: "group 0 holds the body plus one scalp"). Treating id 0
+//as competing with them the way a group's own "none" would picked id 0 and
+//nothing else, dropping every one of them - harmless for a human, whose
+//lowest scalp id is a bald cap, but a Tauren has no bald equivalent among
+//them; every id is an actual horn style, so dropping them all drew a Tauren
+//with no horns. id 0 is kept unconditionally below, and the floor of 1 on
+//group 0 keeps it from also winning the "lowest id" contest among the scalps
 static bool pe_primitive_is_default(cgltf_mesh *mesh, int index) {
   u32 geoset;
   if (!pe_primitive_geoset(&mesh->primitives[index], &geoset))
     return true;
+  if (geoset == 0)
+    return true;
 
   u32 group = geoset / 100;
+  u32 floor = (group == 0) ? 1 : 0;
   for (int i = 0; i < mesh->primitives_count; i++) {
     if (i == index)
       continue;
     u32 other;
     if (pe_primitive_geoset(&mesh->primitives[i], &other) &&
-       other / 100 == group && other < geoset)
+       other / 100 == group && other >= floor && other < geoset)
       return false;
   }
   return true;
