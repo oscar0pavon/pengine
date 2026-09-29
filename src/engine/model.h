@@ -94,8 +94,15 @@ void pe_model_rotate(PModel* model, float angle, vec3 axis);
 void pe_model_scale(PModel* model, vec3 scale);
 
 /*Share source's geometry, but give model its own uniform buffers and
-descriptor sets so it can carry its own transform*/
+descriptor sets so it can carry its own transform. Descriptor sets are
+built against the plain (uniform buffer only) layout, matching gui.c's flat-
+colour button quads, which is what source must have been drawn with too*/
 PModel *pe_vk_model_instance(PModel* model, PModel *source);
+
+/*Same as pe_vk_model_instance(), but for a source drawn with a texture
+(pe_vk_descriptor_set_layout_with_texture): the copy's descriptor set is
+built against that layout instead and points at source's own texture*/
+PModel *pe_vk_model_instance_textured(PModel* model, PModel *source);
 
 int pe_load_model_path(PModel* model, const char *path);
 

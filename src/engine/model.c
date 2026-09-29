@@ -352,6 +352,28 @@ static bool pe_primitive_is_default(cgltf_mesh *mesh, int index) {
 //data would need each one appended with its own vertex range and its
 //indices offset past the ranges before it, which this does not do.
 //
+//a material's baseColorTexture is only ever present when m22gltf's own
+//model_texture() (tools/m22gltf.c in pwow) resolved the model's texture slot
+//to a real file rather than a runtime-replaceable one (a creature or
+//character skin painted in by the game, which a model placed in the world
+//has no data for) - so when it is there, the model's own baked-in look is
+//already correct and needs nothing from the caller beyond having converted
+//the png alongside the glb, the same "prepare_*.sh already put it in data/"
+//assumption a building or prop's own texture table relies on
+static void pe_load_material_texture(PModel *model, cgltf_material *material) {
+  if (material == NULL || !material->has_pbr_metallic_roughness)
+    return;
+
+  cgltf_texture *texture =
+      material->pbr_metallic_roughness.base_color_texture.texture;
+  if (texture == NULL || texture->image == NULL || texture->image->uri == NULL)
+    return;
+
+  char path[512];
+  snprintf(path, sizeof(path), "data/%s", texture->image->uri);
+  pe_load_texture(path, &model->texture);
+}
+
 //reading every primitive's attributes instead, as this used to, rebuilt the
 //vertex array per primitive and left only the last primitive's indices,
 //because array_init() zeroes an Array before it checks whether it was
@@ -361,6 +383,12 @@ void pe_load_mesh(PModel *model, cgltf_mesh *mesh) {
 
   if (mesh->primitives_count == 0)
     return;
+
+  //once per model: a caller loading its own texture over this later (a
+  //player's skin, a creature's DBC texture variation) still wins, since this
+  //only fires while the texture slot is still unloaded
+  if (!model->texture.gpu_loaded)
+    pe_load_material_texture(model, mesh->primitives[0].material);
 
   bool has_normals = false;
   for (int i = 0; i < mesh->primitives[0].attributes_count; i++) {
@@ -656,6 +684,32 @@ PModel *pe_vk_model_instance(PModel *model, PModel *source) {
   pe_vk_create_descriptor_sets(model, pe_vk_descriptor_set_layout,
                                &main_render_target);
   pe_vk_descriptor_update(model, &main_render_target);
+
+  glm_mat4_identity(model->model_mat);
+  glm_mat4_copy(model->model_mat, model->uniform_buffer_object.model);
+
+  return model;
+}
+
+//same as pe_vk_model_instance() above, but against the textured descriptor
+//set layout, and actually writing the copy's own binding 1 to source's
+//texture - pe_vk_descriptor_update() (what the plain path calls) only ever
+//touches binding 0, so a copy sharing a textured source's look needs
+//pe_vk_descriptor_with_image_update() instead, or its sampler binding is
+//left unwritten (read: garbage) same as the plain layout would leave it
+PModel *pe_vk_model_instance_textured(PModel *model, PModel *source) {
+
+  memcpy(model, source, sizeof(PModel));
+
+  ZERO(model->uniform_buffers);
+  ZERO(model->uniform_buffers_memory);
+  ZERO(model->descriptor_sets);
+
+  pe_vk_create_uniform_buffers(model, &main_render_target);
+  pe_vk_descriptor_pool_create(model, &main_render_target);
+  pe_vk_create_descriptor_sets(model, pe_vk_descriptor_set_layout_with_texture,
+                               &main_render_target);
+  pe_vk_descriptor_with_image_update(model, &main_render_target);
 
   glm_mat4_identity(model->model_mat);
   glm_mat4_copy(model->model_mat, model->uniform_buffer_object.model);
