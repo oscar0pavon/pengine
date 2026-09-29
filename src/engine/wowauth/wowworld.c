@@ -18,6 +18,7 @@
 #define OP_SMSG_LOGIN_VERIFY_WORLD 566
 #define OP_SMSG_UPDATE_OBJECT 169
 #define OP_SMSG_COMPRESSED_UPDATE_OBJECT 502
+#define OP_SMSG_MONSTER_MOVE 221
 
 //SharedDefines.h's ResponseCodes enum, position 12 (RESPONSE_SUCCESS..
 //CSTATUS_AUTHENTICATING fill 0..11 first)
@@ -350,5 +351,7 @@ void pe_wowworld_poll(PWowWorld *world, PWowObjectState *state) {
       pe_wowobject_handle_packet(state, payload, payload_len, false);
     else if (opcode == OP_SMSG_COMPRESSED_UPDATE_OBJECT)
       pe_wowobject_handle_packet(state, payload, payload_len, true);
+    else if (opcode == OP_SMSG_MONSTER_MOVE)
+      pe_wowobject_handle_monster_move(state, payload, payload_len);
   }
 }

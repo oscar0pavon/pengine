@@ -2,6 +2,7 @@
 
 #include <zlib.h>
 
+#include <math.h>
 #include <string.h>
 
 //block types (Objects/UpdateData.h in vmangos)
@@ -368,5 +369,163 @@ void pe_wowobject_handle_packet(PWowObjectState *state, const u8 *payload,
 
     if (!movement_ok || !values_ok)
       return;
+  }
+}
+
+//---------------------------------------------------------------------------
+//SMSG_MONSTER_MOVE (Movement::PacketBuilder::WriteMonsterMove /
+//WriteCommonMonsterMovePart, packet_builder.cpp) - a different wire layout
+//from the spline embedded in an UPDATE_OBJECT movement block
+//(parse_movement_spline above, PacketBuilder::WriteCreate): this one is its
+//own opcode, sent whenever a creature's path actually changes, and is what
+//makes a spawned creature walk rather than stand still
+//---------------------------------------------------------------------------
+
+//MonsterMoveType (packet_builder.cpp) - the byte WriteCommonMonsterMovePart
+//writes in place of a facing angle/target/spot when there is none. value 1
+//(Stop) is never written by that path; it only appears in the short "stop"
+//packet below, which is how the two are told apart
+#define MONSTER_MOVE_FACING_SPOT 2
+#define MONSTER_MOVE_FACING_TARGET 3
+#define MONSTER_MOVE_FACING_ANGLE 4
+
+//MoveSplineFlag::Flying / ::Cyclic (MoveSplineFlag.h) - the two bits of the
+//flags word this cares about; the rest (Mask_No_Monster_Move) never reach
+//the wire in this packet, already stripped server side
+#define MOVE_SPLINEFLAG_CATMULLROM 0x00000200
+#define MOVE_SPLINEFLAG_CYCLIC 0x00100000
+
+void pe_wowobject_handle_monster_move(PWowObjectState *state,
+                                      const u8 *payload, int payload_len) {
+  Cursor c = {payload, payload_len, 0, false};
+  u64 guid = cur_packed_guid(&c);
+  float start_x = cur_float(&c);
+  float start_y = cur_float(&c);
+  float start_z = cur_float(&c);
+  cur_u32(&c); //spline id, not tracked
+
+  if (c.overrun)
+    return;
+
+  PWowCreature *creature = find_creature(state, guid);
+  if (!creature)
+    return;
+
+  //Unit::UpdateSplineMovement's "done" case (MoveSplineInit.cpp) writes a
+  //short packet instead - guid, position, spline id, then just a bare stop
+  //marker - rather than going through WriteCommonMonsterMovePart at all.
+  //that leaves exactly one byte after the fields already read above, versus
+  //the many more that follow in every other case, which is what tells the
+  //two formats apart here
+  if (c.len - c.pos == 1) {
+    creature->moving = false;
+    creature->x = start_x;
+    creature->y = -start_y; //see pe_wowobject_handle_packet's MOVEMENT case
+    creature->z = start_z;
+    return;
+  }
+
+  u8 facing_type = cur_u8(&c);
+  bool has_final_facing = false;
+  float final_facing = 0;
+  if (facing_type == MONSTER_MOVE_FACING_ANGLE) {
+    final_facing = cur_float(&c);
+    has_final_facing = true;
+  } else if (facing_type == MONSTER_MOVE_FACING_TARGET) {
+    cur_u64(&c); //a guid to face - not tracked, falls back to travel heading
+  } else if (facing_type == MONSTER_MOVE_FACING_SPOT) {
+    cur_float(&c); //likewise a fixed point to face - not tracked
+    cur_float(&c);
+    cur_float(&c);
+  }
+
+  u32 spline_flags = cur_u32(&c);
+  u32 duration_ms = cur_u32(&c);
+
+  float dest_x = 0, dest_y = 0, dest_z = 0;
+  if (spline_flags & MOVE_SPLINEFLAG_CATMULLROM) {
+    u32 nodes = cur_u32(&c);
+    if (nodes == 0 || nodes > SPLINE_NODES_MAX)
+      return;
+    for (u32 i = 0; i < nodes; i++) {
+      float x = cur_float(&c), y = cur_float(&c), z = cur_float(&c);
+      if (i == nodes - 1) {
+        dest_x = x;
+        dest_y = y;
+        dest_z = z;
+      }
+    }
+    //a cyclic path (a patrol loop) has no single endpoint to head for -
+    //left unimplemented, the creature holds its last position until the
+    //server sends it a non-cyclic move instead
+    if (spline_flags & MOVE_SPLINEFLAG_CYCLIC)
+      return;
+  } else {
+    u32 count = cur_u32(&c);
+    if (count == 0)
+      return;
+    dest_x = cur_float(&c);
+    dest_y = cur_float(&c);
+    dest_z = cur_float(&c);
+    //the remaining count-1 words are ByteBuffer::appendPackXYZ-packed
+    //intermediate waypoints describing the curve's shape between here and
+    //the destination - skipped; pwow interpolates straight to the
+    //destination rather than tracing the path the server drew
+  }
+
+  if (c.overrun)
+    return;
+
+  creature->moving = true;
+  creature->move_from_x = start_x;
+  creature->move_from_y = -start_y;
+  creature->move_from_z = start_z;
+  creature->move_to_x = dest_x;
+  creature->move_to_y = -dest_y;
+  creature->move_to_z = dest_z;
+  creature->move_elapsed = 0.0f;
+  creature->move_duration = (float)duration_ms / 1000.0f;
+  creature->move_has_final_facing = has_final_facing;
+  creature->move_final_facing = final_facing;
+
+  //face the direction of travel by default, the same fallback the game's
+  //own client applies absent an explicit facing override. o is x-north,
+  //y-west and right-handed like everything else read off the wire (this
+  //repo's CLAUDE.md), so the heading is a plain atan2 over the un-flipped
+  //deltas, stored unflipped like every other wire o value in this file
+  creature->move_has_heading = start_x != dest_x || start_y != dest_y;
+  if (creature->move_has_heading)
+    creature->move_heading = atan2f(dest_y - start_y, dest_x - start_x);
+}
+
+void pe_wowobject_state_tick(PWowObjectState *state, double delta_seconds) {
+  for (int i = 0; i < state->count; i++) {
+    PWowCreature *creature = &state->creatures[i];
+    if (!creature->moving)
+      continue;
+
+    creature->move_elapsed += (float)delta_seconds;
+    float t = creature->move_duration > 0.0f
+                  ? creature->move_elapsed / creature->move_duration
+                  : 1.0f;
+    bool arrived = t >= 1.0f;
+    if (arrived)
+      t = 1.0f;
+
+    creature->x =
+        creature->move_from_x + (creature->move_to_x - creature->move_from_x) * t;
+    creature->y =
+        creature->move_from_y + (creature->move_to_y - creature->move_from_y) * t;
+    creature->z =
+        creature->move_from_z + (creature->move_to_z - creature->move_from_z) * t;
+
+    if (creature->move_has_heading)
+      creature->o = creature->move_heading;
+
+    if (arrived) {
+      creature->moving = false;
+      if (creature->move_has_final_facing)
+        creature->o = creature->move_final_facing;
+    }
   }
 }
