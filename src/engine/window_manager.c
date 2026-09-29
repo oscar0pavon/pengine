@@ -20,6 +20,24 @@ static void pe_wm_key_event(uint32_t key_code, uint32_t state) {
   pe_parse_key_event(key_code, state);
 }
 
+static void pe_wm_mouse_motion(void) {
+  pe_parse_mouse_motion(pway->mouse.x, pway->mouse.y);
+}
+
+//pway calls click()/click_release() with no argument and expects the app to
+//read which button off pway->mouse.current_button - it is only ever NULL for
+//a button pway does not track (there is none, currently), never for the
+//wheel, which pway resolves through click_release() alone
+static void pe_wm_mouse_click(void) {
+  if (pway->mouse.current_button)
+    pe_parse_mouse_button(pway->mouse.current_button->id, true);
+}
+
+static void pe_wm_mouse_click_release(void) {
+  if (pway->mouse.current_button)
+    pe_parse_mouse_button(pway->mouse.current_button->id, false);
+}
+
 //fires from pway_handle_events() once the compositor has already torn the
 //toplevel down (the close button, or the connection being lost), so this
 //only has to stop the main loop - pe_end() does the real teardown afterwards
@@ -57,6 +75,9 @@ void pe_create_window(){
 
   pway->key = &pe_wm_key_event;
   pway->exit = &pe_wm_exit_event;
+  pway->update_mouse = &pe_wm_mouse_motion;
+  pway->click = &pe_wm_mouse_click;
+  pway->click_release = &pe_wm_mouse_click_release;
 
   //INFO no pway_init_egl() here. it binds a desktop GL context and hangs a
   //wl_egl_window off pway_surface - the same wl_surface pe_vk_create_surface

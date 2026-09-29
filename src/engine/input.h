@@ -102,9 +102,27 @@ float verticalAngle;
 
 bool mouse_navigate_control;
 
+//desktop mouse: surface-local position, updated on every wl_pointer motion
+//event, and the three buttons, which follow the same pressed/Released
+//contract as a keyboard Key (key_released() works on them unchanged). No
+//delta here - a consumer that wants a look delta keeps its own last-position
+//static and subtracts, same as it would with any other polled position
+typedef struct Mouse {
+	float x;
+	float y;
+	Key left;
+	Key right;
+	Key middle;
+} Mouse;
+
+struct Mouse mouse;
+
 void pe_input_init();
 
 void pe_parse_key_event(unsigned int key_code, uint8_t type);
+
+void pe_parse_mouse_motion(float x, float y);
+void pe_parse_mouse_button(uint32_t button_id, bool pressed);
 
 
 void mouse_movement_control(float xpos, float ypos);

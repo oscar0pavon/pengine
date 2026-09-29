@@ -51,12 +51,39 @@ void pe_parse_key_event(unsigned int key_code, uint8_t type){
 
 }
 
+void pe_parse_mouse_motion(float x, float y){
+    mouse.x = x;
+    mouse.y = y;
+}
+
+//button_id is pway's PPressEvent.id: 0 left, 1 middle, 2 right (mouse.c's
+//pointer_handle_button) - anything else (the wheel's pseudo-buttons) is not
+//tracked here
+void pe_parse_mouse_button(uint32_t button_id, bool pressed){
+    Key* button;
+
+    switch(button_id){
+        case 0: button = &mouse.left; break;
+        case 1: button = &mouse.middle; break;
+        case 2: button = &mouse.right; break;
+        default: return;
+    }
+
+    if(pressed){
+        button->pressed = true;
+    }else{
+        button->Released = true;
+        button->pressed = false;
+    }
+}
+
 //INFO the codes are raw evdev, which is what a wayland compositor hands to
 //pway and pway hands to pe_parse_key_event(). the X11 keymap this replaced
 //had to ask the server for a keycode per key, so it could only be built
 //after a window existed
 void pe_input_init(){
     ZERO(input);
+    ZERO(mouse);
     input_key_size = sizeof(Input) / sizeof(Key);
 
     Key* keys = (Key*)&input;
@@ -74,5 +101,12 @@ void pe_input_clean(){
         key->Released = false;
         key->pressed = false;
     }
+
+    mouse.left.Released = false;
+    mouse.left.pressed = false;
+    mouse.right.Released = false;
+    mouse.right.pressed = false;
+    mouse.middle.Released = false;
+    mouse.middle.pressed = false;
 }
 
