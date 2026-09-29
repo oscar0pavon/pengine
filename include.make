@@ -45,3 +45,6 @@ LIBRARIES += -lpfonts -lGL
 #the plain flag's default search order picks that one over /usr/lib's 3.x -
 #same headers, wrong library, that only shows up at link time
 LIBRARIES += /usr/lib/libcrypto.so
+
+#INFO wowobject.c decompresses SMSG_COMPRESSED_UPDATE_OBJECT with zlib
+LIBRARIES += -lz

@@ -5,6 +5,7 @@
 
 #include <ctype.h>
 #include <string.h>
+#include <sys/select.h>
 
 //opcode numbers are vanilla 1.12.1's own (Opcodes_1_12_1.h), confirmed
 //against vmangos's own source rather than assumed from a generic table
@@ -15,6 +16,8 @@
 #define OP_SMSG_CHAR_ENUM 59
 #define OP_CMSG_PLAYER_LOGIN 61
 #define OP_SMSG_LOGIN_VERIFY_WORLD 566
+#define OP_SMSG_UPDATE_OBJECT 169
+#define OP_SMSG_COMPRESSED_UPDATE_OBJECT 502
 
 //SharedDefines.h's ResponseCodes enum, position 12 (RESPONSE_SUCCESS..
 //CSTATUS_AUTHENTICATING fill 0..11 first)
@@ -317,4 +320,35 @@ bool pe_wowworld_player_login(PWowWorld *world, u64 guid,
   out->o = wbuf_read_float(&buf);
 
   return true;
+}
+
+//zero-timeout select(): true only if a full read would not block right now
+static bool data_ready(PWowWorld *world) {
+  fd_set fds;
+  FD_ZERO(&fds);
+  FD_SET(world->fd, &fds);
+  struct timeval tv = {0, 0};
+  return select(world->fd + 1, &fds, NULL, NULL, &tv) > 0;
+}
+
+#define POLL_PACKETS_MAX 64
+
+void pe_wowworld_poll(PWowWorld *world, PWowObjectState *state) {
+  u8 payload[PE_WOWWORLD_PACKET_MAX];
+  for (int i = 0; i < POLL_PACKETS_MAX && world->connected; i++) {
+    if (!data_ready(world))
+      return;
+
+    u16 opcode;
+    int payload_len;
+    if (!pe_wowworld_read_packet(world, &opcode, payload, sizeof(payload),
+                                 &payload_len)) {
+      world->connected = false;
+      return;
+    }
+    if (opcode == OP_SMSG_UPDATE_OBJECT)
+      pe_wowobject_handle_packet(state, payload, payload_len, false);
+    else if (opcode == OP_SMSG_COMPRESSED_UPDATE_OBJECT)
+      pe_wowobject_handle_packet(state, payload, payload_len, true);
+  }
 }

@@ -2,6 +2,7 @@
 #define PE_WOWWORLD_H
 
 #include <engine/numbers.h>
+#include <engine/wowauth/wowobject.h>
 #include <stdbool.h>
 
 #define PE_WOWWORLD_ERROR_MAX 128
@@ -70,5 +71,16 @@ typedef struct PWowLoginResult {
 bool pe_wowworld_player_login(PWowWorld *world, u64 guid,
                               PWowLoginResult *out, char *error,
                               int error_max);
+
+//call once per frame after a successful pe_wowworld_connect (and, normally,
+//pe_wowworld_player_login): drains and dispatches whatever object-update
+//packets have already arrived, without blocking if none have - safe to call
+//every frame. capped at a generous number of packets per call so one
+//crowded frame can't stall the caller waiting on the network. everything
+//else on the wire (chat, spells, other players...) is read and silently
+//discarded, same as pe_wowworld_player_login already does while it waits
+//for its own confirmation - pwow only tracks creatures right now. sets
+//world->connected false if the connection drops while draining
+void pe_wowworld_poll(PWowWorld *world, PWowObjectState *state);
 
 #endif
