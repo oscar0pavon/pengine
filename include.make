@@ -30,3 +30,9 @@ WAYLAND_LIBS += -lxkbcommon
 #than in each consumer's own link line
 LIBRARIES := $(WAYLAND_LIBS) -lvulkan -lm -lpthread -ldl
 LIBRARIES += -lpway -llodepng
+
+#INFO wowauth needs OpenSSL's bignum/SHA1 for SRP6. named by full path, not
+#-lcrypto: this host also has an old OpenSSL 1.1 under /usr/local/lib, and
+#the plain flag's default search order picks that one over /usr/lib's 3.x -
+#same headers, wrong library, that only shows up at link time
+LIBRARIES += /usr/lib/libcrypto.so
