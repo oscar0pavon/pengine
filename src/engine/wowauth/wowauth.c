@@ -1,18 +1,12 @@
 #include "wowauth.h"
+#include "wow_wire.h"
 
 #include <engine/log.h>
 
 #include <openssl/bn.h>
 #include <openssl/rand.h>
-#include <openssl/sha.h>
 
-#include <arpa/inet.h>
 #include <ctype.h>
-#include <netdb.h>
-#include <stdio.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <unistd.h>
 
 //AUTH_LOGON_CHALLENGE/PROOF/REALM_LIST, the only opcodes a login needs
 #define OP_LOGON_CHALLENGE 0x00
@@ -31,18 +25,10 @@
 //the exchange still runs to completion, M1 just never matches the server's.
 //---------------------------------------------------------------------------
 
-static void reverse_bytes(u8 *buf, int len) {
-  for (int i = 0; i < len / 2; i++) {
-    u8 tmp = buf[i];
-    buf[i] = buf[len - 1 - i];
-    buf[len - 1 - i] = tmp;
-  }
-}
-
 static BIGNUM *bn_from_le(const u8 *bytes, int len) {
   u8 tmp[512];
   memcpy(tmp, bytes, len);
-  reverse_bytes(tmp, len);
+  ww_reverse_bytes(tmp, len);
   return BN_bin2bn(tmp, len, NULL);
 }
 
@@ -51,64 +37,14 @@ static BIGNUM *bn_from_le(const u8 *bytes, int len) {
 static int bn_to_le_natural(const BIGNUM *bn, u8 *out) {
   int len = BN_num_bytes(bn);
   BN_bn2bin(bn, out);
-  reverse_bytes(out, len);
+  ww_reverse_bytes(out, len);
   return len;
 }
 
 //exactly `len` little-endian bytes, zero padded on the high (trailing) end
 static void bn_to_le_fixed(const BIGNUM *bn, u8 *out, int len) {
   BN_bn2binpad(bn, out, len);
-  reverse_bytes(out, len);
-}
-
-static void sha1(const u8 *data, int len, u8 out[20]) { SHA1(data, len, out); }
-
-//---------------------------------------------------------------------------
-//wire buffer: a flat byte array plus independent write/read cursors. every
-//auth packet fits comfortably under 1kb (the realm list is the biggest, and
-//a handful of realms is nowhere near it)
-//---------------------------------------------------------------------------
-
-typedef struct WBuf {
-  u8 data[2048];
-  int len;
-  int pos;
-} WBuf;
-
-static void wbuf_u8(WBuf *b, u8 v) { b->data[b->len++] = v; }
-static void wbuf_u16(WBuf *b, u16 v) {
-  wbuf_u8(b, (u8)(v & 0xFF));
-  wbuf_u8(b, (u8)((v >> 8) & 0xFF));
-}
-static void wbuf_u32(WBuf *b, u32 v) {
-  wbuf_u8(b, (u8)(v & 0xFF));
-  wbuf_u8(b, (u8)((v >> 8) & 0xFF));
-  wbuf_u8(b, (u8)((v >> 16) & 0xFF));
-  wbuf_u8(b, (u8)((v >> 24) & 0xFF));
-}
-static void wbuf_bytes(WBuf *b, const u8 *data, int n) {
-  memcpy(b->data + b->len, data, n);
-  b->len += n;
-}
-
-static u8 wbuf_read_u8(WBuf *b) { return b->data[b->pos++]; }
-static u16 wbuf_read_u16(WBuf *b) {
-  u16 v = (u16)(b->data[b->pos] | (b->data[b->pos + 1] << 8));
-  b->pos += 2;
-  return v;
-}
-static u32 wbuf_read_u32(WBuf *b) {
-  u32 v = (u32)(b->data[b->pos] | (b->data[b->pos + 1] << 8) |
-                (b->data[b->pos + 2] << 16) | (b->data[b->pos + 3] << 24));
-  b->pos += 4;
-  return v;
-}
-static void wbuf_read_string(WBuf *b, char *out, int max) {
-  int i = 0;
-  while (b->data[b->pos] != 0 && i < max - 1)
-    out[i++] = (char)b->data[b->pos++];
-  out[i] = 0;
-  b->pos++; //the null terminator itself
+  ww_reverse_bytes(out, len);
 }
 
 //a 4-byte field the server reads as a c-string then reverses, so the client
@@ -121,54 +57,6 @@ static void wbuf_fourcc(WBuf *b, const char *str) {
   for (int i = 0; i < len; i++)
     buf[i] = (u8)str[len - 1 - i];
   wbuf_bytes(b, buf, 4);
-}
-
-//---------------------------------------------------------------------------
-//blocking tcp
-//---------------------------------------------------------------------------
-
-static int tcp_connect(const char *host, int port) {
-  char portstr[8];
-  snprintf(portstr, sizeof(portstr), "%d", port);
-
-  struct addrinfo hints;
-  memset(&hints, 0, sizeof(hints));
-  hints.ai_family = AF_INET;
-  hints.ai_socktype = SOCK_STREAM;
-
-  struct addrinfo *res;
-  if (getaddrinfo(host, portstr, &hints, &res) != 0)
-    return -1;
-
-  int fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-  if (fd >= 0 && connect(fd, res->ai_addr, res->ai_addrlen) < 0) {
-    close(fd);
-    fd = -1;
-  }
-  freeaddrinfo(res);
-  return fd;
-}
-
-static bool send_all(int fd, const u8 *buf, int n) {
-  int sent = 0;
-  while (sent < n) {
-    ssize_t s = send(fd, buf + sent, (size_t)(n - sent), 0);
-    if (s <= 0)
-      return false;
-    sent += (int)s;
-  }
-  return true;
-}
-
-static bool read_exact(int fd, u8 *buf, int n) {
-  int got = 0;
-  while (got < n) {
-    ssize_t r = recv(fd, buf + got, (size_t)(n - got), 0);
-    if (r <= 0)
-      return false;
-    got += (int)r;
-  }
-  return true;
 }
 
 //---------------------------------------------------------------------------
@@ -234,13 +122,13 @@ static void srp_compute(Srp *srp, const char *account, const char *password,
   char combined[64 + 1 + 128];
   snprintf(combined, sizeof(combined), "%s:%s", upper_account, upper_password);
   u8 auth_hash[20];
-  sha1((const u8 *)combined, (int)strlen(combined), auth_hash);
+  ww_sha1((const u8 *)combined, (int)strlen(combined), auth_hash);
 
   u8 x_input[32 + 20];
   memcpy(x_input, salt, salt_len);
   memcpy(x_input + salt_len, auth_hash, 20);
   u8 x_hash[20];
-  sha1(x_input, salt_len + 20, x_hash);
+  ww_sha1(x_input, salt_len + 20, x_hash);
   srp->x = bn_from_le(x_hash, 20);
 
   //client ephemeral: a is 152 bits (19 bytes), matching the real client. A
@@ -271,7 +159,7 @@ static void srp_compute(Srp *srp, const char *account, const char *password,
   memcpy(ab, a_nat, a_nat_len);
   memcpy(ab + a_nat_len, b_nat, b_nat_len);
   u8 u_hash[20];
-  sha1(ab, a_nat_len + b_nat_len, u_hash);
+  ww_sha1(ab, a_nat_len + b_nat_len, u_hash);
   BN_free(srp->u);
   srp->u = bn_from_le(u_hash, 20);
 
@@ -307,8 +195,8 @@ static void srp_compute(Srp *srp, const char *account, const char *password,
     s2[i] = s_fixed[i * 2 + 1];
   }
   u8 s1_hash[20], s2_hash[20];
-  sha1(s1, 16, s1_hash);
-  sha1(s2, 16, s2_hash);
+  ww_sha1(s1, 16, s1_hash);
+  ww_sha1(s2, 16, s2_hash);
   for (int i = 0; i < 20; i++) {
     srp->K[i * 2] = s1_hash[i];
     srp->K[i * 2 + 1] = s2_hash[i];
@@ -321,14 +209,14 @@ static void srp_compute(Srp *srp, const char *account, const char *password,
   bn_to_le_natural(srp->N, n_nat);
   bn_to_le_natural(srp->g, g_nat);
   u8 n_hash[20], g_hash[20];
-  sha1(n_nat, n_nat_len, n_hash);
-  sha1(g_nat, g_nat_len, g_hash);
+  ww_sha1(n_nat, n_nat_len, n_hash);
+  ww_sha1(g_nat, g_nat_len, g_hash);
   u8 ng_xor[20];
   for (int i = 0; i < 20; i++)
     ng_xor[i] = n_hash[i] ^ g_hash[i];
 
   u8 user_hash[20];
-  sha1((const u8 *)upper_account, (int)strlen(upper_account), user_hash);
+  ww_sha1((const u8 *)upper_account, (int)strlen(upper_account), user_hash);
 
   u8 s_nat[512];
   int s_nat_len = bn_to_le_natural(srp->s, s_nat);
@@ -348,7 +236,7 @@ static void srp_compute(Srp *srp, const char *account, const char *password,
   p += b_nat_len;
   memcpy(m1_input + p, srp->K, 40);
   p += 40;
-  sha1(m1_input, p, srp->M1);
+  ww_sha1(m1_input, p, srp->M1);
 
   //M2 = H( A | M1 | K )
   u8 m2_input[512 + 20 + 40];
@@ -359,7 +247,7 @@ static void srp_compute(Srp *srp, const char *account, const char *password,
   p += 20;
   memcpy(m2_input + p, srp->K, 40);
   p += 40;
-  sha1(m2_input, p, srp->M2);
+  ww_sha1(m2_input, p, srp->M2);
 }
 
 //---------------------------------------------------------------------------
