@@ -44,8 +44,8 @@ void pe_anim_nodes_update(PSkin *skin_component) {
   }
 }
 
-void play_animation(PSkin *skin, Animation *animation) {
-  animation->time += 0.01;
+void play_animation(PSkin *skin, Animation *animation, float delta_seconds) {
+  animation->time += delta_seconds;
   float time = animation->time;
 
   for (int i = 0; i < animation->channels.count; i++) {
@@ -108,6 +108,30 @@ void play_animation_by_name(PSkin *skin_component, const char *name,
     return;
   }
 
+  for (int i = 0; i < array_animation_play_list.count; i++) {
+    PEAnimationPlay *play = array_get(&array_animation_play_list, i);
+    //already the skin's current animation - leave its time alone, or every
+    //caller re-asking for the same clip each frame would restart it from 0
+    if (play->skin == skin_component && play->anim == animation)
+      return;
+  }
+
+  //a skin plays one animation at a time: drop whatever else this skin had
+  //queued before starting the new one, compacting the list in place
+  int kept = 0;
+  for (int i = 0; i < array_animation_play_list.count; i++) {
+    PEAnimationPlay *play = array_get(&array_animation_play_list, i);
+    if (play->skin == skin_component)
+      continue;
+    if (kept != i)
+      *(PEAnimationPlay *)array_get(&array_animation_play_list, kept) = *play;
+    kept++;
+  }
+  array_animation_play_list.count = kept;
+  array_animation_play_list.bytes_size =
+      kept * array_animation_play_list.element_bytes_size;
+
+  animation->time = 0;
   animation->loop = loop;
 
   PEAnimationPlay new_play;
@@ -117,13 +141,13 @@ void play_animation_by_name(PSkin *skin_component, const char *name,
   array_add(&array_animation_play_list, &new_play);
 }
 
-void play_animation_list(void) {
+void play_animation_list(float delta_seconds) {
   for (int i = 0; i < array_animation_play_list.count; i++) {
     PEAnimationPlay *play = array_get(&array_animation_play_list, i);
     Animation *animation = play->anim;
 
     if (animation->time <= animation->end) {
-      play_animation(play->skin, animation);
+      play_animation(play->skin, animation, delta_seconds);
 #ifdef DEBUG
       update_vertex_bones_gizmos = true;
 #endif

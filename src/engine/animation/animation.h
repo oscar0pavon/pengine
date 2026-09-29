@@ -38,7 +38,7 @@ Array array_animation_play_list;
 
 void play_animation_by_name(PSkin *skin_component, const char *name,
                             bool loop);
-void play_animation_list(void);
+void play_animation_list(float delta_seconds);
 void pe_anim_nodes_update(PSkin *skin_component);
 
 #ifdef DEBUG
