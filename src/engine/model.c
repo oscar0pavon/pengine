@@ -279,15 +279,21 @@ static bool pe_primitive_geoset(cgltf_primitive *primitive, u32 *geoset) {
 //ids 1.. are alternative scalp meshes layered on top of it (WoWee's own
 //entity_spawner.cpp: "group 0 holds the body plus one scalp"). Every
 //character needs one of them - even a bald human draws a bald-cap mesh, there
-//is no "nothing" option - so the lowest of 1.. is kept as the stand-in
-//default, same as a Tauren's lowest id there is its first horn style.
+//is no "nothing" option - so one of 1.. has to be picked as a stand-in
+//default. It is not simply the lowest id, the way a bare equipment variant
+//would be: on the Tauren, id 1 is a real horn style but a 10-vertex stub,
+//next to nothing on screen, while id 2 and up are full curved horns of 30-50
+//vertices - checked by plotting each id's own triangles, after the first fix
+//here picked id 1 and the horns it added were too small to see. Picking
+//whichever member has the most geometry instead treats a near-empty mesh as
+//an unlikely thing for a group's true representative to be, on any race.
 //
 //every other group's own "none" is a real, drawn variant, and it is always at
 //variant 00 or 01 (WoWee's kGeosetBareForearms = 401, kGeosetBarePants =
 //1301, kGeosetNoCape = 1501: no gloves, no leggings, no cape). When a group's
 //lowest exported id already sits at variant 0 or 1, that is its bare state
-//and this keeps it, same as before. When it does not - this Tauren's facial-
-//hair-shaped groups 1, 2 and 3 export only variants 2 and up, because
+//and this keeps it. When it does not - this Tauren's facial-hair-shaped
+//groups 1, 2 and 3 export only variants 2 and up, because
 //CharFacialHairStyles never gives Tauren anything in those slots and a
 //variant nobody selects has no blank mesh to export in the first place - the
 //group has no way to say "none", so guessing its first real style drew a
@@ -303,7 +309,22 @@ static bool pe_primitive_is_default(cgltf_mesh *mesh, int index) {
     return true;
 
   u32 group = geoset / 100;
-  u32 floor = (group == 0) ? 1 : 0;
+
+  if (group == 0) {
+    cgltf_size best_count = 0;
+    int best_index = index;
+    for (int i = 0; i < mesh->primitives_count; i++) {
+      u32 other;
+      if (!pe_primitive_geoset(&mesh->primitives[i], &other) || other == 0 ||
+          other / 100 != 0)
+        continue;
+      if (mesh->primitives[i].indices->count > best_count) {
+        best_count = mesh->primitives[i].indices->count;
+        best_index = i;
+      }
+    }
+    return index == best_index;
+  }
 
   //the group's true lowest id, over every primitive - not just the ones
   //checked so far - so a group with no bare variant is recognised as such
@@ -312,11 +333,11 @@ static bool pe_primitive_is_default(cgltf_mesh *mesh, int index) {
   for (int i = 0; i < mesh->primitives_count; i++) {
     u32 other;
     if (i != index && pe_primitive_geoset(&mesh->primitives[i], &other) &&
-        other / 100 == group && other >= floor && other < group_min)
+        other / 100 == group && other < group_min)
       group_min = other;
   }
 
-  if (group != 0 && group_min % 100 > 1)
+  if (group_min % 100 > 1)
     return false;
   return geoset == group_min;
 }
