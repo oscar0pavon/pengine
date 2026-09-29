@@ -6,12 +6,15 @@
 #include <ctype.h>
 #include <string.h>
 
-//SMSG_AUTH_CHALLENGE, CMSG_AUTH_SESSION, SMSG_AUTH_RESPONSE - the only
-//opcodes a handshake needs. wire values are vanilla's own, confirmed against
-//vmangos's own WorldSocket.cpp rather than assumed from a generic table
+//opcode numbers are vanilla 1.12.1's own (Opcodes_1_12_1.h), confirmed
+//against vmangos's own source rather than assumed from a generic table
 #define OP_SMSG_AUTH_CHALLENGE 0x1EC
 #define OP_CMSG_AUTH_SESSION 0x1ED
 #define OP_SMSG_AUTH_RESPONSE 0x1EE
+#define OP_CMSG_CHAR_ENUM 55
+#define OP_SMSG_CHAR_ENUM 59
+#define OP_CMSG_PLAYER_LOGIN 61
+#define OP_SMSG_LOGIN_VERIFY_WORLD 566
 
 //SharedDefines.h's ResponseCodes enum, position 12 (RESPONSE_SUCCESS..
 //CSTATUS_AUTHENTICATING fill 0..11 first)
@@ -199,6 +202,119 @@ bool pe_wowworld_connect(const char *host, int port, const char *account,
     pe_wowworld_close(world);
     return false;
   }
+
+  return true;
+}
+
+//how many unrelated packets to read past before giving up on finding a
+//specific one. generous: a crowded login can queue a lot of state
+//(reputation, action bars, the player's own object update...) ahead of the
+//packet actually being waited for
+#define WAIT_FOR_OPCODE_ATTEMPTS 256
+
+bool pe_wowworld_char_enum(PWowWorld *world, PWowCharacter *out, int out_max,
+                           int *count, char *error, int error_max) {
+  if (!pe_wowworld_send_packet(world, OP_CMSG_CHAR_ENUM, NULL, 0)) {
+    fail(error, error_max, "failed sending CMSG_CHAR_ENUM");
+    return false;
+  }
+
+  u8 payload[PE_WOWWORLD_PACKET_MAX];
+  u16 opcode;
+  int payload_len = 0;
+  bool found = false;
+  for (int attempt = 0; attempt < WAIT_FOR_OPCODE_ATTEMPTS; attempt++) {
+    if (!pe_wowworld_read_packet(world, &opcode, payload, sizeof(payload),
+                                 &payload_len)) {
+      fail(error, error_max, "disconnected while waiting for SMSG_CHAR_ENUM");
+      return false;
+    }
+    if (opcode == OP_SMSG_CHAR_ENUM) {
+      found = true;
+      break;
+    }
+  }
+  if (!found) {
+    fail(error, error_max, "never saw SMSG_CHAR_ENUM");
+    return false;
+  }
+
+  WBuf buf;
+  memcpy(buf.data, payload, payload_len);
+  buf.len = payload_len;
+  buf.pos = 0;
+
+  u8 num = wbuf_read_u8(&buf);
+  *count = 0;
+  for (int i = 0; i < num && *count < out_max; i++) {
+    PWowCharacter *c = &out[*count];
+    c->guid = wbuf_read_u64(&buf);
+    wbuf_read_string(&buf, c->name, sizeof(c->name));
+
+    //the rest of Player::BuildEnumData's entry, none of which pwow needs
+    //yet: race, class, gender, skin, face, hair style, hair color, facial
+    //hair (8 x u8); level (u8); zone, map (2 x u32); x, y, z (3 x float);
+    //guild id, character flags (2 x u32); first-login flag (u8); pet
+    //display id, level, family (3 x u32); 20 equipment slots, each a
+    //display id (u32) plus an inventory type (u8)
+    buf.pos += 8;
+    buf.pos += 1;
+    buf.pos += 4 + 4;
+    buf.pos += 4 + 4 + 4;
+    buf.pos += 4 + 4;
+    buf.pos += 1;
+    buf.pos += 4 + 4 + 4;
+    buf.pos += 20 * (4 + 1);
+
+    (*count)++;
+  }
+
+  return true;
+}
+
+bool pe_wowworld_player_login(PWowWorld *world, u64 guid,
+                              PWowLoginResult *out, char *error,
+                              int error_max) {
+  WBuf req;
+  req.len = 0;
+  wbuf_u64(&req, guid);
+
+  if (!pe_wowworld_send_packet(world, OP_CMSG_PLAYER_LOGIN, req.data,
+                               req.len)) {
+    fail(error, error_max, "failed sending CMSG_PLAYER_LOGIN");
+    return false;
+  }
+
+  u8 payload[PE_WOWWORLD_PACKET_MAX];
+  u16 opcode;
+  int payload_len = 0;
+  bool found = false;
+  for (int attempt = 0; attempt < WAIT_FOR_OPCODE_ATTEMPTS; attempt++) {
+    if (!pe_wowworld_read_packet(world, &opcode, payload, sizeof(payload),
+                                 &payload_len)) {
+      fail(error, error_max,
+          "disconnected while waiting for SMSG_LOGIN_VERIFY_WORLD");
+      return false;
+    }
+    if (opcode == OP_SMSG_LOGIN_VERIFY_WORLD) {
+      found = true;
+      break;
+    }
+  }
+  if (!found) {
+    fail(error, error_max, "never saw SMSG_LOGIN_VERIFY_WORLD");
+    return false;
+  }
+
+  WBuf buf;
+  memcpy(buf.data, payload, payload_len);
+  buf.len = payload_len;
+  buf.pos = 0;
+  out->map = wbuf_read_u32(&buf);
+  out->x = wbuf_read_float(&buf);
+  out->y = wbuf_read_float(&buf);
+  out->z = wbuf_read_float(&buf);
+  out->o = wbuf_read_float(&buf);
 
   return true;
 }

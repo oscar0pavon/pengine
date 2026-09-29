@@ -41,4 +41,34 @@ bool pe_wowworld_read_packet(PWowWorld *world, u16 *opcode, u8 *payload,
 
 void pe_wowworld_close(PWowWorld *world);
 
+#define PE_WOWWORLD_CHARACTERS_MAX 10
+
+typedef struct PWowCharacter {
+  u64 guid;
+  char name[32];
+} PWowCharacter;
+
+//sends CMSG_CHAR_ENUM and blocks for SMSG_CHAR_ENUM, filling out with
+//whichever characters the account has (only guid and name - the packet also
+//carries appearance, equipment and pet info for the character-select menu,
+//which pwow has no menu to draw). skips over any other packet that arrives
+//first
+bool pe_wowworld_char_enum(PWowWorld *world, PWowCharacter *out, int out_max,
+                           int *count, char *error, int error_max);
+
+typedef struct PWowLoginResult {
+  u32 map;
+  float x, y, z, o;
+} PWowLoginResult;
+
+//sends CMSG_PLAYER_LOGIN for guid and blocks for SMSG_LOGIN_VERIFY_WORLD -
+//the server's confirmation that the character is now actually placed on a
+//map, which is what starts the flow of SMSG_UPDATE_OBJECT packets for
+//nearby creatures. every packet between the request and that confirmation
+//(initial spells, action bars, reputation, the player's own object update...)
+//is read and discarded; parsing those is a later step's problem
+bool pe_wowworld_player_login(PWowWorld *world, u64 guid,
+                              PWowLoginResult *out, char *error,
+                              int error_max);
+
 #endif

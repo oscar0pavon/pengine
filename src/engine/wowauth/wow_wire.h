@@ -29,12 +29,14 @@ static void ww_reverse_bytes(u8 *buf, int len) {
 static void ww_sha1(const u8 *data, int len, u8 out[20]) { SHA1(data, len, out); }
 
 //---------------------------------------------------------------------------
-//wire buffer: a flat byte array plus independent write/read cursors. every
-//auth or world-handshake packet fits comfortably under 2kb
+//wire buffer: a flat byte array plus independent write/read cursors. sized
+//to match PE_WOWWORLD_PACKET_MAX (wowworld.h) so a full packet payload
+//always fits when copied in for parsing - a mismatch here is a silent
+//buffer overflow, not a compile error
 //---------------------------------------------------------------------------
 
 typedef struct WBuf {
-  u8 data[2048];
+  u8 data[8192];
   int len;
   int pos;
 } WBuf;
@@ -59,6 +61,10 @@ static void wbuf_cstring(WBuf *b, const char *s) {
   memcpy(b->data + b->len, s, n);
   b->len += n;
 }
+static void wbuf_u64(WBuf *b, u64 v) {
+  wbuf_u32(b, (u32)(v & 0xFFFFFFFFu));
+  wbuf_u32(b, (u32)(v >> 32));
+}
 
 static u8 wbuf_read_u8(WBuf *b) { return b->data[b->pos++]; }
 static u16 wbuf_read_u16(WBuf *b) {
@@ -71,6 +77,20 @@ static u32 wbuf_read_u32(WBuf *b) {
                 (b->data[b->pos + 2] << 16) | (b->data[b->pos + 3] << 24));
   b->pos += 4;
   return v;
+}
+//ObjectGuid on the wire is a plain 8-byte little-endian value - packed/
+//compressed guids are a different, bit-masked encoding used only inside
+//object-update fields, not here
+static u64 wbuf_read_u64(WBuf *b) {
+  u64 lo = wbuf_read_u32(b);
+  u64 hi = wbuf_read_u32(b);
+  return lo | (hi << 32);
+}
+static float wbuf_read_float(WBuf *b) {
+  u32 bits = wbuf_read_u32(b);
+  float f;
+  memcpy(&f, &bits, sizeof(f));
+  return f;
 }
 static void wbuf_read_string(WBuf *b, char *out, int max) {
   int i = 0;
