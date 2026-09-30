@@ -17,6 +17,14 @@
 
 #include "renderer/material.h"
 
+//forward declared, not included: skeletal.h includes this header itself,
+//and pe_vk_model_instance_skinned() below only ever needs a pointer. file
+//scope matters here, not just "declared somewhere" - a struct tag named
+//only inside a parameter list has that declaration's scope, not the whole
+//file's, so it would be a different, incompatible PSkin from skeletal.h's
+//own full definition rather than the same forward-declared one completed
+struct PSkin;
+
 typedef struct PMesh{
   Array vertex_array;
   Array index_array;
@@ -103,6 +111,14 @@ PModel *pe_vk_model_instance(PModel* model, PModel *source);
 (pe_vk_descriptor_set_layout_with_texture): the copy's descriptor set is
 built against that layout instead and points at source's own texture*/
 PModel *pe_vk_model_instance_textured(PModel* model, PModel *source);
+
+/*Same as pe_vk_model_instance_textured(), but for a source loaded with
+pe_vk_load_skin() (pe_vk_descriptor_set_layout_skinned): the copy's
+descriptor set also binds skin's joint-matrix storage buffer at binding 2.
+skin is shared, not copied - see the .c file's comment for what that means
+for per-instance animation*/
+PModel *pe_vk_model_instance_skinned(PModel *model, PModel *source,
+                                     struct PSkin *skin);
 
 int pe_load_model_path(PModel* model, const char *path);
 

@@ -717,6 +717,34 @@ PModel *pe_vk_model_instance_textured(PModel *model, PModel *source) {
   return model;
 }
 
+//same as pe_vk_model_instance_textured() above, but against the skinned
+//descriptor set layout (uniform + texture + joint-matrix storage buffer at
+//binding 2), for a source loaded with pe_vk_load_skin() rather than
+//pe_vk_load_model(). skin is shared, not copied: every instance made from
+//the same skin binds the very same storage buffer, so they all draw
+//whatever single pose that skin is currently posed to - there is no
+//per-instance animation state yet, only per-instance transform/texture
+PModel *pe_vk_model_instance_skinned(PModel *model, PModel *source,
+                                     struct PSkin *skin) {
+
+  memcpy(model, source, sizeof(PModel));
+
+  ZERO(model->uniform_buffers);
+  ZERO(model->uniform_buffers_memory);
+  ZERO(model->descriptor_sets);
+
+  pe_vk_create_uniform_buffers(model, &main_render_target);
+  pe_vk_descriptor_pool_create(model, &main_render_target);
+  pe_vk_create_descriptor_sets(model, pe_vk_descriptor_set_layout_skinned,
+                               &main_render_target);
+  pe_vk_descriptor_skinned_update(model, skin, &main_render_target);
+
+  glm_mat4_identity(model->model_mat);
+  glm_mat4_copy(model->model_mat, model->uniform_buffer_object.model);
+
+  return model;
+}
+
 void pe_model_transform_reset(PModel *model) {
   glm_mat4_identity(model->model_mat);
   glm_vec3_zero(model->position);
