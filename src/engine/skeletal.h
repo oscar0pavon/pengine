@@ -55,8 +55,19 @@ void get_global_matrix(Node* node, mat4 out_mat);
 //skin still loads as a plain mesh; skin is left zeroed
 PModel *pe_vk_load_skin(PSkin *skin, PModel *model, const char *path);
 
+//gives skin its own posable joints and animation clocks, copied from source -
+//everything play_animation_by_name()/play_animation_list() mutate (Node
+//translation/rotation, PAnimation.time/loop). mesh, textures and inverse
+//bind matrices stay shared with source, since nothing ever writes to those
+//after load. caller still owns skin and must call
+//pe_vk_skin_create_storage_buffers() on it before it can be drawn or posed -
+//this does not touch shader_storage_buffers, so two instances never share
+//a species' one GPU-visible pose
+void pe_vk_skin_instance(PSkin *skin, PSkin *source);
+
 //one joint matrix storage buffer per swap chain image - call once after
-//pe_vk_load_skin(), before the skin's descriptor sets are written
+//pe_vk_load_skin() or pe_vk_skin_instance(), before the skin's descriptor
+//sets are written
 void pe_vk_skin_create_storage_buffers(PSkin *skin);
 
 //uploads this frame's skin->node_uniform (pe_anim_nodes_update() fills it)

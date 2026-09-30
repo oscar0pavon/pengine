@@ -667,6 +667,51 @@ PModel *pe_vk_load_skin(PSkin *skin, PModel *model, const char *path) {
   return model;
 }
 
+//INFO joints and animation channels are copied by value, one array_add() per
+//element, into freshly sized arrays - never memcpy'd wholesale, because a
+//channel's node pointer and a joint's parent pointer point into source's
+//joints array and have to be remapped into skin's own. Node.id (set to its
+//index by pe_load_skin()) is what makes that remap an array_get(), not a
+//search: skin->joints keeps the same order and indices as source->joints, so
+//source_pointer->id is skin's index for the same joint.
+//
+//A channel's sampler keyframes (inputs/outputs) are not copied - shared by
+//pointer with source instead, since play_animation() only ever reads them; a
+//joint's translation/rotation and an animation's time/loop are the only
+//state playback writes, and those live in the arrays this does duplicate.
+void pe_vk_skin_instance(PSkin *skin, PSkin *source) {
+  memcpy(skin, source, sizeof(PSkin));
+
+  array_init(&skin->joints, sizeof(Node), source->joints.count);
+  for (int i = 0; i < source->joints.count; i++)
+    array_add(&skin->joints, array_get(&source->joints, i));
+  for (int i = 0; i < skin->joints.count; i++) {
+    Node *joint = array_get(&skin->joints, i);
+    if (joint->parent != NULL)
+      joint->parent = array_get(&skin->joints, joint->parent->id);
+  }
+
+  array_init(&skin->animations, sizeof(PAnimation), source->animations.count);
+  for (int a = 0; a < source->animations.count; a++) {
+    PAnimation *source_animation = array_get(&source->animations, a);
+    PAnimation animation = *source_animation;
+
+    array_init(&animation.channels, sizeof(PAnimationChannel),
+              source_animation->channels.count);
+    for (int c = 0; c < source_animation->channels.count; c++) {
+      PAnimationChannel *source_channel =
+          array_get(&source_animation->channels, c);
+      PAnimationChannel channel = *source_channel;
+      channel.node = array_get(&skin->joints, source_channel->node->id);
+      array_add(&animation.channels, &channel);
+    }
+    array_add(&skin->animations, &animation);
+  }
+
+  ZERO(skin->shader_storage_buffers);
+  ZERO(skin->shader_storage_buffers_memory);
+}
+
 //INFO one more thing to draw with geometry that is already on the gpu. the
 //vertex and index buffers are shared with source, but the copy gets its own
 //uniform buffers and descriptor sets, because those carry the per instance
