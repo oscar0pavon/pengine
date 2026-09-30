@@ -9,30 +9,30 @@
 #include "../array.h"
 #include "../skeletal.h"
 
-typedef struct AnimationSampler {
+typedef struct PAnimationSampler {
   Array inputs;  // int
   Array outputs; // vec3 or vec4
-} AnimationSampler;
+} PAnimationSampler;
 
-typedef struct AnimationChannel {
+typedef struct PAnimationChannel {
   unsigned short int path_type;
   Node *node;
-  AnimationSampler sampler;
-} AnimationChannel;
+  PAnimationSampler sampler;
+} PAnimationChannel;
 
-typedef struct Animation {
+typedef struct PAnimation {
   float time;
   bool loop;
   char name[48];
-  Array channels; // AnimationChannel
+  Array channels; // PAnimationChannel
   float start;
   float end;
-} Animation;
+} PAnimation;
 
-typedef struct PEAnimationPlay {
-  Animation *anim;
+typedef struct PAnimationPlay {
+  PAnimation *anim;
   PSkin *skin;
-} PEAnimationPlay;
+} PAnimationPlay;
 
 Array array_animation_play_list;
 

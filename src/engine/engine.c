@@ -109,7 +109,7 @@ void pe_init_arrays() {
 
   array_init(&actions_pointers, sizeof(ActionPointer), 20);
 
-  array_init(&array_animation_play_list, sizeof(PEAnimationPlay), 100);
+  array_init(&array_animation_play_list, sizeof(PAnimationPlay), 100);
 
   array_init(&pe_array_textures, sizeof(PTexture), 100);
 

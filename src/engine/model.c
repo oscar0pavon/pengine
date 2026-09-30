@@ -482,17 +482,17 @@ static void pe_load_animations(PSkin *skin, cgltf_data *data) {
     return;
   cgltf_skin *in_skin = &data->skins[0];
 
-  array_init(&skin->animations, sizeof(Animation), data->animations_count);
+  array_init(&skin->animations, sizeof(PAnimation), data->animations_count);
 
   for (u32 a = 0; a < data->animations_count; a++) {
     cgltf_animation *in_animation = &data->animations[a];
 
-    Animation animation;
+    PAnimation animation;
     ZERO(animation);
     snprintf(animation.name, sizeof(animation.name), "%s",
             in_animation->name ? in_animation->name : "");
 
-    array_init(&animation.channels, sizeof(AnimationChannel),
+    array_init(&animation.channels, sizeof(PAnimationChannel),
               in_animation->channels_count);
 
     for (u32 c = 0; c < in_animation->channels_count; c++) {
@@ -518,7 +518,7 @@ static void pe_load_animations(PSkin *skin, cgltf_data *data) {
       cgltf_animation_sampler *in_sampler = in_channel->sampler;
       u32 key_count = in_sampler->input->count;
 
-      AnimationChannel channel;
+      PAnimationChannel channel;
       ZERO(channel);
       channel.path_type = path_type;
       channel.node = node;

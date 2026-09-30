@@ -44,13 +44,13 @@ void pe_anim_nodes_update(PSkin *skin_component) {
   }
 }
 
-void play_animation(PSkin *skin, Animation *animation, float delta_seconds) {
+void play_animation(PSkin *skin, PAnimation *animation, float delta_seconds) {
   animation->time += delta_seconds;
   float time = animation->time;
 
   for (int i = 0; i < animation->channels.count; i++) {
-    AnimationChannel *channel = array_get(&animation->channels, i);
-    AnimationSampler *sampler = &channel->sampler;
+    PAnimationChannel *channel = array_get(&animation->channels, i);
+    PAnimationSampler *sampler = &channel->sampler;
 
     Node *node = channel->node;
     if (!node) {
@@ -94,9 +94,9 @@ void play_animation_by_name(PSkin *skin_component, const char *name,
     return;
   }
 
-  Animation *animation = NULL;
+  PAnimation *animation = NULL;
   for (int i = 0; i < skin_component->animations.count; i++) {
-    Animation *candidate = array_get(&skin_component->animations, i);
+    PAnimation *candidate = array_get(&skin_component->animations, i);
     if (strcmp(name, candidate->name) == 0) {
       animation = candidate;
       break;
@@ -109,7 +109,7 @@ void play_animation_by_name(PSkin *skin_component, const char *name,
   }
 
   for (int i = 0; i < array_animation_play_list.count; i++) {
-    PEAnimationPlay *play = array_get(&array_animation_play_list, i);
+    PAnimationPlay *play = array_get(&array_animation_play_list, i);
     //already the skin's current animation - leave its time alone, or every
     //caller re-asking for the same clip each frame would restart it from 0
     if (play->skin == skin_component && play->anim == animation)
@@ -120,11 +120,11 @@ void play_animation_by_name(PSkin *skin_component, const char *name,
   //queued before starting the new one, compacting the list in place
   int kept = 0;
   for (int i = 0; i < array_animation_play_list.count; i++) {
-    PEAnimationPlay *play = array_get(&array_animation_play_list, i);
+    PAnimationPlay *play = array_get(&array_animation_play_list, i);
     if (play->skin == skin_component)
       continue;
     if (kept != i)
-      *(PEAnimationPlay *)array_get(&array_animation_play_list, kept) = *play;
+      *(PAnimationPlay *)array_get(&array_animation_play_list, kept) = *play;
     kept++;
   }
   array_animation_play_list.count = kept;
@@ -134,7 +134,7 @@ void play_animation_by_name(PSkin *skin_component, const char *name,
   animation->time = 0;
   animation->loop = loop;
 
-  PEAnimationPlay new_play;
+  PAnimationPlay new_play;
   ZERO(new_play);
   new_play.anim = animation;
   new_play.skin = skin_component;
@@ -143,8 +143,8 @@ void play_animation_by_name(PSkin *skin_component, const char *name,
 
 void play_animation_list(float delta_seconds) {
   for (int i = 0; i < array_animation_play_list.count; i++) {
-    PEAnimationPlay *play = array_get(&array_animation_play_list, i);
-    Animation *animation = play->anim;
+    PAnimationPlay *play = array_get(&array_animation_play_list, i);
+    PAnimation *animation = play->anim;
 
     if (animation->time <= animation->end) {
       play_animation(play->skin, animation, delta_seconds);
