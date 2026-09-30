@@ -397,8 +397,29 @@ void pe_load_mesh(PModel *model, cgltf_mesh *mesh) {
     pe_load_attribute(&model->vertex_array, &mesh->primitives[0].attributes[i]);
   }
 
+  //all_indices is sized off whichever accessor it sees first, the same way
+  //index_array already is - pe_loader_mesh_read_accessor_indices() does that
+  //init itself (guarded on ->initialized, not array_init()'s own broken
+  //self-check - see this function's doc comment above). geoset_batches has
+  //no such helper, so it needs the same guard written out here, or a second
+  //mesh node on this model (multiple mesh-bearing nodes in one glTF scene)
+  //would silently start it over and lose every batch already recorded
+  if (!model->geoset_batches.initialized)
+    array_init(&model->geoset_batches, sizeof(PGeosetBatch), 0);
+
   for (int i = 0; i < mesh->primitives_count; i++) {
-    if (!pe_primitive_is_default(mesh, i))
+    u32 first_index = model->all_indices.count;
+    pe_loader_mesh_read_accessor_indices(&model->all_indices,
+                                         mesh->primitives[i].indices);
+
+    PGeosetBatch batch;
+    batch.tagged = pe_primitive_geoset(&mesh->primitives[i], &batch.geoset);
+    batch.is_default = pe_primitive_is_default(mesh, i);
+    batch.first_index = first_index;
+    batch.index_count = model->all_indices.count - first_index;
+    array_add(&model->geoset_batches, &batch);
+
+    if (!batch.is_default)
       continue;
     pe_loader_mesh_read_accessor_indices(&model->index_array,
                                          mesh->primitives[i].indices);
@@ -406,6 +427,64 @@ void pe_load_mesh(PModel *model, cgltf_mesh *mesh) {
 
   if (!has_normals)
     pe_loader_flat_normals(&model->vertex_array, &model->index_array);
+}
+
+u32 pe_model_default_geosets(PModel *model, u32 *out, u32 out_max) {
+  u32 n = 0;
+  for (u32 i = 0; i < model->geoset_batches.count; i++) {
+    PGeosetBatch *batch = array_get(&model->geoset_batches, (int)i);
+    if (!batch->tagged || !batch->is_default)
+      continue;
+    if (n < out_max)
+      out[n] = batch->geoset;
+    n++;
+  }
+  return n;
+}
+
+bool pe_model_has_geoset(PModel *model, u32 geoset) {
+  for (u32 i = 0; i < model->geoset_batches.count; i++) {
+    PGeosetBatch *batch = array_get(&model->geoset_batches, (int)i);
+    if (batch->tagged && batch->geoset == geoset)
+      return true;
+  }
+  return false;
+}
+
+void pe_model_set_active_geosets(PModel *model, const u32 *geosets,
+                                 u32 count) {
+  Array rebuilt;
+  array_init(&rebuilt, model->all_indices.element_bytes_size,
+            (int)model->index_array.count);
+
+  for (u32 i = 0; i < model->geoset_batches.count; i++) {
+    PGeosetBatch *batch = array_get(&model->geoset_batches, (int)i);
+
+    bool visible = !batch->tagged;
+    for (u32 g = 0; !visible && g < count; g++)
+      visible = geosets[g] == batch->geoset;
+    if (!visible)
+      continue;
+
+    for (u32 j = 0; j < batch->index_count; j++)
+      array_add(&rebuilt, array_get(&model->all_indices,
+                                    (int)(batch->first_index + j)));
+  }
+
+  //the old index_array's own backing memory is simply abandoned - the
+  //engine arena is a bump allocator with no free (array.c), the same trade
+  //this already makes on every array_grow(). fine here: equipment changes
+  //are a rare, player-driven event, not a per-frame one
+  model->index_array = rebuilt;
+
+  //matches terrain_world.c's own tile-unload convention: wait for the gpu
+  //to be done with the buffer being replaced before freeing it, rather than
+  //risk a frame still in flight reading it
+  vkDeviceWaitIdle(vk_device);
+  pe_vk_destroy_buffer(&model->index_buffer);
+  model->index_buffer = pe_vk_create_buffer(model->index_array.bytes_size,
+                                            model->index_array.data,
+                                            VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
 }
 
 //INFO joints are only ever bound skin->joints and pe_load_skin()'s own

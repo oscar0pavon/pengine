@@ -25,6 +25,20 @@
 //own full definition rather than the same forward-declared one completed
 struct PSkin;
 
+//one mesh primitive's own record from pe_load_mesh(), kept after load so
+//pe_model_set_active_geosets() can rebuild PModel.index_array against an
+//arbitrary active set without re-parsing the glTF file. first_index/
+//index_count are a slice of PModel.all_indices, not of index_array itself
+typedef struct PGeosetBatch {
+  bool tagged;     //false: no {"geoset":N} extras at all (pe_primitive_geoset()) -
+                   //always drawn, regardless of any active set
+  bool is_default; //true if pe_load_mesh() put this primitive's indices in
+                   //index_array at load time (pe_primitive_is_default())
+  u32 geoset;      //only meaningful when tagged is true
+  u32 first_index;
+  u32 index_count;
+} PGeosetBatch;
+
 typedef struct PMesh{
   Array vertex_array;
   Array index_array;
@@ -39,7 +53,16 @@ typedef struct PModel{
     
     Array vertex_array;
     Array index_array;
-   
+
+    //geoset support (pe_model_set_active_geosets()): every primitive's own
+    //indices, concatenated in file order regardless of default-ness, and
+    //one PGeosetBatch per primitive recording where in here it sits. empty
+    //for a model pe_load_mesh() never saw a geoset extra on, or that was
+    //never loaded through it at all - see pe_model_set_active_geosets()'s
+    //own doc comment before calling it on such a model
+    Array all_indices;
+    Array geoset_batches;
+
     vec3 min;
     vec3 max;
     
@@ -74,6 +97,44 @@ static int pe_data_loader_models_loaded_count;
 void pe_clean_model(PModel* model);
 
 PModel *pe_vk_load_model(PModel* model, const char *path);
+
+//
+// Geosets
+//
+// A model carries every alternative each geoset group has (every hairstyle,
+// every glove, bare forearms too), but pe_load_mesh() only ever draws one -
+// its own guessed default - since loading has no character/equipment data to
+// pick a real one from (see pe_primitive_is_default()'s own doc comment in
+// model.c). These two let a caller override that choice once it does have
+// that data, without needing to reload or re-parse the model.
+//
+
+//the geoset ids pe_load_mesh() actually put in model->index_array at load
+//time - up to out_max, returns how many there are in total even if that is
+//more. a caller building its own active set (a character's equipped/bare
+//geosets) starts from this rather than re-deriving pe_primitive_is_default()'s
+//own per-group "no bare variant" rule a second time
+u32 pe_model_default_geosets(PModel *model, u32 *out, u32 out_max);
+
+//whether this model carries any primitive tagged with this exact geoset id
+//at all (default or not) - a caller picking a real equipped variant (not a
+//bare default) needs this first, since asking for one the model does not
+//have empties index_array of that group instead of falling back to bare
+bool pe_model_has_geoset(PModel *model, u32 geoset);
+
+//rebuilds model->index_array to draw every untagged primitive (no
+//{"geoset":N} extras at all) plus every primitive whose own geoset id is in
+//geosets, and re-uploads the GPU index buffer to match. unlike pe_load_mesh()'s
+//own default selection, this takes the caller's set exactly as given: two
+//variants of the same group both draw if both are named, and a group named
+//by neither draws nothing, not a bare fallback - getting a sane result for
+//every group not being overridden is the caller's job (start from
+//pe_model_default_geosets() and only replace the groups actually being
+//equipped). only meaningful on a model pe_vk_load_model()/pe_vk_load_skin()
+//already loaded from a glTF with geoset extras - one that never went
+//through pe_load_mesh(), or whose mesh had none, has empty geoset_batches
+//and this would empty index_array instead of leaving it alone
+void pe_model_set_active_geosets(PModel *model, const u32 *geosets, u32 count);
 
 //
 // Transform
