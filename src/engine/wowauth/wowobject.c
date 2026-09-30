@@ -394,6 +394,9 @@ void pe_wowobject_handle_packet(PWowObjectState *state, const u8 *payload,
 //the wire in this packet, already stripped server side
 #define MOVE_SPLINEFLAG_CATMULLROM 0x00000200
 #define MOVE_SPLINEFLAG_CYCLIC 0x00100000
+//SplineFlag::PRE_WOTLK_RUNMODE (spline_packet.hpp) - set means Run, clear
+//means Walk, for the pre-WotLK wire this server speaks
+#define MOVE_SPLINEFLAG_RUNMODE 0x00000100
 
 void pe_wowobject_handle_monster_move(PWowObjectState *state,
                                       const u8 *payload, int payload_len) {
@@ -477,6 +480,7 @@ void pe_wowobject_handle_monster_move(PWowObjectState *state,
     return;
 
   creature->moving = true;
+  creature->walking = (spline_flags & MOVE_SPLINEFLAG_RUNMODE) == 0;
   creature->move_from_x = start_x;
   creature->move_from_y = -start_y;
   creature->move_from_z = start_z;

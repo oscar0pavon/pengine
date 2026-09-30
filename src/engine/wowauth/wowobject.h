@@ -28,6 +28,12 @@ typedef struct PWowCreature {
   //advanced by pe_wowobject_state_tick(), which is what actually writes
   //x/y/z/o above between the sparse spline packets the server sends
   bool moving;
+  //the last SMSG_MONSTER_MOVE's own spline flags carry a real walk/run bit
+  //for classic - PRE_WOTLK_RUNMODE (0x100), set for Run and clear for Walk
+  //(WoWee's spline_packet.hpp; WotLK repurposed the same bit as DONE and
+  //moved the distinction to separate opcodes instead). meaningless while
+  //!moving - the "stop" spline packet leaves this at whatever it last was
+  bool walking;
   float move_from_x, move_from_y, move_from_z;
   float move_to_x, move_to_y, move_to_z;
   float move_elapsed, move_duration;
