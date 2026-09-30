@@ -39,12 +39,3 @@ LIBRARIES += -lpway -llodepng
 #in undefined references to those too, and the link needs -lGL to resolve
 #them even though nothing here ever calls them
 LIBRARIES += -lpfonts -lGL
-
-#INFO wowauth needs OpenSSL's bignum/SHA1 for SRP6. named by full path, not
-#-lcrypto: this host also has an old OpenSSL 1.1 under /usr/local/lib, and
-#the plain flag's default search order picks that one over /usr/lib's 3.x -
-#same headers, wrong library, that only shows up at link time
-LIBRARIES += /usr/lib/libcrypto.so
-
-#INFO wowobject.c decompresses SMSG_COMPRESSED_UPDATE_OBJECT with zlib
-LIBRARIES += -lz
