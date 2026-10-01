@@ -69,9 +69,7 @@ void play_animation(PSkin *skin, PAnimation *animation, float delta_seconds) {
       case PATH_TYPE_ROTATION: {
         float *quaternion0 = array_get(&sampler->outputs, j);
         float *quaternion1 = array_get(&sampler->outputs, j + 1);
-        vec4 interpolated;
-        glm_vec4_lerp(quaternion0, quaternion1, time_mix, interpolated);
-        glm_vec4_normalize_to(interpolated, node->rotation);
+        glm_quat_slerp(quaternion0, quaternion1, time_mix, node->rotation);
         break;
       }
       case PATH_TYPE_TRANSLATION: {

@@ -23,7 +23,7 @@ layout(location = 1) out vec2 out_uv;
 
 const vec3 LIGHT_DIRECTION = normalize(vec3(3.0,3.0,3.0));
 
-const float AMBIENT = 0.12f;
+const float AMBIENT = 0.45f;
 
 void main() {
 
@@ -37,7 +37,7 @@ mat4 skin_mat=
 
     gl_Position = ubo.proj * ubo.view * ubo.model * skin_mat* vec4(position,1.0);
    
-    vec3 normal_world_space = normalize(mat3(ubo.model) * normal);
+    vec3 normal_world_space = normalize(mat3(ubo.model * skin_mat) * normal);
 
     vec3 direction_to_light = ubo.light_position.xyz - position_world.xyz;
 
@@ -45,9 +45,7 @@ mat4 skin_mat=
 
     vec3 light_color = vec3(1,1,1) * 1;
 
-    float light_intensity = AMBIENT + max(dot(normal_world_space, LIGHT_DIRECTION), 0);
-
-    vec3 ambient_light = vec3(1,1,1) * 0.12f;
+    vec3 ambient_light = vec3(1,1,1) * AMBIENT;
 
     vec3 diffuse_light = light_color * max(dot(normal_world_space, normalize(direction_to_light)),0) ;
 
