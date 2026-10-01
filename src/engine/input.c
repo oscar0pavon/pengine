@@ -58,9 +58,16 @@ void pe_parse_mouse_motion(float x, float y){
 
 //button_id is pway's PPressEvent.id: 0 left, 1 middle, 2 right (mouse.c's
 //pointer_handle_button) - anything else (the wheel's pseudo-buttons) is not
-//tracked here
+//tracked as buttons, they feed mouse.wheel instead. pway names the id by the
+//sign of wl_pointer's axis value, which the protocol defines as positive for
+//a scroll down, so 64 (value below zero) is the scroll up
 void pe_parse_mouse_button(uint32_t button_id, bool pressed){
     Key* button;
+
+    if(button_id == 64 || button_id == 65){
+        mouse.wheel += button_id == 64 ? 1 : -1;
+        return;
+    }
 
     switch(button_id){
         case 0: button = &mouse.left; break;

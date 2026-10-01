@@ -106,13 +106,16 @@ bool mouse_navigate_control;
 //event, and the three buttons, which follow the same pressed/Released
 //contract as a keyboard Key (key_released() works on them unchanged). No
 //delta here - a consumer that wants a look delta keeps its own last-position
-//static and subtracts, same as it would with any other polled position
+//static and subtracts, same as it would with any other polled position.
+//wheel counts notches since the consumer last zeroed it, positive for a
+//scroll up (away from the user)
 typedef struct Mouse {
 	float x;
 	float y;
 	Key left;
 	Key right;
 	Key middle;
+	int wheel;
 } Mouse;
 
 struct Mouse mouse;
