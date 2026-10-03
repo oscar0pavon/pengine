@@ -18,7 +18,11 @@ void main() {
 
     gl_Position = vec4(screen, 1.0, 1.0);
 
-    vec4 world = inverse(ubo.proj * ubo.view) * vec4(screen, 1.0, 1.0);
-    direction = world.xyz / world.w - inverse(ubo.view)[3].xyz;
+    //the ray of this corner in the camera's own axes, from the projection's two
+    //scales, then turned into the world's by the view's rotation alone. it needs
+    //no inverse, and nothing of where the camera is, which a direction does not
+    //depend on
+    vec3 toward = vec3(screen.x / ubo.proj[0][0], screen.y / ubo.proj[1][1], 1.0);
+    direction = transpose(mat3(ubo.view)) * toward;
     exposure = ubo.color.x;
 }
