@@ -1,5 +1,6 @@
 
 #include "vk_images.h"
+#include "logical_device.h"
 #include "commands.h"
 #include "engine/images.h"
 #include "images_view.h"
@@ -363,8 +364,8 @@ void pe_vk_create_texture_sampler(PTexture* new_texture) {
   samplerInfo.mipLodBias = 0.0f;
   samplerInfo.minLod = 0.0f;
   samplerInfo.maxLod = new_texture->mip_level;
-  samplerInfo.anisotropyEnable = VK_FALSE;
-  samplerInfo.maxAnisotropy = 1.0f;
+  samplerInfo.anisotropyEnable = pe_vk_max_anisotropy > 1.0f;
+  samplerInfo.maxAnisotropy = pe_vk_max_anisotropy;
 
   vkCreateSampler(vk_device, &samplerInfo, NULL, &new_texture->sampler);
 }
