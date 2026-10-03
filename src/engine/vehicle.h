@@ -69,6 +69,11 @@ typedef struct PVehicle {
   float angular_drag;
   float brake_friction;
 
+  //what holds a body that is not driven or braked: the force that stops it
+  //rolling, as a share of the load on its wheels, which keeps it from
+  //drifting down the slightest slope
+  float rolling_resistance;
+
   //what the driver asks for. steering is an angle in radians, positive to the
   //left, toward +X; engine_force is in newtons shared between the traction wheels,
   //negative to reverse; brake is 0 to 1

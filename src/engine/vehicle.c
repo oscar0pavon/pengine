@@ -29,6 +29,7 @@ void pe_vehicle_init(PVehicle *vehicle, float mass, const vec3 half_extents) {
   vehicle->linear_drag = 0.05f;
   vehicle->angular_drag = 1.5f;
   vehicle->brake_friction = 1.0f;
+  vehicle->rolling_resistance = 0.03f;
   glm_quat_identity(vehicle->orientation);
   vehicle->sphere_radius = half_extents[0];
 }
@@ -162,6 +163,9 @@ static void tyre_force(const PVehicle *vehicle, const PVehicleWheel *wheel,
   float braking = glm_clamp(stopping, -vehicle->brake * vehicle->brake_friction * limit,
                             vehicle->brake * vehicle->brake_friction * limit);
   lengthways += braking;
+
+  float resistance = vehicle->rolling_resistance * wheel->load;
+  lengthways += glm_clamp(stopping, -resistance, resistance);
 
   float total = hypotf(sideways, lengthways);
   if (total > limit && total > 0) {
