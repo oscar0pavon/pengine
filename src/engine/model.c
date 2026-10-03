@@ -165,6 +165,17 @@ void pe_load_attribute(Array* vertex_array, cgltf_attribute *attribute) {
 
     break;
   }
+  //INFO COLOR_0 is a vec3 or a vec4 of floats or normalized integers. the
+  //alpha is dropped: a model drawn with vertex colours is opaque
+  case cgltf_attribute_type_color: {
+    for (int i = 0; i < attribute->data->count; i++) {
+      float rgba[4] = {1, 1, 1, 1};
+      cgltf_accessor_read_float(attribute->data, i, rgba, 4);
+      PVertex *vertex = array_get(vertex_array, i);
+      glm_vec3_copy(rgba, vertex->color);
+    }
+    break;
+  }
   //INFO JOINTS_0 is usually unsigned byte or short, never normalized, so
   //cgltf_accessor_read_float() (via cgltf_component_read_float()) hands back
   //the plain index 0..255 as a float rather than scaling it - exactly what

@@ -37,6 +37,9 @@ echo "#define file_diffuse_frag_spv \"${WORKDIR}/src/shaders/diffuse_frag.spv\""
 echo "#define file_diffuse_cutout_frag_spv \"${WORKDIR}/src/shaders/diffuse_cutout_frag.spv\"" >> ${FILE}
 echo "#define file_color_vert_spv \"${WORKDIR}/src/shaders/color_vert.spv\"" >> ${FILE}
 echo "#define file_color_frag_spv \"${WORKDIR}/src/shaders/color_frag.spv\"" >> ${FILE}
+echo "#define file_vertex_color_vert_spv \"${WORKDIR}/src/shaders/vertex_color_vert.spv\"" >> ${FILE}
+echo "#define file_vertex_color_frag_spv \"${WORKDIR}/src/shaders/vertex_color_frag.spv\"" >> ${FILE}
+echo "#define file_decal_vert_spv \"${WORKDIR}/src/shaders/decal_vert.spv\"" >> ${FILE}
 
 echo "#define file_terrain_vert_spv \"${WORKDIR}/src/shaders/terrain_vert.spv\"" >> ${FILE}
 echo "#define file_terrain_frag_spv \"${WORKDIR}/src/shaders/terrain_frag.spv\"" >> ${FILE}
