@@ -397,12 +397,19 @@ void pe_ui_quad(const PUiQuad *quad) {
   float x0 = quad->x, y0 = quad->y;
   float x1 = quad->x + quad->width, y1 = quad->y + quad->height;
 
-  push_vertex(x0, y0, quad->u0, quad->v0, quad->color);
-  push_vertex(x1, y0, quad->u1, quad->v0, quad->color);
-  push_vertex(x1, y1, quad->u1, quad->v1, quad->color);
-  push_vertex(x0, y0, quad->u0, quad->v0, quad->color);
-  push_vertex(x1, y1, quad->u1, quad->v1, quad->color);
-  push_vertex(x0, y1, quad->u0, quad->v1, quad->color);
+  //the uv of the top left, top right, bottom right and bottom left corners
+  float uv[4][2] = {{quad->u0, quad->v0}, {quad->u1, quad->v0}, {quad->u1, quad->v1}, {quad->u0, quad->v1}};
+  if (quad->transpose_uv) {
+    float turned[4][2] = {{quad->u0, quad->v0}, {quad->u0, quad->v1}, {quad->u1, quad->v1}, {quad->u1, quad->v0}};
+    memcpy(uv, turned, sizeof(uv));
+  }
+
+  push_vertex(x0, y0, uv[0][0], uv[0][1], quad->color);
+  push_vertex(x1, y0, uv[1][0], uv[1][1], quad->color);
+  push_vertex(x1, y1, uv[2][0], uv[2][1], quad->color);
+  push_vertex(x0, y0, uv[0][0], uv[0][1], quad->color);
+  push_vertex(x1, y1, uv[2][0], uv[2][1], quad->color);
+  push_vertex(x0, y1, uv[3][0], uv[3][1], quad->color);
 
   extend_runs(quad, quad->image ? quad->image : white);
 }

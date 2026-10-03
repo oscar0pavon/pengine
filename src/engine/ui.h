@@ -25,6 +25,8 @@ typedef struct PUiQuad {
   float u0, v0, u1, v1;
   vec4 color;
   PUiBlend blend;
+  //u runs down the quad and v across it, for art stored turned a quarter
+  bool transpose_uv;
 } PUiQuad;
 
 int pe_ui_init();
