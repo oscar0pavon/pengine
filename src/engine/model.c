@@ -120,6 +120,15 @@ void pe_loader_read_accessor(Array* array, cgltf_accessor *accessor, float *out)
 static u32 pe_attribute_base;
 
 void pe_load_attribute(Array* vertex_array, cgltf_attribute *attribute) {
+  //INFO a file may carry several UV sets and colour sets, TEXCOORD_1 and on,
+  //and Blender writes every UV map of a mesh. only the first of each is what a
+  //material's texture reads, and a later one read over it leaves the model
+  //sampling a single point
+  if ((attribute->type == cgltf_attribute_type_texcoord ||
+       attribute->type == cgltf_attribute_type_color) &&
+      attribute->index != 0)
+    return;
+
   switch (attribute->type) {
   case cgltf_attribute_type_position: {
     LOG("#### Vertex count: %i\n", (int)attribute->data->count);
