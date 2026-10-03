@@ -8,6 +8,9 @@ typedef struct PDrawModelCommand{
   VkPipelineLayout layout;
   VkCommandBuffer command_buffer;
   uint32_t image_index;
+
+  //the environment a model of parts is lit by, bound as set 1
+  VkDescriptorSet environment;
 } PDrawModelCommand;
 
 void pe_vk_draw_simple_model(int i);

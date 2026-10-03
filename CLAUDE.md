@@ -191,6 +191,33 @@ between models to share geometry. Whoever loads a model publishes it —
 `add_element_with_model_path()` is the example. glTF makes `NORMAL` optional, so the loader
 generates flat normals when a primitive has none.
 
+### Materials and light
+
+A glb whose primitives each have vertices of their own loads as `PModel.parts`
+(`model.h`): one index range per material, with its base colour, its metal and
+roughness (glTF's roughness in green, metallic in blue) and its normal map, and
+the factors of the material as a `PPartMaterial`. A part with no texture in a
+slot has a white pixel, or for normals a flat one. Colour textures are read as
+sRGB and the other two linear.
+
+Parts are drawn with `pe_vk_pipeline_layout_pbr`: set 0 is the part's material
+(`pe_vk_model_parts_create_descriptors()`, one set for each part and swap chain
+image), set 1 the environment, and the factors go in as a push constant.
+`PDrawModelCommand.environment` is that set 1. `pbr_frag.frag` is Cook-Torrance
+GGX with a sun and image based light, and works the normal map's frame out from
+screen derivatives, so models need no tangents.
+
+`PEnvironment` (`environment.h`) loads a Radiance `.hdr` panorama as half float
+light with mipmaps, projects it onto nine spherical harmonics for the light a
+surface gets from every side, and puts the sun toward its brightest block.
+Reflections read the panorama's mip levels by roughness. Nothing is prefiltered,
+so a rough surface reflects a box-blurred panorama, not a true GGX lobe.
+`PSky` (`sky.h`) draws the same panorama behind everything. Shaders tonemap with
+ACES themselves, and write linear light since the swap chain is sRGB.
+
+Not done: alpha blended materials (glass draws opaque), occlusion maps, shadows,
+a prefiltered environment.
+
 ### Platforms
 
 `src/engine/platforms/` is **not compiled by this Makefile** — no rule reaches it, and the

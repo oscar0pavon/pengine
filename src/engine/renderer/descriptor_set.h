@@ -18,6 +18,12 @@ extern VkPipelineLayout pe_vk_pipeline_layout3;
 extern VkDescriptorSetLayout pe_vk_descriptor_set_layout;
 extern VkDescriptorSetLayout pe_vk_descriptor_set_layout_with_texture;
 extern VkDescriptorSetLayout pe_vk_descriptor_set_layout_skinned;
+extern VkDescriptorSetLayout pe_vk_descriptor_set_layout_material;
+extern VkDescriptorSetLayout pe_vk_descriptor_set_layout_environment;
+
+//what a model of parts is drawn with: set 0 the material of the part, set 1 the
+//environment (PEnvironment), and the part's PPartMaterial as a push constant
+extern VkPipelineLayout pe_vk_pipeline_layout_pbr;
 
 void pe_vk_clean_descriptors_set();
 
@@ -31,6 +37,9 @@ void pe_vk_descriptor_with_image_update(PModel *model, PRenderTarget *target);
 void pe_vk_create_descriptor_set_layout();
 void pe_vk_create_descriptor_set_layout_with_texture();
 void pe_vk_create_descriptor_set_layout_skinned();
+void pe_vk_create_descriptor_set_layout_material();
+void pe_vk_create_descriptor_set_layout_environment();
+void pe_vk_create_pipeline_layout_pbr();
 
 void pe_vk_descriptor_update(PModel *model, PRenderTarget *target);
 void pe_vk_create_descriptor_sets(PModel *model, VkDescriptorSetLayout layout,

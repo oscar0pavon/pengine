@@ -49,10 +49,30 @@ typedef struct PGeosetBatch {
 //materials has one of for each. each part has vertices of its own, so a
 //material's colour is already in them, and a part with no texture is drawn
 //with a white pixel
+//the factors of a part's material, pushed to the fragment shader for each part
+//drawn. metallic and roughness are multiplied by what the metal and roughness
+//texture says, which is white where the file has none
+typedef struct PPartMaterial {
+  float metallic;
+  float roughness;
+  float normal_scale;
+  float unused;
+  float emissive[4];
+} PPartMaterial;
+
 typedef struct PModelPart {
   u32 first_index;
   u32 index_count;
+
+  //the colour of the surface, in sRGB
   PTexture texture;
+
+  //roughness in green and metallic in blue, as glTF has it, and the normals of
+  //the surface in tangent space; neither is colour, so both are read linear
+  PTexture metallic_roughness;
+  PTexture normal;
+
+  PPartMaterial material;
 } PModelPart;
 
 typedef struct PMesh{

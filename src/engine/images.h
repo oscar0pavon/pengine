@@ -34,7 +34,25 @@ int pe_load_texture(const char* path, PTexture*);
 
 int pe_texture_white(PTexture*);
 
+//light read from a Radiance .hdr: three floats a pixel, as bright as the file
+//says
+typedef struct PHdrImage {
+    int width;
+    int height;
+    float* pixels;
+}PHdrImage;
+
+bool pe_load_hdr_image(const char* path, PHdrImage* image);
+void pe_free_hdr_image(PHdrImage* image);
+
+//keeps it as half precision light on the gpu, with mipmaps
+void pe_texture_from_hdr_image(PTexture* texture, const PHdrImage* image);
+
 bool pe_load_hdr_texture(const char* path, PTexture*);
+
+int pe_texture_flat_normal(PTexture*);
+
+int texture_load_from_memory_linear(PTexture* texture, u32 size, void* data);
 
 int texture_load_from_memory(PTexture* texture,u32 size,void* data);
 

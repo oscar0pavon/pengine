@@ -192,6 +192,8 @@ int pe_vk_init() {
 
   pe_vk_create_descriptor_set_layout_with_texture();
   pe_vk_create_descriptor_set_layout_skinned();
+  pe_vk_create_descriptor_set_layout_material();
+  pe_vk_create_descriptor_set_layout_environment();
 
 
   pe_vk_pipeline_create_layout(true, &pe_vk_pipeline_layout_with_descriptors,
@@ -202,6 +204,8 @@ int pe_vk_init() {
 
   pe_vk_pipeline_create_layout(true, &pe_vk_pipeline_layout_skinned,
                                &pe_vk_descriptor_set_layout_skinned);
+
+  pe_vk_create_pipeline_layout_pbr();
 
   pe_vk_pipelines_init(&pe_render_targets[0]);
 

@@ -17,6 +17,9 @@ VkPipelineLayout pe_vk_pipeline_layout_skinned;
 VkDescriptorSetLayout pe_vk_descriptor_set_layout;
 VkDescriptorSetLayout pe_vk_descriptor_set_layout_with_texture;
 VkDescriptorSetLayout pe_vk_descriptor_set_layout_skinned;
+VkDescriptorSetLayout pe_vk_descriptor_set_layout_material;
+VkDescriptorSetLayout pe_vk_descriptor_set_layout_environment;
+VkPipelineLayout pe_vk_pipeline_layout_pbr;
 
 void pe_vk_clean_descriptors_set(){
   vkDestroyDescriptorSetLayout(vk_device, pe_vk_descriptor_set_layout_with_texture, NULL);
@@ -112,6 +115,78 @@ void pe_vk_create_descriptor_set_layout_with_texture() {
                                   &pe_vk_descriptor_set_layout_with_texture),
       "Can't create Descriptor Set Layout");
 }
+//a part's material: the uniform buffer of the instance, then the colour, the
+//metal and roughness and the normals of its surface
+void pe_vk_create_descriptor_set_layout_material() {
+  VkDescriptorSetLayoutBinding bindings[4];
+  ZERO(bindings);
+  bindings[0].binding = 0;
+  bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+  bindings[0].descriptorCount = 1;
+  bindings[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+  for (int i = 1; i < 4; i++) {
+    bindings[i].binding = i;
+    bindings[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    bindings[i].descriptorCount = 1;
+    bindings[i].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+  }
+
+  VkDescriptorSetLayoutCreateInfo info;
+  ZERO(info);
+  info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+  info.bindingCount = 4;
+  info.pBindings = bindings;
+  VKVALID(vkCreateDescriptorSetLayout(vk_device, &info, NULL,
+                                      &pe_vk_descriptor_set_layout_material),
+          "Can't create material descriptor set layout");
+}
+
+//the light of the world, shared by everything drawn in it: what its lights are
+//and the panorama it is lit and reflected by
+void pe_vk_create_descriptor_set_layout_environment() {
+  VkDescriptorSetLayoutBinding bindings[2];
+  ZERO(bindings);
+  bindings[0].binding = 0;
+  bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+  bindings[0].descriptorCount = 1;
+  bindings[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+  bindings[1].binding = 1;
+  bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+  bindings[1].descriptorCount = 1;
+  bindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+  VkDescriptorSetLayoutCreateInfo info;
+  ZERO(info);
+  info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+  info.bindingCount = 2;
+  info.pBindings = bindings;
+  VKVALID(vkCreateDescriptorSetLayout(vk_device, &info, NULL,
+                                      &pe_vk_descriptor_set_layout_environment),
+          "Can't create environment descriptor set layout");
+}
+
+//set 0 is the material of the part and set 1 the environment. a part's own
+//factors go in as a push constant, which is cheaper than a set to bind for each
+void pe_vk_create_pipeline_layout_pbr() {
+  VkDescriptorSetLayout set_layouts[] = {
+      pe_vk_descriptor_set_layout_material,
+      pe_vk_descriptor_set_layout_environment};
+
+  VkPushConstantRange push = {.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+                              .offset = 0,
+                              .size = sizeof(PPartMaterial)};
+
+  VkPipelineLayoutCreateInfo info = {
+      .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+      .setLayoutCount = 2,
+      .pSetLayouts = set_layouts,
+      .pushConstantRangeCount = 1,
+      .pPushConstantRanges = &push};
+  VKVALID(vkCreatePipelineLayout(vk_device, &info, NULL,
+                                 &pe_vk_pipeline_layout_pbr),
+          "Can't create pbr pipeline layout");
+}
+
 void pe_vk_create_descriptor_set_layout() {
   VkDescriptorSetLayoutBinding uniform;
   ZERO(uniform);
@@ -354,7 +429,7 @@ void pe_vk_model_parts_create_descriptors(PModel *model) {
   pool_size[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
   pool_size[0].descriptorCount = sets;
   pool_size[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-  pool_size[1].descriptorCount = sets;
+  pool_size[1].descriptorCount = sets * 3;
 
   VkDescriptorPoolCreateInfo pool_info;
   ZERO(pool_info);
@@ -368,7 +443,7 @@ void pe_vk_model_parts_create_descriptors(PModel *model) {
 
   VkDescriptorSetLayout layouts[sets];
   for (u32 i = 0; i < sets; i++)
-    layouts[i] = pe_vk_descriptor_set_layout_with_texture;
+    layouts[i] = pe_vk_descriptor_set_layout_material;
 
   array_init(&model->part_descriptor_sets, sizeof(VkDescriptorSet), sets);
   array_resize(&model->part_descriptor_sets, sets);
@@ -389,28 +464,34 @@ void pe_vk_model_parts_create_descriptors(PModel *model) {
       VkBuffer *buffer = array_get(&model->uniform_buffers, i);
       VkDescriptorBufferInfo buffer_info = {
           .buffer = *buffer, .offset = 0, .range = sizeof(PUniformBufferObject)};
-      VkDescriptorImageInfo image_info = {
-          .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-          .imageView = part->texture.image_view,
-          .sampler = part->texture.sampler};
+      const PTexture *textures[3] = {&part->texture, &part->metallic_roughness,
+                                     &part->normal};
+      VkDescriptorImageInfo image_info[3];
+      for (int t = 0; t < 3; t++) {
+        image_info[t].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        image_info[t].imageView = textures[t]->image_view;
+        image_info[t].sampler = textures[t]->sampler;
+      }
 
       VkDescriptorSet *set =
           array_get(&model->part_descriptor_sets, part_index * images + i);
-      VkWriteDescriptorSet writes[2] = {
-          {.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-           .dstSet = *set,
-           .dstBinding = 0,
-           .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-           .descriptorCount = 1,
-           .pBufferInfo = &buffer_info},
-          {.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-           .dstSet = *set,
-           .dstBinding = 1,
-           .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-           .descriptorCount = 1,
-           .pImageInfo = &image_info},
-      };
-      vkUpdateDescriptorSets(vk_device, 2, writes, 0, NULL);
+      VkWriteDescriptorSet writes[4];
+      ZERO(writes);
+      writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+      writes[0].dstSet = *set;
+      writes[0].dstBinding = 0;
+      writes[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+      writes[0].descriptorCount = 1;
+      writes[0].pBufferInfo = &buffer_info;
+      for (int t = 0; t < 3; t++) {
+        writes[t + 1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        writes[t + 1].dstSet = *set;
+        writes[t + 1].dstBinding = t + 1;
+        writes[t + 1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        writes[t + 1].descriptorCount = 1;
+        writes[t + 1].pImageInfo = &image_info[t];
+      }
+      vkUpdateDescriptorSets(vk_device, 4, writes, 0, NULL);
     }
   }
 }

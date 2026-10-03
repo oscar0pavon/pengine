@@ -7,8 +7,6 @@
 #include <engine/renderer/uniform_buffer.h>
 #include <engine/renderer/vulkan.h>
 
-#define SKY_EXPOSURE 1.0f
-
 //the sky reads no vertex buffer, and neither tests nor writes depth
 static void create_shader(PShader *shader) {
   VkPipelineVertexInputStateCreateInfo no_input = {
@@ -39,12 +37,10 @@ static void create_shader(PShader *shader) {
   pe_vk_create_shader(&info);
 }
 
-bool pe_sky_load(PSky *sky, const char *hdr_path) {
+void pe_sky_create(PSky *sky, const PEnvironment *environment) {
   ZERO(*sky);
-  sky->exposure = SKY_EXPOSURE;
-
-  if (!pe_load_hdr_texture(hdr_path, &sky->carrier.texture))
-    return false;
+  sky->exposure = environment->block.settings[0];
+  sky->carrier.texture = environment->panorama;
 
   create_shader(&sky->shader);
 
@@ -54,7 +50,6 @@ bool pe_sky_load(PSky *sky, const char *hdr_path) {
   pe_vk_create_descriptor_sets(carrier, pe_vk_descriptor_set_layout_with_texture,
                                &main_render_target);
   pe_vk_descriptor_with_image_update(carrier, &main_render_target);
-  return true;
 }
 
 void pe_sky_draw(PSky *sky, const PCamera *camera, VkCommandBuffer command,

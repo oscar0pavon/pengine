@@ -63,6 +63,14 @@ int image_load_from_memory(PImage* image, void* data, u32 size){
     return 0;
 }
 
+static int pe_texture_upload_format(PTexture* texture, PImage* image,
+                                    VkFormat format){
+
+    pe_vk_create_texture_from_image_format(texture, image, format, true);
+    texture->gpu_loaded = true;
+    return 0;
+}
+
 static int pe_texture_upload(PTexture* texture, PImage* image){
 
     pe_vk_create_texture_from_image(texture, image);
@@ -129,36 +137,75 @@ static u16 float_to_half(float value) {
 
 //a Radiance .hdr, kept as light and not as colour: no sRGB curve, no clamping
 //to 1. false if the file is not one
-bool pe_load_hdr_texture(const char* path, PTexture* texture){
+bool pe_load_hdr_image(const char* path, PHdrImage* image){
 
-    int width, height, channels;
-    float* pixels = stbi_loadf(path, &width, &height, &channels, 3);
-    if(pixels == NULL){
+    int channels;
+    image->pixels = stbi_loadf(path, &image->width, &image->height, &channels, 3);
+    if(image->pixels == NULL){
         LOG("Image not decoded: %s\n", path);
         return false;
     }
+    return true;
+}
 
-    u16* halves = malloc((size_t)width * height * 4 * sizeof(u16));
-    for(size_t i = 0; i < (size_t)width * height; i++){
+void pe_free_hdr_image(PHdrImage* image){
+    stbi_image_free(image->pixels);
+    image->pixels = NULL;
+}
+
+void pe_texture_from_hdr_image(PTexture* texture, const PHdrImage* hdr){
+
+    u16* halves = malloc((size_t)hdr->width * hdr->height * 4 * sizeof(u16));
+    for(size_t i = 0; i < (size_t)hdr->width * hdr->height; i++){
         for(int c = 0; c < 3; c++)
-            halves[i * 4 + c] = float_to_half(pixels[i * 3 + c]);
+            halves[i * 4 + c] = float_to_half(hdr->pixels[i * 3 + c]);
         halves[i * 4 + 3] = float_to_half(1.0f);
     }
-    stbi_image_free(pixels);
 
     PImage image;
     ZERO(image);
-    image.width = width;
-    image.heigth = height;
+    image.width = hdr->width;
+    image.heigth = hdr->height;
     image.pixels_data = (unsigned char*)halves;
 
-    texture->width = width;
-    texture->heigth = height;
+    texture->width = hdr->width;
+    texture->heigth = hdr->height;
     pe_vk_create_texture_from_image_format(texture, &image,
                                            VK_FORMAT_R16G16B16A16_SFLOAT, true);
     texture->gpu_loaded = true;
     free_image(&image);
+}
+
+bool pe_load_hdr_texture(const char* path, PTexture* texture){
+
+    PHdrImage image;
+    if(!pe_load_hdr_image(path, &image))
+        return false;
+
+    pe_texture_from_hdr_image(texture, &image);
+    pe_free_hdr_image(&image);
     return true;
+}
+
+//the normal of a surface that is flat, which a part with no normal map is
+//drawn with
+int pe_texture_flat_normal(PTexture* texture){
+
+    PImage image;
+    ZERO(image);
+    image.width = 1;
+    image.heigth = 1;
+    image.pixels_data = malloc(4);
+    image.pixels_data[0] = 128;
+    image.pixels_data[1] = 128;
+    image.pixels_data[2] = 255;
+    image.pixels_data[3] = 255;
+
+    texture->width = 1;
+    texture->heigth = 1;
+    int result = pe_texture_upload_format(texture, &image, VK_FORMAT_R8G8B8A8_UNORM);
+    free_image(&image);
+    return result;
 }
 
 int texture_load_from_memory(PTexture* texture, u32 size, void* data){
@@ -173,6 +220,26 @@ int texture_load_from_memory(PTexture* texture, u32 size, void* data){
     texture->heigth = image.heigth;
 
     int result = pe_texture_upload(texture, &image);
+
+    free_image(&image);
+
+    return result;
+}
+
+//data that is not colour, a normal map or the metal and roughness of a
+//surface, has to be read as it is, with no sRGB curve
+int texture_load_from_memory_linear(PTexture* texture, u32 size, void* data){
+
+    PImage image;
+    ZERO(image);
+
+    if(image_load_from_memory(&image, data, size) == -1)
+        return -1;
+
+    texture->width = image.width;
+    texture->heigth = image.heigth;
+
+    int result = pe_texture_upload_format(texture, &image, VK_FORMAT_R8G8B8A8_UNORM);
 
     free_image(&image);
 

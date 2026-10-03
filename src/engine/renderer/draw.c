@@ -34,7 +34,9 @@ static VkIndexType pe_vk_model_index_type(PModel *model) {
 }
 
 //a model of parts: one draw for each, with the descriptor set that holds the
-//part's texture. the layout has to be the one with a texture
+//part's textures and its factors pushed. the layout has to be
+//pe_vk_pipeline_layout_pbr, and the environment set the caller names is bound
+//as its second set
 static void pe_vk_draw_model_parts(PDrawModelCommand *draw_model) {
   PModel *model = draw_model->model;
   VkCommandBuffer command = draw_model->command_buffer;
@@ -46,6 +48,9 @@ static void pe_vk_draw_model_parts(PDrawModelCommand *draw_model) {
   vkCmdBindVertexBuffers(command, 0, 1, &model->vertex_buffer.buffer, offsets);
   vkCmdBindIndexBuffer(command, model->index_buffer.buffer, 0,
                        pe_vk_model_index_type(model));
+  vkCmdBindDescriptorSets(command, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                          draw_model->layout, 1, 1, &draw_model->environment, 0,
+                          NULL);
 
   for (u32 i = 0; i < model->parts.count; i++) {
     PModelPart *part = array_get(&model->parts, i);
@@ -53,6 +58,8 @@ static void pe_vk_draw_model_parts(PDrawModelCommand *draw_model) {
                                      i * images + draw_model->image_index);
     vkCmdBindDescriptorSets(command, VK_PIPELINE_BIND_POINT_GRAPHICS,
                             draw_model->layout, 0, 1, set, 0, NULL);
+    vkCmdPushConstants(command, draw_model->layout, VK_SHADER_STAGE_FRAGMENT_BIT,
+                       0, sizeof(PPartMaterial), &part->material);
     vkCmdDrawIndexed(command, part->index_count, 1, part->first_index, 0, 0);
   }
 }

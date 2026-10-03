@@ -451,16 +451,24 @@ static bool pe_mesh_is_parts(cgltf_mesh *mesh) {
 
 typedef struct PPartTextures {
   cgltf_image *images[PE_PART_TEXTURES_MAX];
+  bool linear[PE_PART_TEXTURES_MAX];
   PTexture textures[PE_PART_TEXTURES_MAX];
   u32 count;
+
+  //what a part has when its material names no texture for a slot
   PTexture white;
   bool has_white;
+  PTexture flat_normal;
+  bool has_flat_normal;
 } PPartTextures;
 
-static bool pe_load_image_texture(cgltf_image *image, PTexture *out) {
+static bool pe_load_image_texture(cgltf_image *image, bool linear,
+                                  PTexture *out) {
   if (image->buffer_view != NULL) {
     u8 *data = (u8 *)image->buffer_view->buffer->data + image->buffer_view->offset;
-    return texture_load_from_memory(out, image->buffer_view->size, data) != -1;
+    u32 size = image->buffer_view->size;
+    return (linear ? texture_load_from_memory_linear(out, size, data)
+                   : texture_load_from_memory(out, size, data)) != -1;
   }
 
   if (image->uri == NULL || strncmp(image->uri, "data:", 5) == 0)
@@ -471,27 +479,38 @@ static bool pe_load_image_texture(cgltf_image *image, PTexture *out) {
   return pe_load_texture(path, out) != -1;
 }
 
-//the texture a part is drawn with, loaded once however many materials name it
-static PTexture pe_part_texture(PPartTextures *loaded, cgltf_material *material) {
+//the texture a slot of a part is drawn with, loaded once however many
+//materials name it. the slot's own default when it has none
+static PTexture pe_part_texture(PPartTextures *loaded, cgltf_texture_view *view,
+                                bool linear, bool flat_normal) {
   cgltf_image *image = NULL;
-  if (material != NULL && material->has_pbr_metallic_roughness &&
-      material->pbr_metallic_roughness.base_color_texture.texture != NULL)
-    image = material->pbr_metallic_roughness.base_color_texture.texture->image;
+  if (view != NULL && view->texture != NULL)
+    image = view->texture->image;
 
   if (image != NULL) {
     for (u32 i = 0; i < loaded->count; i++)
-      if (loaded->images[i] == image)
+      if (loaded->images[i] == image && loaded->linear[i] == linear)
         return loaded->textures[i];
 
     if (loaded->count < PE_PART_TEXTURES_MAX) {
       PTexture texture;
       ZERO(texture);
-      if (pe_load_image_texture(image, &texture)) {
+      if (pe_load_image_texture(image, linear, &texture)) {
         loaded->images[loaded->count] = image;
+        loaded->linear[loaded->count] = linear;
         loaded->textures[loaded->count] = texture;
         return loaded->textures[loaded->count++];
       }
     }
+  }
+
+  if (flat_normal) {
+    if (!loaded->has_flat_normal) {
+      ZERO(loaded->flat_normal);
+      pe_texture_flat_normal(&loaded->flat_normal);
+      loaded->has_flat_normal = true;
+    }
+    return loaded->flat_normal;
   }
 
   if (!loaded->has_white) {
@@ -500,6 +519,33 @@ static PTexture pe_part_texture(PPartTextures *loaded, cgltf_material *material)
     loaded->has_white = true;
   }
   return loaded->white;
+}
+
+static void pe_load_part_material(PModelPart *part, cgltf_material *material,
+                                  PPartTextures *loaded) {
+  part->material.metallic = 1;
+  part->material.roughness = 1;
+  part->material.normal_scale = 1;
+  glm_vec4_zero(part->material.emissive);
+
+  cgltf_texture_view *base = NULL, *metal_rough = NULL, *normal = NULL;
+  if (material != NULL) {
+    if (material->has_pbr_metallic_roughness) {
+      cgltf_pbr_metallic_roughness *pbr = &material->pbr_metallic_roughness;
+      part->material.metallic = pbr->metallic_factor;
+      part->material.roughness = pbr->roughness_factor;
+      base = &pbr->base_color_texture;
+      metal_rough = &pbr->metallic_roughness_texture;
+    }
+    normal = &material->normal_texture;
+    if (normal->texture != NULL)
+      part->material.normal_scale = normal->scale;
+    glm_vec3_copy(material->emissive_factor, part->material.emissive);
+  }
+
+  part->texture = pe_part_texture(loaded, base, false, false);
+  part->metallic_roughness = pe_part_texture(loaded, metal_rough, true, false);
+  part->normal = pe_part_texture(loaded, normal, true, true);
 }
 
 //a part's vertices are appended after those of the parts before it, and its
@@ -544,7 +590,7 @@ static void pe_load_part(PModel *model, cgltf_primitive *primitive,
     array_add(&model->index_array, &index);
   }
   part.index_count = model->index_array.count - part.first_index;
-  part.texture = pe_part_texture(loaded, primitive->material);
+  pe_load_part_material(&part, primitive->material, loaded);
 
   if (!model->parts.initialized)
     array_init(&model->parts, sizeof(PModelPart), 0);
