@@ -352,6 +352,10 @@ PUiImage *pe_ui_image(const char *path) {
 
 PUiImage *pe_ui_image_white() { return white; }
 
+VkDescriptorSetLayout pe_ui_image_set_layout() { return set_layout; }
+
+VkDescriptorSet pe_ui_image_set(const PUiImage *image) { return image->set; }
+
 void pe_ui_image_size(const PUiImage *image, float *width, float *height) {
   *width = image->texture.width;
   *height = image->texture.heigth;

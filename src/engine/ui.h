@@ -39,6 +39,10 @@ PUiImage *pe_ui_image(const char *path);
 //an image that is one white texel, for a quad that is only its colour
 PUiImage *pe_ui_image_white();
 
+//what a pass that draws these images itself binds: the layout of the sets and one image's set
+VkDescriptorSetLayout pe_ui_image_set_layout();
+VkDescriptorSet pe_ui_image_set(const PUiImage *image);
+
 void pe_ui_image_size(const PUiImage *image, float *width, float *height);
 
 void pe_ui_begin(VkCommandBuffer cmd, PRenderTarget *target,
