@@ -203,8 +203,9 @@ void pe_vk_descriptor_update(PModel *model, PRenderTarget *target) {
   }
 }
 
-void pe_vk_descriptor_skinned_update(PModel *model, PSkin *skin,
-                                     PRenderTarget *target) {
+static void pe_vk_descriptor_skinned_write(PModel *model, PSkin *skin,
+                                           Array *descriptor_sets,
+                                           PTexture *texture) {
 
   u32 count = pe_vk_targets_max_images_count();
 
@@ -218,8 +219,8 @@ void pe_vk_descriptor_skinned_update(PModel *model, PSkin *skin,
 
     VkDescriptorImageInfo image_info = {
         .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-        .imageView = model->texture.image_view,
-        .sampler = model->texture.sampler};
+        .imageView = texture->image_view,
+        .sampler = texture->sampler};
 
     VkBuffer *storage_buffer = array_get(&skin->shader_storage_buffers, i);
     VkDescriptorBufferInfo storage_info = {
@@ -227,7 +228,7 @@ void pe_vk_descriptor_skinned_update(PModel *model, PSkin *skin,
         .offset = 0,
         .range = sizeof(skin->node_uniform.joints_matrix)};
 
-    VkDescriptorSet *descriptor_set = array_get(&model->descriptor_sets, i);
+    VkDescriptorSet *descriptor_set = array_get(descriptor_sets, i);
 
     VkWriteDescriptorSet des_write[3] = {
         {.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -255,6 +256,55 @@ void pe_vk_descriptor_skinned_update(PModel *model, PSkin *skin,
 
     vkUpdateDescriptorSets(vk_device, 3, des_write, 0, NULL);
   }
+}
+
+void pe_vk_descriptor_skinned_update(PModel *model, PSkin *skin,
+                                     PRenderTarget *target) {
+  pe_vk_descriptor_skinned_write(model, skin, &model->descriptor_sets,
+                                 &model->texture);
+}
+
+void pe_vk_model_set_extra_texture(PModel *model, PSkin *skin,
+                                   PTexture texture) {
+  u32 count = pe_vk_targets_max_images_count();
+
+  if (!model->has_extra_texture) {
+    VkDescriptorPoolSize pool_size[3] = {
+        {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, count},
+        {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, count},
+        {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, count}};
+    VkDescriptorPoolCreateInfo info = {
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+        .poolSizeCount = 3,
+        .pPoolSizes = pool_size,
+        .maxSets = count};
+    VKVALID(vkCreateDescriptorPool(vk_device, &info, NULL,
+                                   &model->extra_descriptor_pool),
+            "Can't create descriptor pool");
+
+    VkDescriptorSetLayout layouts[count];
+    for (u32 i = 0; i < count; i++)
+      layouts[i] = pe_vk_descriptor_set_layout_skinned;
+
+    array_init(&model->extra_descriptor_sets, sizeof(VkDescriptorSet), count);
+    array_resize(&model->extra_descriptor_sets, count);
+
+    VkDescriptorSetAllocateInfo alloc_info = {
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+        .descriptorPool = model->extra_descriptor_pool,
+        .descriptorSetCount = count,
+        .pSetLayouts = layouts};
+    vkAllocateDescriptorSets(vk_device, &alloc_info,
+                             model->extra_descriptor_sets.data);
+    model->has_extra_texture = true;
+  } else {
+    vkDeviceWaitIdle(vk_device);
+    pe_vk_clean_image(&model->extra_texture);
+  }
+
+  model->extra_texture = texture;
+  pe_vk_descriptor_skinned_write(model, skin, &model->extra_descriptor_sets,
+                                 &model->extra_texture);
 }
 
 void pe_vk_create_descriptor_sets(PModel *model, VkDescriptorSetLayout layout,

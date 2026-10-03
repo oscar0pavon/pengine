@@ -37,4 +37,12 @@ void pe_vk_create_descriptor_sets(PModel *model, VkDescriptorSetLayout layout,
 void pe_vk_descriptor_skinned_update(PModel *model, PSkin *skin,
                                      PRenderTarget *target);
 
+//gives the primitives of a model that draw from its skin extra (texture_type
+//PE_TEXTURE_TYPE_SKIN_EXTRA, see pe_model_set_active_geosets()) a texture of
+//their own. takes over texture, which the model then frees with itself; one
+//set before is freed here, once the gpu is idle. the descriptor sets of
+//model must already be made and updated
+void pe_vk_model_set_extra_texture(PModel *model, PSkin *skin,
+                                   PTexture texture);
+
 #endif

@@ -34,6 +34,7 @@ echo "#define file_frag_spv \"${WORKDIR}/src/shaders/frag.spv\"" >> ${FILE}
 echo "#define file_in_position_spv \"${WORKDIR}/src/shaders/in_position_vert.spv\"" >> ${FILE}
 echo "#define file_diffuse_vert_spv \"${WORKDIR}/src/shaders/diffuse_vert.spv\"" >> ${FILE}
 echo "#define file_diffuse_frag_spv \"${WORKDIR}/src/shaders/diffuse_frag.spv\"" >> ${FILE}
+echo "#define file_diffuse_cutout_frag_spv \"${WORKDIR}/src/shaders/diffuse_cutout_frag.spv\"" >> ${FILE}
 echo "#define file_color_vert_spv \"${WORKDIR}/src/shaders/color_vert.spv\"" >> ${FILE}
 echo "#define file_color_frag_spv \"${WORKDIR}/src/shaders/color_frag.spv\"" >> ${FILE}
 

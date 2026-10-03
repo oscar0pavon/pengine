@@ -51,7 +51,22 @@ void pe_vk_draw_model(PDrawModelCommand *draw_model) {
   vkCmdBindVertexBuffers(command, 0, 1, &draw_model->model->vertex_buffer.buffer, offsets);
   vkCmdBindIndexBuffer(command, draw_model->model->index_buffer.buffer, 0,
                        pe_vk_model_index_type(draw_model->model));
-  vkCmdDrawIndexed(command, draw_model->model->index_array.count, 1, 0, 0, 0);
+
+  PModel *model = draw_model->model;
+  u32 main_count = model->index_array.count;
+  if (model->has_extra_texture && model->extra_first_index < main_count)
+    main_count = model->extra_first_index;
+  vkCmdDrawIndexed(command, main_count, 1, 0, 0, 0);
+
+  if (main_count == model->index_array.count)
+    return;
+
+  descriptor_set = array_get(&model->extra_descriptor_sets,
+                             draw_model->image_index);
+  vkCmdBindDescriptorSets(command, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                          draw_model->layout, 0, 1, descriptor_set, 0, NULL);
+  vkCmdDrawIndexed(command, model->index_array.count - main_count, 1,
+                   main_count, 0, 0);
 }
 
 //draws instance_count copies of the mesh in one call, each one placed by

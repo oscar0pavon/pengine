@@ -29,12 +29,18 @@ struct PSkin;
 //pe_model_set_active_geosets() can rebuild PModel.index_array against an
 //arbitrary active set without re-parsing the glTF file. first_index/
 //index_count are a slice of PModel.all_indices, not of index_array itself
+#define PE_TEXTURE_TYPE_SKIN_EXTRA 8
+
 typedef struct PGeosetBatch {
   bool tagged;     //false: no {"geoset":N} extras at all (pe_primitive_geoset()) -
                    //always drawn, regardless of any active set
   bool is_default; //true if pe_load_mesh() put this primitive's indices in
                    //index_array at load time (pe_primitive_is_default())
   u32 geoset;      //only meaningful when tagged is true
+  u32 texture_type; //the model's own number for what paints this primitive: 0
+                    //when the file does not say, 1 the body skin, 8 the skin
+                    //extra, drawn from PModel.extra_texture (see
+                    //pe_vk_model_set_extra_texture())
   u32 first_index;
   u32 index_count;
 } PGeosetBatch;
@@ -82,6 +88,17 @@ typedef struct PModel{
     Array uniform_buffers_memory;
     Array descriptor_sets;
     VkDescriptorPool descriptor_pool;
+
+    //a second texture for the primitives whose texture_type is
+    //PE_TEXTURE_TYPE_SKIN_EXTRA, drawn after the first extra_first_index
+    //indices of index_array with its own descriptor sets. none until
+    //pe_vk_model_set_extra_texture(); extra_first_index is where the rest of
+    //index_array starts, and the whole of it while that has never been set
+    bool has_extra_texture;
+    PTexture extra_texture;
+    Array extra_descriptor_sets;
+    VkDescriptorPool extra_descriptor_pool;
+    u32 extra_first_index;
  
     vec3 position;
     PMesh mesh;

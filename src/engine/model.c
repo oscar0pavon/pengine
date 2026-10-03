@@ -1,6 +1,7 @@
 #include "model.h"
 #include "engine/array.h"
 #include "renderer/vulkan.h"
+#include "renderer/vk_images.h"
 #include <vulkan/vulkan_core.h>
 
 #define CGLTF_IMPLEMENTATION
@@ -266,8 +267,24 @@ static bool pe_primitive_geoset(cgltf_primitive *primitive, u32 *geoset) {
   cgltf_extras *extras = &primitive->extras;
   if (extras->end_offset <= extras->start_offset)
     return false;
-  return sscanf(current_data->json + extras->start_offset, "{\"geoset\":%u}",
+  return sscanf(current_data->json + extras->start_offset, "{\"geoset\":%u",
                geoset) == 1;
+}
+
+//0 for a primitive whose extras do not carry a texture_type
+static u32 pe_primitive_texture_type(cgltf_primitive *primitive) {
+  cgltf_extras *extras = &primitive->extras;
+  const char *begin = current_data->json + extras->start_offset;
+  const char *end = current_data->json + extras->end_offset;
+  const char key[] = "\"texture_type\":";
+
+  u32 type = 0;
+  for (const char *c = begin; c + sizeof(key) < end; c++)
+    if (strncmp(c, key, sizeof(key) - 1) == 0) {
+      sscanf(c + sizeof(key) - 1, "%u", &type);
+      break;
+    }
+  return type;
 }
 
 //INFO a model carries every alternative a geoset group has - every hairstyle,
@@ -415,6 +432,7 @@ void pe_load_mesh(PModel *model, cgltf_mesh *mesh) {
     PGeosetBatch batch;
     batch.tagged = pe_primitive_geoset(&mesh->primitives[i], &batch.geoset);
     batch.is_default = pe_primitive_is_default(mesh, i);
+    batch.texture_type = pe_primitive_texture_type(&mesh->primitives[i]);
     batch.first_index = first_index;
     batch.index_count = model->all_indices.count - first_index;
     array_add(&model->geoset_batches, &batch);
@@ -427,6 +445,8 @@ void pe_load_mesh(PModel *model, cgltf_mesh *mesh) {
 
   if (!has_normals)
     pe_loader_flat_normals(&model->vertex_array, &model->index_array);
+
+  model->extra_first_index = model->index_array.count;
 }
 
 u32 pe_model_default_geosets(PModel *model, u32 *out, u32 out_max) {
@@ -457,18 +477,27 @@ void pe_model_set_active_geosets(PModel *model, const u32 *geosets,
   array_init(&rebuilt, model->all_indices.element_bytes_size,
             (int)model->index_array.count);
 
-  for (u32 i = 0; i < model->geoset_batches.count; i++) {
-    PGeosetBatch *batch = array_get(&model->geoset_batches, (int)i);
+  //the primitives of the skin extra go last, so a draw can give them their
+  //own texture after the rest
+  for (int extra = 0; extra < 2; extra++) {
+    if (extra == 1)
+      model->extra_first_index = rebuilt.count;
 
-    bool visible = !batch->tagged;
-    for (u32 g = 0; !visible && g < count; g++)
-      visible = geosets[g] == batch->geoset;
-    if (!visible)
-      continue;
+    for (u32 i = 0; i < model->geoset_batches.count; i++) {
+      PGeosetBatch *batch = array_get(&model->geoset_batches, (int)i);
+      if ((batch->texture_type == PE_TEXTURE_TYPE_SKIN_EXTRA) != (extra == 1))
+        continue;
 
-    for (u32 j = 0; j < batch->index_count; j++)
-      array_add(&rebuilt, array_get(&model->all_indices,
-                                    (int)(batch->first_index + j)));
+      bool visible = !batch->tagged;
+      for (u32 g = 0; !visible && g < count; g++)
+        visible = geosets[g] == batch->geoset;
+      if (!visible)
+        continue;
+
+      for (u32 j = 0; j < batch->index_count; j++)
+        array_add(&rebuilt, array_get(&model->all_indices,
+                                      (int)(batch->first_index + j)));
+    }
   }
 
   //the old index_array's own backing memory is simply abandoned - the
@@ -913,6 +942,10 @@ void pe_clean_model(PModel* model){
   }
 
   vkDestroyDescriptorPool(vk_device, model->descriptor_pool, NULL);
+  if (model->has_extra_texture) {
+    vkDestroyDescriptorPool(vk_device, model->extra_descriptor_pool, NULL);
+    pe_vk_clean_image(&model->extra_texture);
+  }
 
   pe_vk_clean_shader(&model->shader);
 
