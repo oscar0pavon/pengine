@@ -51,6 +51,11 @@ void pe_parse_key_event(unsigned int key_code, uint8_t type){
 
 }
 
+void pe_parse_mouse_delta(float dx, float dy){
+    mouse.dx += dx;
+    mouse.dy += dy;
+}
+
 void pe_parse_mouse_motion(float x, float y){
     mouse.x = x;
     mouse.y = y;

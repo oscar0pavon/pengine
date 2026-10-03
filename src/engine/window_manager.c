@@ -24,6 +24,18 @@ static void pe_wm_mouse_motion(void) {
   pe_parse_mouse_motion(pway->mouse.x, pway->mouse.y);
 }
 
+static void pe_wm_mouse_delta(float dx, float dy) {
+  pe_parse_mouse_delta(dx, dy);
+}
+
+void pe_wm_lock_pointer(void) {
+  pway_lock_pointer();
+}
+
+void pe_wm_unlock_pointer(void) {
+  pway_unlock_pointer();
+}
+
 //pway calls click()/click_release() with no argument and expects the app to
 //read which button off pway->mouse.current_button - it is only ever NULL for
 //a button pway does not track (there is none, currently), never for the
@@ -76,6 +88,7 @@ void pe_create_window(){
   pway->key = &pe_wm_key_event;
   pway->exit = &pe_wm_exit_event;
   pway->update_mouse = &pe_wm_mouse_motion;
+  pway->mouse_delta = &pe_wm_mouse_delta;
   pway->click = &pe_wm_mouse_click;
   pway->click_release = &pe_wm_mouse_click_release;
 

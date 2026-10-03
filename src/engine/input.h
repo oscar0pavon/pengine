@@ -109,6 +109,9 @@ bool mouse_navigate_control;
 //static and subtracts, same as it would with any other polled position.
 //wheel counts notches since the consumer last zeroed it, positive for a
 //scroll up (away from the user)
+//dx and dy are the pixels moved since the consumer last zeroed them, and
+//only arrive while the pointer is locked (pe_wm_lock_pointer()), when x and y
+//stay where they were
 typedef struct Mouse {
 	float x;
 	float y;
@@ -116,6 +119,8 @@ typedef struct Mouse {
 	Key right;
 	Key middle;
 	int wheel;
+	float dx;
+	float dy;
 } Mouse;
 
 struct Mouse mouse;
@@ -125,6 +130,7 @@ void pe_input_init();
 void pe_parse_key_event(unsigned int key_code, uint8_t type);
 
 void pe_parse_mouse_motion(float x, float y);
+void pe_parse_mouse_delta(float dx, float dy);
 void pe_parse_mouse_button(uint32_t button_id, bool pressed);
 
 

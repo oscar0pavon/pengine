@@ -32,6 +32,10 @@ void window_manager_update_windows_input();
 
 void pe_wm_events_update();
 
+//while locked the cursor stays put and mouse.dx/dy collect the motion
+void pe_wm_lock_pointer(void);
+void pe_wm_unlock_pointer(void);
+
 void pe_wm_input_update();
 
 float actual_window_width;
