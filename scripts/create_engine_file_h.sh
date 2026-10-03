@@ -46,6 +46,8 @@ echo "#define file_sky_frag_spv \"${WORKDIR}/src/shaders/sky_frag.spv\"" >> ${FI
 
 echo "#define file_water_vert_spv \"${WORKDIR}/src/shaders/water_vert.spv\"" >> ${FILE}
 echo "#define file_water_frag_spv \"${WORKDIR}/src/shaders/water_frag.spv\"" >> ${FILE}
+echo "#define file_ui_vert_spv \"${WORKDIR}/src/shaders/ui_vert.spv\"" >> ${FILE}
+echo "#define file_ui_frag_spv \"${WORKDIR}/src/shaders/ui_frag.spv\"" >> ${FILE}
 
 echo "#define file_building_vert_spv \"${WORKDIR}/src/shaders/building_vert.spv\"" >> ${FILE}
 echo "#define file_building_frag_spv \"${WORKDIR}/src/shaders/building_frag.spv\"" >> ${FILE}

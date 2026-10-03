@@ -33,6 +33,9 @@ void pe_text_end();
  * glyph. Does nothing outside a pe_text_begin()/pe_text_end() pair. */
 float pe_text_draw(const char* utf8_text, vec3 color, float x, float y);
 
+//the pen advance of utf8_text, in pixels
+float pe_text_width(const char* utf8_text);
+
 float pe_text_ascent();
 float pe_text_cell_width();
 float pe_text_cell_height();

@@ -82,3 +82,36 @@ float pe_text_ascent() { return pfonts_get_ascent(); }
 float pe_text_cell_width() { return pfonts_get_cell_width(); }
 
 float pe_text_cell_height() { return pfonts_get_cell_height(); }
+
+static uint32_t next_codepoint(const char** text) {
+  const unsigned char* p = (const unsigned char*)*text;
+  uint32_t codepoint = p[0];
+  int extra = 0;
+
+  if (p[0] >= 0xF0) {
+    codepoint = p[0] & 0x07;
+    extra = 3;
+  } else if (p[0] >= 0xE0) {
+    codepoint = p[0] & 0x0F;
+    extra = 2;
+  } else if (p[0] >= 0xC0) {
+    codepoint = p[0] & 0x1F;
+    extra = 1;
+  }
+
+  p++;
+  for (; extra > 0 && (*p & 0xC0) == 0x80; extra--)
+    codepoint = (codepoint << 6) | (*p++ & 0x3F);
+
+  *text = (const char*)p;
+  return codepoint;
+}
+
+float pe_text_width(const char* utf8_text) {
+  float width = 0.f;
+
+  while (*utf8_text)
+    width += pfonts_get_glyph_advance(next_codepoint(&utf8_text));
+
+  return width;
+}
