@@ -38,15 +38,17 @@ void pengine_run(PGame* created_game){
   pengine_initialized = true;
 
   //Main loop 
+  start_delta_time();
   while (pe_running) { //TODO: window should close
     
+    //INFO the whole frame is timed, update included: measuring only the
+    //draw made delta_time shorter than the real frame by whatever update
+    //cost, so everything driven by it ran slow once update got heavy
+    update_delta_time();
+
     game->update();
 
-    start_delta_time();//frame time
-
     pe_frame_draw();
-
-    update_delta_time();
 
   }
 
