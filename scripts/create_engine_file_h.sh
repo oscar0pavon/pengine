@@ -41,6 +41,8 @@ echo "#define file_vertex_color_vert_spv \"${WORKDIR}/src/shaders/vertex_color_v
 echo "#define file_vertex_color_frag_spv \"${WORKDIR}/src/shaders/vertex_color_frag.spv\"" >> ${FILE}
 echo "#define file_vertex_color_texture_vert_spv \"${WORKDIR}/src/shaders/vertex_color_texture_vert.spv\"" >> ${FILE}
 echo "#define file_vertex_color_texture_frag_spv \"${WORKDIR}/src/shaders/vertex_color_texture_frag.spv\"" >> ${FILE}
+echo "#define file_sky_hdr_vert_spv \"${WORKDIR}/src/shaders/sky_hdr_vert.spv\"" >> ${FILE}
+echo "#define file_sky_hdr_frag_spv \"${WORKDIR}/src/shaders/sky_hdr_frag.spv\"" >> ${FILE}
 echo "#define file_decal_vert_spv \"${WORKDIR}/src/shaders/decal_vert.spv\"" >> ${FILE}
 
 echo "#define file_terrain_vert_spv \"${WORKDIR}/src/shaders/terrain_vert.spv\"" >> ${FILE}

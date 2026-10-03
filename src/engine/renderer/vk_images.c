@@ -614,7 +614,8 @@ void pe_vk_create_texture_from_image_format(PTexture* new_texture,
   if (mipmaps && format_can_be_blitted_linearly(format))
     new_texture->mip_level = mip_levels_for(texture.width, texture.heigth);
 
-  VkDeviceSize image_size = texture.width * texture.heigth * 4;
+  VkDeviceSize bytes_per_pixel = format == VK_FORMAT_R16G16B16A16_SFLOAT ? 8 : 4;
+  VkDeviceSize image_size = texture.width * texture.heigth * bytes_per_pixel;
 
   PBuffer image_buffer = pe_vk_create_buffer(image_size, texture.pixels_data,
                                               VK_BUFFER_USAGE_TRANSFER_SRC_BIT);

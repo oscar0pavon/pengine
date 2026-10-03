@@ -11,6 +11,7 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_ONLY_JPEG
+#define STBI_ONLY_HDR
 #include <ThirdParty/stb_image.h>
 
 
@@ -108,6 +109,56 @@ int pe_texture_white(PTexture* texture){
     int result = pe_texture_upload(texture, &image);
     free_image(&image);
     return result;
+}
+
+//the half precision float nearest to value, which is what a high dynamic range
+//texture holds: the sun in a panorama is thousands of times brighter than the
+//sky round it, and 8 bits cannot keep both
+static u16 float_to_half(float value) {
+    if(value > 65504.0f) value = 65504.0f;
+    if(value < 0.0f) value = 0.0f;
+
+    u32 bits;
+    memcpy(&bits, &value, sizeof(bits));
+    int exponent = (int)((bits >> 23) & 0xFF) - 127 + 15;
+    u32 mantissa = bits & 0x7FFFFF;
+
+    if(exponent <= 0) return 0;
+    return (u16)((exponent << 10) | ((mantissa + 0x1000) >> 13));
+}
+
+//a Radiance .hdr, kept as light and not as colour: no sRGB curve, no clamping
+//to 1. false if the file is not one
+bool pe_load_hdr_texture(const char* path, PTexture* texture){
+
+    int width, height, channels;
+    float* pixels = stbi_loadf(path, &width, &height, &channels, 3);
+    if(pixels == NULL){
+        LOG("Image not decoded: %s\n", path);
+        return false;
+    }
+
+    u16* halves = malloc((size_t)width * height * 4 * sizeof(u16));
+    for(size_t i = 0; i < (size_t)width * height; i++){
+        for(int c = 0; c < 3; c++)
+            halves[i * 4 + c] = float_to_half(pixels[i * 3 + c]);
+        halves[i * 4 + 3] = float_to_half(1.0f);
+    }
+    stbi_image_free(pixels);
+
+    PImage image;
+    ZERO(image);
+    image.width = width;
+    image.heigth = height;
+    image.pixels_data = (unsigned char*)halves;
+
+    texture->width = width;
+    texture->heigth = height;
+    pe_vk_create_texture_from_image_format(texture, &image,
+                                           VK_FORMAT_R16G16B16A16_SFLOAT, true);
+    texture->gpu_loaded = true;
+    free_image(&image);
+    return true;
 }
 
 int texture_load_from_memory(PTexture* texture, u32 size, void* data){
