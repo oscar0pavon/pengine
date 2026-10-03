@@ -33,7 +33,36 @@ static VkIndexType pe_vk_model_index_type(PModel *model) {
                                                      : VK_INDEX_TYPE_UINT16;
 }
 
+//a model of parts: one draw for each, with the descriptor set that holds the
+//part's texture. the layout has to be the one with a texture
+static void pe_vk_draw_model_parts(PDrawModelCommand *draw_model) {
+  PModel *model = draw_model->model;
+  VkCommandBuffer command = draw_model->command_buffer;
+  VkDeviceSize offsets[] = {0};
+  u32 images = pe_vk_targets_max_images_count();
+
+  vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                    model->shader.pipeline);
+  vkCmdBindVertexBuffers(command, 0, 1, &model->vertex_buffer.buffer, offsets);
+  vkCmdBindIndexBuffer(command, model->index_buffer.buffer, 0,
+                       pe_vk_model_index_type(model));
+
+  for (u32 i = 0; i < model->parts.count; i++) {
+    PModelPart *part = array_get(&model->parts, i);
+    VkDescriptorSet *set = array_get(&model->part_descriptor_sets,
+                                     i * images + draw_model->image_index);
+    vkCmdBindDescriptorSets(command, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            draw_model->layout, 0, 1, set, 0, NULL);
+    vkCmdDrawIndexed(command, part->index_count, 1, part->first_index, 0, 0);
+  }
+}
+
 void pe_vk_draw_model(PDrawModelCommand *draw_model) {
+
+  if (draw_model->model->parts.count > 0) {
+    pe_vk_draw_model_parts(draw_model);
+    return;
+  }
 
   VkDeviceSize offsets[] = {0};
 

@@ -340,3 +340,77 @@ void pe_vk_create_descriptor_sets(PModel *model, VkDescriptorSetLayout layout,
   vkAllocateDescriptorSets(vk_device, &alloc_info, model->descriptor_sets.data);
 
 }
+
+//the sets a model of several parts is drawn with, one for each part and swap
+//chain image, each pointing at the instance's uniform buffer and the part's
+//texture. the plain sets of the model are not used to draw it. call after the
+//uniform buffers are made
+void pe_vk_model_parts_create_descriptors(PModel *model) {
+  u32 images = pe_vk_targets_max_images_count();
+  u32 sets = model->parts.count * images;
+
+  VkDescriptorPoolSize pool_size[2];
+  ZERO(pool_size);
+  pool_size[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+  pool_size[0].descriptorCount = sets;
+  pool_size[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+  pool_size[1].descriptorCount = sets;
+
+  VkDescriptorPoolCreateInfo pool_info;
+  ZERO(pool_info);
+  pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+  pool_info.poolSizeCount = 2;
+  pool_info.pPoolSizes = pool_size;
+  pool_info.maxSets = sets;
+  VKVALID(vkCreateDescriptorPool(vk_device, &pool_info, NULL,
+                                 &model->part_descriptor_pool),
+          "Can't create descriptor pool of parts");
+
+  VkDescriptorSetLayout layouts[sets];
+  for (u32 i = 0; i < sets; i++)
+    layouts[i] = pe_vk_descriptor_set_layout_with_texture;
+
+  array_init(&model->part_descriptor_sets, sizeof(VkDescriptorSet), sets);
+  array_resize(&model->part_descriptor_sets, sets);
+
+  VkDescriptorSetAllocateInfo alloc_info = {
+      .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+      .descriptorPool = model->part_descriptor_pool,
+      .descriptorSetCount = sets,
+      .pSetLayouts = layouts};
+  VKVALID(vkAllocateDescriptorSets(vk_device, &alloc_info,
+                                   model->part_descriptor_sets.data),
+          "Can't allocate descriptor sets of parts");
+
+  for (u32 part_index = 0; part_index < model->parts.count; part_index++) {
+    PModelPart *part = array_get(&model->parts, part_index);
+
+    for (u32 i = 0; i < images; i++) {
+      VkBuffer *buffer = array_get(&model->uniform_buffers, i);
+      VkDescriptorBufferInfo buffer_info = {
+          .buffer = *buffer, .offset = 0, .range = sizeof(PUniformBufferObject)};
+      VkDescriptorImageInfo image_info = {
+          .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+          .imageView = part->texture.image_view,
+          .sampler = part->texture.sampler};
+
+      VkDescriptorSet *set =
+          array_get(&model->part_descriptor_sets, part_index * images + i);
+      VkWriteDescriptorSet writes[2] = {
+          {.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+           .dstSet = *set,
+           .dstBinding = 0,
+           .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+           .descriptorCount = 1,
+           .pBufferInfo = &buffer_info},
+          {.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+           .dstSet = *set,
+           .dstBinding = 1,
+           .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+           .descriptorCount = 1,
+           .pImageInfo = &image_info},
+      };
+      vkUpdateDescriptorSets(vk_device, 2, writes, 0, NULL);
+    }
+  }
+}

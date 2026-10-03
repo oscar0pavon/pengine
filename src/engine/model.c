@@ -115,6 +115,10 @@ void pe_loader_read_accessor(Array* array, cgltf_accessor *accessor, float *out)
   }
 }
 
+//where a primitive's own vertices start in the array, which is 0 for the first
+//primitive of a mesh and past the ones before it for a part
+static u32 pe_attribute_base;
+
 void pe_load_attribute(Array* vertex_array, cgltf_attribute *attribute) {
   switch (attribute->type) {
   case cgltf_attribute_type_position: {
@@ -122,7 +126,8 @@ void pe_load_attribute(Array* vertex_array, cgltf_attribute *attribute) {
     vec3 vertices_position[attribute->data->count];
     ZERO(vertices_position);
 
-    array_init(vertex_array, sizeof(PVertex), attribute->data->count);
+    if (pe_attribute_base == 0)
+      array_init(vertex_array, sizeof(PVertex), attribute->data->count);
 
     pe_loader_read_accessor(
         vertex_array, attribute->data,
@@ -144,7 +149,7 @@ void pe_load_attribute(Array* vertex_array, cgltf_attribute *attribute) {
     pe_loader_read_accessor(vertex_array, attribute->data, (float*)uvs);
 
     for (int i = 0; i < attribute->data->count; i++) {
-      PVertex *vertex = array_get(vertex_array, i);
+      PVertex *vertex = array_get(vertex_array, pe_attribute_base + i);
       vertex->uv[0] = uvs[i][0];
       vertex->uv[1] = uvs[i][1];
     }
@@ -159,7 +164,7 @@ void pe_load_attribute(Array* vertex_array, cgltf_attribute *attribute) {
     pe_loader_read_accessor(vertex_array, attribute->data, (float *)normals);
 
     for (int i = 0; i < attribute->data->count; i++) {
-      PVertex *vertex = array_get(vertex_array, i);
+      PVertex *vertex = array_get(vertex_array, pe_attribute_base + i);
       glm_vec3_copy(normals[i], vertex->normal);
     }
 
@@ -171,7 +176,7 @@ void pe_load_attribute(Array* vertex_array, cgltf_attribute *attribute) {
     for (int i = 0; i < attribute->data->count; i++) {
       float rgba[4] = {1, 1, 1, 1};
       cgltf_accessor_read_float(attribute->data, i, rgba, 4);
-      PVertex *vertex = array_get(vertex_array, i);
+      PVertex *vertex = array_get(vertex_array, pe_attribute_base + i);
       glm_vec3_copy(rgba, vertex->color);
     }
     break;
@@ -187,7 +192,7 @@ void pe_load_attribute(Array* vertex_array, cgltf_attribute *attribute) {
     pe_loader_read_accessor(vertex_array, attribute->data, (float *)joints);
 
     for (int i = 0; i < attribute->data->count; i++) {
-      PVertex *vertex = array_get(vertex_array, i);
+      PVertex *vertex = array_get(vertex_array, pe_attribute_base + i);
       glm_vec4_copy(joints[i], vertex->joint);
     }
 
@@ -200,7 +205,7 @@ void pe_load_attribute(Array* vertex_array, cgltf_attribute *attribute) {
     pe_loader_read_accessor(vertex_array, attribute->data, (float *)weights);
 
     for (int i = 0; i < attribute->data->count; i++) {
-      PVertex *vertex = array_get(vertex_array, i);
+      PVertex *vertex = array_get(vertex_array, pe_attribute_base + i);
       glm_vec4_copy(weights[i], vertex->weight);
     }
 
@@ -402,6 +407,149 @@ static void pe_load_material_texture(PModel *model, cgltf_material *material) {
   pe_load_texture(path, &model->texture);
 }
 
+//the directory of the file being loaded, which an image named by a relative
+//uri is looked for in
+static char pe_model_directory[512];
+
+//a mesh whose primitives each have vertices of their own, as Blender writes a
+//mesh of several materials, has to be kept as parts: the primitives of a
+//character share one set of vertices and are told apart by geoset instead
+static bool pe_mesh_is_parts(cgltf_mesh *mesh) {
+  if (mesh->primitives_count < 2)
+    return false;
+
+  for (int i = 0; i < mesh->primitives_count; i++) {
+    u32 geoset;
+    if (pe_primitive_geoset(&mesh->primitives[i], &geoset))
+      return false;
+  }
+
+  cgltf_accessor *first = NULL;
+  for (int i = 0; i < mesh->primitives_count; i++)
+    for (int a = 0; a < mesh->primitives[i].attributes_count; a++) {
+      cgltf_attribute *attribute = &mesh->primitives[i].attributes[a];
+      if (attribute->type != cgltf_attribute_type_position)
+        continue;
+      if (first == NULL)
+        first = attribute->data;
+      else if (attribute->data != first)
+        return true;
+    }
+  return false;
+}
+
+#define PE_PART_TEXTURES_MAX 64
+
+typedef struct PPartTextures {
+  cgltf_image *images[PE_PART_TEXTURES_MAX];
+  PTexture textures[PE_PART_TEXTURES_MAX];
+  u32 count;
+  PTexture white;
+  bool has_white;
+} PPartTextures;
+
+static bool pe_load_image_texture(cgltf_image *image, PTexture *out) {
+  if (image->buffer_view != NULL) {
+    u8 *data = (u8 *)image->buffer_view->buffer->data + image->buffer_view->offset;
+    return texture_load_from_memory(out, image->buffer_view->size, data) != -1;
+  }
+
+  if (image->uri == NULL || strncmp(image->uri, "data:", 5) == 0)
+    return false;
+
+  char path[1024];
+  snprintf(path, sizeof(path), "%s%s", pe_model_directory, image->uri);
+  return pe_load_texture(path, out) != -1;
+}
+
+//the texture a part is drawn with, loaded once however many materials name it
+static PTexture pe_part_texture(PPartTextures *loaded, cgltf_material *material) {
+  cgltf_image *image = NULL;
+  if (material != NULL && material->has_pbr_metallic_roughness &&
+      material->pbr_metallic_roughness.base_color_texture.texture != NULL)
+    image = material->pbr_metallic_roughness.base_color_texture.texture->image;
+
+  if (image != NULL) {
+    for (u32 i = 0; i < loaded->count; i++)
+      if (loaded->images[i] == image)
+        return loaded->textures[i];
+
+    if (loaded->count < PE_PART_TEXTURES_MAX) {
+      PTexture texture;
+      ZERO(texture);
+      if (pe_load_image_texture(image, &texture)) {
+        loaded->images[loaded->count] = image;
+        loaded->textures[loaded->count] = texture;
+        return loaded->textures[loaded->count++];
+      }
+    }
+  }
+
+  if (!loaded->has_white) {
+    ZERO(loaded->white);
+    pe_texture_white(&loaded->white);
+    loaded->has_white = true;
+  }
+  return loaded->white;
+}
+
+//a part's vertices are appended after those of the parts before it, and its
+//indices point past them. the colour of its material is multiplied into the
+//vertex colours, white where the file has none, so a part without a texture
+//draws as its material's colour
+static void pe_load_part(PModel *model, cgltf_primitive *primitive,
+                         PPartTextures *loaded) {
+  u32 base = model->vertex_array.initialized ? model->vertex_array.count : 0;
+
+  bool has_color = false;
+  pe_attribute_base = base;
+  for (int a = 0; a < primitive->attributes_count; a++) {
+    if (primitive->attributes[a].type == cgltf_attribute_type_color)
+      has_color = true;
+    pe_load_attribute(&model->vertex_array, &primitive->attributes[a]);
+  }
+  pe_attribute_base = 0;
+
+  vec3 factor = {1, 1, 1};
+  if (primitive->material != NULL &&
+      primitive->material->has_pbr_metallic_roughness)
+    glm_vec3_copy(primitive->material->pbr_metallic_roughness.base_color_factor,
+                  factor);
+
+  for (u32 i = base; i < model->vertex_array.count; i++) {
+    PVertex *vertex = array_get(&model->vertex_array, i);
+    if (!has_color)
+      glm_vec3_one(vertex->color);
+    glm_vec3_mul(vertex->color, factor, vertex->color);
+  }
+
+  //parts are indexed with 32 bits, since the vertices of a car do not fit 16
+  if (!model->index_array.initialized)
+    array_init(&model->index_array, sizeof(u32), primitive->indices->count);
+
+  PModelPart part;
+  ZERO(part);
+  part.first_index = model->index_array.count;
+  for (size_t i = 0; i < primitive->indices->count; i++) {
+    u32 index = base + (u32)cgltf_accessor_read_index(primitive->indices, i);
+    array_add(&model->index_array, &index);
+  }
+  part.index_count = model->index_array.count - part.first_index;
+  part.texture = pe_part_texture(loaded, primitive->material);
+
+  if (!model->parts.initialized)
+    array_init(&model->parts, sizeof(PModelPart), 0);
+  array_add(&model->parts, &part);
+}
+
+static void pe_load_mesh_parts(PModel *model, cgltf_mesh *mesh) {
+  PPartTextures loaded;
+  ZERO(loaded);
+
+  for (int i = 0; i < mesh->primitives_count; i++)
+    pe_load_part(model, &mesh->primitives[i], &loaded);
+}
+
 //reading every primitive's attributes instead, as this used to, rebuilt the
 //vertex array per primitive and left only the last primitive's indices,
 //because array_init() zeroes an Array before it checks whether it was
@@ -411,6 +559,11 @@ void pe_load_mesh(PModel *model, cgltf_mesh *mesh) {
 
   if (mesh->primitives_count == 0)
     return;
+
+  if (pe_mesh_is_parts(mesh)) {
+    pe_load_mesh_parts(model, mesh);
+    return;
+  }
 
   //once per model: a caller loading its own texture over this later (a
   //player's skin, a creature's DBC texture variation) still wins, since this
@@ -706,6 +859,13 @@ cgltf_result pe_loader_model_from_memory(PModel* model, void *gltf_data, u32 siz
   if (result != cgltf_result_success)
     return result;
 
+  snprintf(pe_model_directory, sizeof(pe_model_directory), "%s", path);
+  char *last_slash = strrchr(pe_model_directory, '/');
+  if (last_slash != NULL)
+    last_slash[1] = '\0';
+  else
+    pe_model_directory[0] = '\0';
+
   current_data = data;
 
   result = cgltf_load_buffers(&options, data, path);
@@ -756,6 +916,8 @@ PModel *pe_vk_load_model(PModel* model, const char *path) {
   pe_vk_create_descriptor_sets(model, pe_vk_descriptor_set_layout,
                                &main_render_target);
   pe_vk_descriptor_update(model, &main_render_target);
+  if (model->parts.count > 0)
+    pe_vk_model_parts_create_descriptors(model);
 
   //init model matrix
   glm_mat4_identity(model->model_mat);
@@ -842,12 +1004,15 @@ PModel *pe_vk_model_instance(PModel *model, PModel *source) {
   ZERO(model->uniform_buffers);
   ZERO(model->uniform_buffers_memory);
   ZERO(model->descriptor_sets);
+  ZERO(model->part_descriptor_sets);
 
   pe_vk_create_uniform_buffers(model, &main_render_target);
   pe_vk_descriptor_pool_create(model, &main_render_target);
   pe_vk_create_descriptor_sets(model, pe_vk_descriptor_set_layout,
                                &main_render_target);
   pe_vk_descriptor_update(model, &main_render_target);
+  if (model->parts.count > 0)
+    pe_vk_model_parts_create_descriptors(model);
 
   glm_mat4_identity(model->model_mat);
   glm_mat4_copy(model->model_mat, model->uniform_buffer_object.model);
@@ -953,6 +1118,8 @@ void pe_clean_model(PModel* model){
   }
 
   vkDestroyDescriptorPool(vk_device, model->descriptor_pool, NULL);
+  if (model->parts.count > 0)
+    vkDestroyDescriptorPool(vk_device, model->part_descriptor_pool, NULL);
   if (model->has_extra_texture) {
     vkDestroyDescriptorPool(vk_device, model->extra_descriptor_pool, NULL);
     pe_vk_clean_image(&model->extra_texture);

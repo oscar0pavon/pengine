@@ -6,6 +6,12 @@
 #include <engine/renderer/vk_images.h>
 #include <engine/window_manager.h>
 #include <lodepng.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define STB_IMAGE_IMPLEMENTATION
+#define STBI_ONLY_JPEG
+#include <ThirdParty/stb_image.h>
 
 
 int pe_load_image(const char* path,  PImage* out_image){
@@ -29,6 +35,8 @@ int pe_load_image(const char* path,  PImage* out_image){
     return 0;
 }
 
+//INFO lodepng reads only png. a model's textures come out of its glb as they
+//were authored, and a jpeg is the common other one
 int image_load_from_memory(PImage* image, void* data, u32 size){
 
     unsigned int width, height;
@@ -37,8 +45,15 @@ int image_load_from_memory(PImage* image, void* data, u32 size){
 
     unsigned int error = lodepng_decode32(&image_data,&width,&height,data,size);
     if(error){
-        LOG("Image not decoded from memory (%s)\n", lodepng_error_text(error));
-        return -1;
+        int jpeg_width, jpeg_height, channels;
+        image_data = stbi_load_from_memory(data, size, &jpeg_width, &jpeg_height,
+                                           &channels, 4);
+        if(image_data == NULL){
+            LOG("Image not decoded from memory (%s)\n", lodepng_error_text(error));
+            return -1;
+        }
+        width = jpeg_width;
+        height = jpeg_height;
     }
 
     image->heigth = (unsigned short)height;
@@ -75,6 +90,24 @@ int pe_load_texture(const char* path, PTexture* new_texture){
         return -1;
 
     return 1;
+}
+
+//one white pixel, which a part with no texture of its own is drawn with so its
+//colour alone shows
+int pe_texture_white(PTexture* texture){
+
+    PImage image;
+    ZERO(image);
+    image.width = 1;
+    image.heigth = 1;
+    image.pixels_data = malloc(4);
+    memset(image.pixels_data, 255, 4);
+
+    texture->width = 1;
+    texture->heigth = 1;
+    int result = pe_texture_upload(texture, &image);
+    free_image(&image);
+    return result;
 }
 
 int texture_load_from_memory(PTexture* texture, u32 size, void* data){

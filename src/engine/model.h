@@ -45,6 +45,16 @@ typedef struct PGeosetBatch {
   u32 index_count;
 } PGeosetBatch;
 
+//one run of a model's indices drawn with one texture, which a model of several
+//materials has one of for each. each part has vertices of its own, so a
+//material's colour is already in them, and a part with no texture is drawn
+//with a white pixel
+typedef struct PModelPart {
+  u32 first_index;
+  u32 index_count;
+  PTexture texture;
+} PModelPart;
+
 typedef struct PMesh{
   Array vertex_array;
   Array index_array;
@@ -77,6 +87,14 @@ typedef struct PModel{
 
     PTexture texture;
     // PTexture textures[4];
+
+    //empty for a model of one material. otherwise the parts, shared by every
+    //instance, and the descriptor sets one instance draws them with: the
+    //uniform buffer of the instance and the texture of the part, a set for
+    //each part and swap chain image
+    Array parts;
+    Array part_descriptor_sets;
+    VkDescriptorPool part_descriptor_pool;
 
     PMaterial material;
 

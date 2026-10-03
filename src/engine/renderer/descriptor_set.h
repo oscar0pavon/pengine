@@ -22,6 +22,10 @@ extern VkDescriptorSetLayout pe_vk_descriptor_set_layout_skinned;
 void pe_vk_clean_descriptors_set();
 
 void pe_vk_descriptor_pool_create(PModel *model, PRenderTarget *target);
+//the descriptor sets that draw a model made of parts, see PModelPart. made by
+//pe_vk_load_model() and pe_vk_model_instance() for a model that has them
+void pe_vk_model_parts_create_descriptors(PModel *model);
+
 void pe_vk_descriptor_with_image_update(PModel *model, PRenderTarget *target);
 
 void pe_vk_create_descriptor_set_layout();
