@@ -49,6 +49,14 @@ static void pe_vk_part_world_sphere(const mat4 model, const vec4 bounds,
   out[3] = bounds[3] * scale;
 }
 
+//where the camera is: the view is a rotation and a translation, and the eye is
+//where that translation is undone
+static void pe_vk_view_eye(const mat4 view, vec3 out) {
+  for (int i = 0; i < 3; i++)
+    out[i] = -(view[i][0] * view[3][0] + view[i][1] * view[3][1] +
+               view[i][2] * view[3][2]);
+}
+
 //a model of parts: one draw for each, with the descriptor set that holds the
 //part's textures and its factors pushed. the layout has to be
 //pe_vk_pipeline_layout_pbr, and the environment set the caller names is bound
@@ -76,6 +84,9 @@ static void pe_vk_draw_model_parts(PDrawModelCommand *draw_model) {
   vec4 planes[PE_FRUSTUM_PLANES];
   pe_frustum_planes(view_projection, planes);
 
+  vec3 eye;
+  pe_vk_view_eye(model->uniform_buffer_object.view, eye);
+
   model->parts_drawn = 0;
   for (u32 i = 0; i < model->parts.count; i++) {
     PModelPart *part = array_get(&model->parts, i);
@@ -84,6 +95,10 @@ static void pe_vk_draw_model_parts(PDrawModelCommand *draw_model) {
     pe_vk_part_world_sphere(model->uniform_buffer_object.model, part->bounds,
                             sphere);
     if (!pe_sphere_in_frustum(planes, sphere))
+      continue;
+
+    if (model->view_distance > 0 &&
+        glm_vec3_distance(eye, sphere) - sphere[3] > model->view_distance)
       continue;
 
     VkDescriptorSet *set = array_get(&model->part_descriptor_sets,

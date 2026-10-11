@@ -120,6 +120,10 @@ typedef struct PModel{
 
     //how many of the parts the last draw sent, the rest being outside the view
     u32 parts_drawn;
+
+    //the parts farther from the camera than this, as the nearest point of their
+    //sphere, are not drawn. 0 draws them however far they are
+    float view_distance;
     Array part_descriptor_sets;
     VkDescriptorPool part_descriptor_pool;
 

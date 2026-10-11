@@ -243,8 +243,9 @@ are loaded once for the file, not for each mesh.
 Each part keeps a bounding sphere of its vertices, `PModelPart.bounds`, in the
 model's axes, and `pe_vk_draw_model()` skips the parts whose sphere is outside the
 view, tested against the camera in the model's uniform buffer object
-(`frustum.h`, shared with the terrain). `PModel.parts_drawn` says how many the
-last draw sent. So a world made of many meshes in one glb is culled mesh by mesh,
+(`frustum.h`, shared with the terrain). `PModel.view_distance` (0 for no limit) also skips the parts whose sphere is
+farther from the eye than that, measured to its nearest point. `PModel.parts_drawn`
+says how many the last draw sent. So a world made of many meshes in one glb is culled mesh by mesh,
 and a world joined into one mesh is not.
 Models whose primitives share one set of vertices, the characters told apart by
 geoset, are not parts and load as they always did.
