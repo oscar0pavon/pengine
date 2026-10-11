@@ -4,12 +4,15 @@
 #include <engine/renderer/renderer.h>
 #include <engine/threads.h>
 #include <engine/types.h>
+#include <engine/window_manager.h>
 
 
 //INFO the engine has no scene of its own to walk. the render pass calls the
 //application back through pe_vk_draw_scene, and that hook is where the models
 //to draw are chosen and recorded
 void pe_frame_draw() {
+
+  pe_wm_apply_resize();
 
   //INFO sequential on purpose: in DRM mode pe_vk_draw_frame() blocks on the
   //frame's fence right after submit (draw.c), so target k's GPU work is
