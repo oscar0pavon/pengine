@@ -8,6 +8,15 @@ provide their own `main()`; see `demos/chess`.
 Vulkan is the only renderer. The engine draws models and owns the window, the
 camera, memory and input — it does not own your scene.
 
+What it has to build a game with:
+- glTF models, including models of several materials drawn with physically
+  based shading (metal and roughness, normal maps) lit by a high dynamic range
+  panorama, which is also its sky
+- skinned and animated models
+- a raycast vehicle for cars
+- terrain, buildings and water streamed from World of Warcraft Classic tiles
+- text and interface quads
+
 ## Dependencies
 - make
 - gcc

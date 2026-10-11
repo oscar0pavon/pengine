@@ -191,6 +191,22 @@ between models to share geometry. Whoever loads a model publishes it —
 `add_element_with_model_path()` is the example. glTF makes `NORMAL` optional, so the loader
 generates flat normals when a primitive has none.
 
+Only the first UV set (`TEXCOORD_0`) and the first colour set (`COLOR_0`) are read:
+Blender writes every UV map of a mesh, and a later one read over the first leaves
+the model sampling a single point. `COLOR_0` lands in `PVertex.color`, alpha dropped.
+
+Images: `image_load_from_memory()` tries lodepng (png) and falls back to
+stb_image for jpeg. `pe_load_hdr_image()` / `pe_texture_from_hdr_image()` read a
+Radiance `.hdr` as floats and keep it on the gpu as half float RGBA, with mipmaps;
+the texture upload sizes its staging buffer by the format. Textures that are not
+colour (`texture_load_from_memory_linear()`, `pe_texture_flat_normal()`) are
+`R8G8B8A8_UNORM`, since the sRGB format would bend them.
+
+Samplers filter anisotropically: `pe_vk_create_logical_device()` enables
+`samplerAnisotropy` when the gpu has it and keeps the most it allows, up to 16,
+in `pe_vk_max_anisotropy` (1 when it cannot, which leaves it off). It is the only
+device feature enabled.
+
 ### Materials and light
 
 A glb whose primitives each have vertices of their own loads as `PModel.parts`
@@ -217,6 +233,34 @@ ACES themselves, and write linear light since the swap chain is sRGB.
 
 Not done: alpha blended materials (glass draws opaque), occlusion maps, shadows,
 a prefiltered environment.
+
+Parts are indexed with 32 bits, since the vertices of a car do not fit 16, and
+each part has vertices of its own that are appended after the ones before it.
+Models whose primitives share one set of vertices, the characters told apart by
+geoset, are not parts and load as they always did.
+
+### Vehicle
+
+`vehicle.h` is a raycast vehicle: a rigid body on springs, with no mesh and no
+renderer in it. Each wheel casts a ray down the body's own up against a
+`PCollisionMesh` (`terrain_collision.h`), holds the body up with a spring and
+damper that has a bump stop past its travel, and pushes along the ground with a
+tyre whose drive, braking and sideways grip share one limit of load times
+friction. `PVehicle.steering`, `engine_force` and `brake` are what the driver
+asks for; `pe_vehicle_step()` advances in steps of at most 1/240 s, and
+`pe_vehicle_transform()` / `pe_vehicle_wheel_transform()` give the matrices to
+draw with.
+
+- The body's axes are Y forward, Z up and X to the **left**, which is the way the
+  engine's left handed world has it. Positive steering turns toward +X.
+- `stiffness` is per unit of mass the wheel carries (1/s^2), so the static sag is
+  `g / stiffness`; it has to stay inside `travel` or the bump stop is what holds
+  the car up.
+- `rolling_resistance` (a share of the load) is what keeps a body at rest from
+  drifting: hubs at different heights tilt it, and the suspension then pushes a
+  little along the ground.
+- Walls are a few spheres on the body pushed out of the mesh; `impact_speed` says
+  how hard it hit. `physics.h` is still an empty stub; this is the only physics.
 
 ### Platforms
 
