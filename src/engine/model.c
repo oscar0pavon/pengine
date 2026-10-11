@@ -423,6 +423,10 @@ static char pe_model_directory[512];
 //a mesh whose primitives each have vertices of their own, as Blender writes a
 //mesh of several materials, has to be kept as parts: the primitives of a
 //character share one set of vertices and are told apart by geoset instead
+//set for the file being loaded: when one of its meshes is parts, all of them are,
+//since a mesh of one material has no way to say so by itself
+static bool pe_scene_is_parts;
+
 static bool pe_mesh_is_parts(cgltf_mesh *mesh) {
   if (mesh->primitives_count < 2)
     return false;
@@ -548,6 +552,23 @@ static void pe_load_part_material(PModelPart *part, cgltf_material *material,
   part->normal = pe_part_texture(loaded, normal, true, true);
 }
 
+//the sphere round the vertices from first to the end of the array, centred on the
+//middle of their box, which is not the smallest sphere but is never too small
+static void pe_part_bounds(PModel *model, u32 first, vec4 out) {
+  vec3 low = {1e30f, 1e30f, 1e30f}, high = {-1e30f, -1e30f, -1e30f};
+
+  for (u32 i = first; i < model->vertex_array.count; i++) {
+    PVertex *vertex = array_get(&model->vertex_array, i);
+    glm_vec3_minv(low, vertex->position, low);
+    glm_vec3_maxv(high, vertex->position, high);
+  }
+
+  vec3 centre;
+  glm_vec3_center(low, high, centre);
+  glm_vec3_copy(centre, out);
+  out[3] = glm_vec3_distance(centre, high);
+}
+
 //a part's vertices are appended after those of the parts before it, and its
 //indices point past them. the colour of its material is multiplied into the
 //vertex colours, white where the file has none, so a part without a texture
@@ -590,6 +611,7 @@ static void pe_load_part(PModel *model, cgltf_primitive *primitive,
     array_add(&model->index_array, &index);
   }
   part.index_count = model->index_array.count - part.first_index;
+  pe_part_bounds(model, base, part.bounds);
   pe_load_part_material(&part, primitive->material, loaded);
 
   if (!model->parts.initialized)
@@ -597,12 +619,14 @@ static void pe_load_part(PModel *model, cgltf_primitive *primitive,
   array_add(&model->parts, &part);
 }
 
-static void pe_load_mesh_parts(PModel *model, cgltf_mesh *mesh) {
-  PPartTextures loaded;
-  ZERO(loaded);
+//the textures a file's parts have been given so far, kept while the file is
+//loaded: a scene of a hundred meshes names the same few images, and loading each
+//one again for every mesh decodes and uploads them a hundred times
+static PPartTextures pe_scene_textures;
 
+static void pe_load_mesh_parts(PModel *model, cgltf_mesh *mesh) {
   for (int i = 0; i < mesh->primitives_count; i++)
-    pe_load_part(model, &mesh->primitives[i], &loaded);
+    pe_load_part(model, &mesh->primitives[i], &pe_scene_textures);
 }
 
 //reading every primitive's attributes instead, as this used to, rebuilt the
@@ -615,7 +639,7 @@ void pe_load_mesh(PModel *model, cgltf_mesh *mesh) {
   if (mesh->primitives_count == 0)
     return;
 
-  if (pe_mesh_is_parts(mesh)) {
+  if (pe_scene_is_parts || pe_mesh_is_parts(mesh)) {
     pe_load_mesh_parts(model, mesh);
     return;
   }
@@ -936,6 +960,20 @@ cgltf_result pe_loader_model_from_memory(PModel* model, void *gltf_data, u32 siz
     pe_load_skin(current_skin, &data->skins[0]);
 
   //  LOG("******************Loading nodes");
+
+  ZERO(pe_scene_textures);
+  pe_scene_is_parts = false;
+  for (int i = 0; i < data->meshes_count && !pe_scene_is_parts; i++)
+    pe_scene_is_parts = pe_mesh_is_parts(&data->meshes[i]);
+  if (!pe_scene_is_parts && data->meshes_count > 1 && data->skins_count == 0) {
+    pe_scene_is_parts = true;
+    for (int i = 0; i < data->meshes_count; i++)
+      for (int p = 0; p < data->meshes[i].primitives_count; p++) {
+        u32 geoset;
+        if (pe_primitive_geoset(&data->meshes[i].primitives[p], &geoset))
+          pe_scene_is_parts = false;
+      }
+  }
 
   for (int i = 0; i < data->scene->nodes_count; i++) {
     pe_node_load(model, data->scene->nodes[i]);

@@ -1,4 +1,5 @@
 #include "draw.h"
+#include <math.h>
 #include "commands.h"
 #include "descriptor_set.h"
 #include "pipeline.h"
@@ -8,6 +9,7 @@
 #include "uniform_buffer.h"
 #include "vk_vertex.h"
 #include "vulkan.h"
+#include <engine/frustum.h>
 #include <engine/macros.h>
 #include <stdint.h>
 #include <sys/types.h>
@@ -33,6 +35,20 @@ static VkIndexType pe_vk_model_index_type(PModel *model) {
                                                      : VK_INDEX_TYPE_UINT16;
 }
 
+//the sphere of a part in the world, from its own: the centre moved by the model
+//matrix and the radius made as big as the matrix scales most
+static void pe_vk_part_world_sphere(const mat4 model, const vec4 bounds,
+                                    vec4 out) {
+  vec3 centre;
+  glm_mat4_mulv3((vec4 *)model, (float *)bounds, 1, centre);
+
+  float scale = fmaxf(glm_vec3_norm((float *)model[0]),
+                      fmaxf(glm_vec3_norm((float *)model[1]),
+                            glm_vec3_norm((float *)model[2])));
+  glm_vec3_copy(centre, out);
+  out[3] = bounds[3] * scale;
+}
+
 //a model of parts: one draw for each, with the descriptor set that holds the
 //part's textures and its factors pushed. the layout has to be
 //pe_vk_pipeline_layout_pbr, and the environment set the caller names is bound
@@ -52,8 +68,24 @@ static void pe_vk_draw_model_parts(PDrawModelCommand *draw_model) {
                           draw_model->layout, 1, 1, &draw_model->environment, 0,
                           NULL);
 
+  //the caller has put the camera in the uniform buffer object, which is what the
+  //parts are tested against
+  mat4 view_projection;
+  glm_mat4_mul(model->uniform_buffer_object.projection,
+               model->uniform_buffer_object.view, view_projection);
+  vec4 planes[PE_FRUSTUM_PLANES];
+  pe_frustum_planes(view_projection, planes);
+
+  model->parts_drawn = 0;
   for (u32 i = 0; i < model->parts.count; i++) {
     PModelPart *part = array_get(&model->parts, i);
+
+    vec4 sphere;
+    pe_vk_part_world_sphere(model->uniform_buffer_object.model, part->bounds,
+                            sphere);
+    if (!pe_sphere_in_frustum(planes, sphere))
+      continue;
+
     VkDescriptorSet *set = array_get(&model->part_descriptor_sets,
                                      i * images + draw_model->image_index);
     vkCmdBindDescriptorSets(command, VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -61,6 +93,7 @@ static void pe_vk_draw_model_parts(PDrawModelCommand *draw_model) {
     vkCmdPushConstants(command, draw_model->layout, VK_SHADER_STAGE_FRAGMENT_BIT,
                        0, sizeof(PPartMaterial), &part->material);
     vkCmdDrawIndexed(command, part->index_count, 1, part->first_index, 0, 0);
+    model->parts_drawn++;
   }
 }
 

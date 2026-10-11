@@ -236,6 +236,16 @@ a prefiltered environment.
 
 Parts are indexed with 32 bits, since the vertices of a car do not fit 16, and
 each part has vertices of its own that are appended after the ones before it.
+A file is loaded as parts as a whole: when one mesh of it is, or when it has
+several meshes and no skin or geoset, every mesh is, and the textures they name
+are loaded once for the file, not for each mesh.
+
+Each part keeps a bounding sphere of its vertices, `PModelPart.bounds`, in the
+model's axes, and `pe_vk_draw_model()` skips the parts whose sphere is outside the
+view, tested against the camera in the model's uniform buffer object
+(`frustum.h`, shared with the terrain). `PModel.parts_drawn` says how many the
+last draw sent. So a world made of many meshes in one glb is culled mesh by mesh,
+and a world joined into one mesh is not.
 Models whose primitives share one set of vertices, the characters told apart by
 geoset, are not parts and load as they always did.
 

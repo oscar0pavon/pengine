@@ -73,6 +73,10 @@ typedef struct PModelPart {
   PTexture normal;
 
   PPartMaterial material;
+
+  //the sphere round the part's vertices, in the model's own axes: the centre in
+  //xyz and the radius in w. a part that is wholly outside the view is not drawn
+  vec4 bounds;
 } PModelPart;
 
 typedef struct PMesh{
@@ -113,6 +117,9 @@ typedef struct PModel{
     //uniform buffer of the instance and the texture of the part, a set for
     //each part and swap chain image
     Array parts;
+
+    //how many of the parts the last draw sent, the rest being outside the view
+    u32 parts_drawn;
     Array part_descriptor_sets;
     VkDescriptorPool part_descriptor_pool;
 
