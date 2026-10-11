@@ -55,10 +55,9 @@ cd demos/chess
 It loads its models by relative path, so run it from its own directory.
 
 ## Write a game
-Fill a `PGame` with your callbacks and hand it to `pengine_run()`. Two globals
-have to be set first: `pe_renderer_type`, and `is_wayland_window`, which tells
-the renderer to build its surface from the compositor's window rather than
-driving KMS itself.
+Fill a `PGame` with your callbacks and hand it to `pengine_run()`. The engine
+opens a Wayland window; set `is_drm_rendering = true` first to drive KMS
+itself instead.
 
 Drawing goes through `pe_vk_draw_scene`. The render pass calls that hook from
 inside the pass, and what it records is your scene — the engine has none of its
@@ -130,9 +129,6 @@ int main() {
   game.update = &game_update;
   game.draw = &game_draw;
   game.input = &game_input;
-
-  pe_renderer_type = PEWMVULKAN;
-  is_wayland_window = true;
 
   pengine_run(&game);
   return 0;

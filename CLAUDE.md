@@ -128,17 +128,17 @@ without `-fcommon` cannot link the tentative-definition form.
 
 `src/engine/renderer/` is the Vulkan backend, one file per Vulkan object
 (`instance`, `physical_devices`, `logical_device`, `surface`, `swap_chain`, `render_pass`,
-`pipeline`, `descriptor_set`, `commands`, `sync`, …). `pe_renderer_type` survives with a
-single value, `PEWMVULKAN`, only so applications that set it keep compiling; nothing
-branches on it.
+`pipeline`, `descriptor_set`, `commands`, `sync`, …). The window is a Wayland toplevel
+unless the application sets `is_drm_rendering` before `pengine_run()`, which drives KMS
+through `VK_KHR_display` instead.
 
 The renderer must not know about any particular application. The seams it exposes
 (`renderer/renderer.h`) are:
 
 - `pe_vk_draw_scene` — function pointer the application sets; the render pass calls it if
   it is non-NULL. Do not call an application's draw function by name from here.
-- `is_drm_rendering`, `is_wayland_window` — declared extern in `renderer.h`, defined in
-  `vulkan.c`.
+- `is_drm_rendering` — declared extern in `renderer.h`, defined in `vulkan.c`. False by
+  default, which is the Wayland window path.
 - `pe_window_width` / `pe_window_height` — the size everything renders at; the swap chain
   extent, the camera and the 2D ortho projection all read them, and an application sets
   both before `pe_vk_init()`. There is no fixed-resolution macro.

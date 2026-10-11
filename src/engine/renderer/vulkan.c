@@ -39,7 +39,6 @@ VkInstance vk_instance;
 VkDevice vk_device;
 
 bool is_drm_rendering = false;
-bool is_wayland_window = false;
 
 bool (*pe_vk_acquire_display)(void);
 void (*pe_vk_sort_displays)(void);

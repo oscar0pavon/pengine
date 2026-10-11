@@ -11,7 +11,6 @@ typedef struct PRenderTarget PRenderTarget;
 //and whether it got a window from a host compositor. defined in vulkan.c so a
 //header does not hand every translation unit its own copy
 extern bool is_drm_rendering;
-extern bool is_wayland_window;
 
 //the application's scene. the renderer records the render pass and calls this
 //in the middle of it; it used to call swordfish_draw_scene() by name, which is

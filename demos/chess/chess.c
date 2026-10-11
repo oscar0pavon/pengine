@@ -258,13 +258,6 @@ int main() {
   chess.draw = &chess_draw;
   chess.input = &chess_input;
 
-  pe_renderer_type = PEWMVULKAN;
-
-  //the renderer cannot know this: it decides whether pe_vk_create_surface()
-  //builds a VkSurfaceKHR from the compositor's wl_surface or whether the
-  //application drives KMS itself and has no surface at all
-  is_wayland_window = true;
-
   pengine_run(&chess);
 
   return 0;
