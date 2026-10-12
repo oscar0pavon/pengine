@@ -90,4 +90,4 @@ token
 demos/chess/pchess
 
 #fetched by ./configure
-src/ThirdParty/
+src/external/

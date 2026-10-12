@@ -39,13 +39,13 @@ COMPILE_O = $(CC) $(CFLAGS) $(DEPFLAGS) $(GLOBAL_DEFINE) $(CINCLUDES) -c $< -o $
 ./terrain/%.o: ./terrain/%.c
 	$(COMPILE_O)
 
-../ThirdParty/parson.o: ../ThirdParty/parson.c
+../external/parson.o: ../external/parson.c
 	$(COMPILE_O)
 
 ./Collision/collision.o: ./Collision/collision.c
 	$(COMPILE_O)
 
-ALL_OBJS := $(OBJS) $(renderer_objs) $(animation_objs) $(terrain_objs) ./Collision/collision.o ../ThirdParty/parson.o
+ALL_OBJS := $(OBJS) $(renderer_objs) $(animation_objs) $(terrain_objs) ./Collision/collision.o ../external/parson.o
 
 ALL_DEPS := $(ALL_OBJS:.o=.d)
 

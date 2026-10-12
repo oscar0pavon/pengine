@@ -1,7 +1,7 @@
 
 WORKDIR := $(shell pwd)
 
-all: ./src/ThirdParty/parson.c ./src/engine/files.h ./bin/ ./lib/
+all: ./src/external/parson.c ./src/engine/files.h ./bin/ ./lib/
 	make -C ./src/engine WORKDIR=$(WORKDIR)
 	make -C ./src/shaders
 	@echo "[OK] You have pengine"
@@ -19,7 +19,7 @@ compile_commands:
 	make --always-make --dry-run -C ./src/engine WORKDIR=$(WORKDIR)
 
 
-./src/ThirdParty/parson.c:
+./src/external/parson.c:
 	./configure
 
 ./src/engine/files.h: ./scripts/create_engine_file_h.sh

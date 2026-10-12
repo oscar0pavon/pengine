@@ -1,6 +1,6 @@
 #include "terrain.h"
 
-#include <ThirdParty/parson.h>
+#include <external/parson.h>
 #include <engine/log.h>
 #include <engine/macros.h>
 

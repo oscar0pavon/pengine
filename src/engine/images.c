@@ -12,7 +12,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_ONLY_JPEG
 #define STBI_ONLY_HDR
-#include <ThirdParty/stb_image.h>
+#include <external/stb_image.h>
 
 
 int pe_load_image(const char* path,  PImage* out_image){

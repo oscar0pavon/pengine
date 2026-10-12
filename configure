@@ -7,7 +7,7 @@ set -e
 #commit and the sum together
 
 root=$(cd "$(dirname "$0")" && pwd)
-destination="$root/src/ThirdParty"
+destination="$root/src/external"
 
 fetch() {
   repository=$1

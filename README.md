@@ -30,7 +30,7 @@ What it has to build a game with:
 
 `./configure` downloads [stb_image](https://github.com/nothings/stb),
 [parson](https://github.com/kgabis/parson) and
-[cgltf](https://github.com/jkuhlmann/cgltf) into `src/ThirdParty`, each at a
+[cgltf](https://github.com/jkuhlmann/cgltf) into `src/external`, each at a
 pinned commit and checked against its sha256. `make` runs it when they are
 missing.
 
