@@ -247,15 +247,12 @@ void chess_init() {
 
 void chess_loop() {}
 
-void chess_draw() {}
-
 int main() {
   PGame chess;
   ZERO(chess);
   chess.name = "Chess";
   chess.update = &chess_loop;
   chess.init = &chess_init;
-  chess.draw = &chess_draw;
   chess.input = &chess_input;
 
   pengine_run(&chess);
