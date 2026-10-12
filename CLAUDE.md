@@ -37,17 +37,17 @@ because `libpway.a`'s `pway.o` references its own EGL setup, not because the eng
 with GL.
 
 `compile_commands.json` comes from `./generate_compile_commands.sh` (needs `jq`); note the
-script hardcodes `/home/pavon/pengine/src/engine` as the directory — fix it locally if you
+script hardcodes `/home/pavon/pengine/src/pengine` as the directory — fix it locally if you
 regenerate, don't commit the change unless asked.
 
-Sub-builds: `make -C src/engine WORKDIR=$(pwd)` compiles the library only,
+Sub-builds: `make -C src/pengine WORKDIR=$(pwd)` compiles the library only,
 `make -C src/shaders` runs `glslc` over every `.vert`/`.frag`.
 
 `ar` names archive members by basename, so two sources sharing one basename would
 both claim the same member and one would silently lose — edits to it stopping at the
 library. The archive rule therefore deletes and rebuilds `libpengine.a` with `ar rcsP`
 so member names keep their paths. Keep that in mind before adding a source whose
-basename already exists elsewhere in `src/engine`.
+basename already exists elsewhere in `src/pengine`.
 
 ## Building something against the engine
 
@@ -72,7 +72,7 @@ All four variables come from `include.make` and none of them is decoration:
   calls into it. lodepng is not linked: `./configure` fetches it into `src/external` and
   the library compiles it in, like parson.
 
-`src/engine/files.h` is **generated** by `scripts/create_engine_file_h.sh` and gitignored.
+`src/pengine/files.h` is **generated** by `scripts/create_engine_file_h.sh` and gitignored.
 It bakes absolute paths to `.spv` shaders and editor gizmo models from the repo checkout,
 so a built library only finds its content where it was built. Adding a new asset the engine
 loads by name means adding a `#define file_*` line to that script. Most of the gizmo entries
@@ -83,8 +83,8 @@ because nothing in this repo names them.
 
 ### Program shape
 
-An application fills a `PGame` (`src/engine/game.h`) with `init`/`update`/`draw`/`input`
-callbacks and calls `pengine_run(&game)`. That runs `pe_main_loop()` in `src/engine/main.c`:
+An application fills a `PGame` (`src/pengine/game.h`) with `init`/`update`/`draw`/`input`
+callbacks and calls `pengine_run(&game)`. That runs `pe_main_loop()` in `src/pengine/main.c`:
 `pe_init()` → `pe_render_thread_init()` → `game->init()` → spawn the input thread → loop of
 `game->update()`, `pe_frame_draw()`, `game->draw()`.
 
@@ -128,7 +128,7 @@ without `-fcommon` cannot link the tentative-definition form.
 
 ### Renderer
 
-`src/engine/renderer/` is the Vulkan backend, one file per Vulkan object
+`src/pengine/renderer/` is the Vulkan backend, one file per Vulkan object
 (`instance`, `physical_devices`, `logical_device`, `surface`, `swap_chain`, `render_pass`,
 `pipeline`, `descriptor_set`, `commands`, `sync`, …). The window is a Wayland toplevel
 unless the application sets `is_drm_rendering` before `pengine_run()`, which drives KMS
@@ -277,7 +277,7 @@ draw with.
 
 ### Platforms
 
-`src/engine/platforms/` is **not compiled by this Makefile** — no rule reaches it, and the
+`src/pengine/platforms/` is **not compiled by this Makefile** — no rule reaches it, and the
 same is true of `audio/`, `network/` and `Math/`. `platforms/android` is a GLES/EGL port and
 still calls `pe_wm_egl_end()`, which no longer exists; it needs a Vulkan port before it can
 build again. `docs/android` and `docs/compile` describe the old APK packaging.
@@ -286,8 +286,9 @@ build again. `docs/android` and `docs/compile` describe the old APK packaging.
 
 - Engine symbols are prefixed `pe_` (`pe_vk_` for Vulkan, `pe_wm_` for window manager,
   `pe_th_` for threads); types are `P`-prefixed (`PModel`, `PMesh`, `PMaterial`, `PGame`).
-- Includes inside `src/engine` use the `engine/...` / `renderer/...` form so the same
-  headers resolve after `make install` under `/usr/local/include/pengine`.
+- Includes inside `src/pengine` use the `<pengine/...>` form (or `"renderer/..."` relative
+  to the file) so the same headers resolve after `make install` under
+  `/usr/local/include/pengine`.
 - Comments are sparse. Where one exists it usually starts `//INFO` and explains *why* a
   non-obvious constraint holds — match that style rather than narrating what the code does.
 - Input keys are raw evdev codes: pway reports them, `pe_input_init()` seeds

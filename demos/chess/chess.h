@@ -1,8 +1,8 @@
 #ifndef CHESS
 #define CHESS
 
-#include <engine/engine.h>
-#include <engine/game.h>
+#include <pengine/engine.h>
+#include <pengine/game.h>
 
 //INFO a piece owns a whole PModel. the vertex and index buffers inside it are
 //shared with the mesh the piece was instanced from, but the uniform buffers

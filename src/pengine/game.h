@@ -1,0 +1,39 @@
+//
+// Created by pavon on 6/24/19.
+//
+
+#ifndef PE_GAME_H
+#define PE_GAME_H
+
+#include "model.h"
+
+#include <pengine/window_manager.h>
+
+typedef struct PGame{
+	char* name;
+	void(*init)(void);
+	void(*update)(void);
+	void(*end)(void);
+	void(*input)(void);
+#ifdef ANDROID
+	struct android_app* app; 
+#endif
+}PGame;
+
+
+int load_gamplay_code();
+
+bool loaded_gamplay_library;
+void* dynamic_lib_handle;
+void(*loop_fuction_dynamic_loaded)(void*); 
+void close_dynamic_game_play();
+
+void pe_game_window_init();
+
+//INFO the input thread in main.c calls this every iteration; it lived only in
+//game.c and every caller was guessing at its type
+void pe_game_input();
+
+PGame* game;
+
+#endif //PE_GAME_H

@@ -2,7 +2,7 @@
 
 ## Context
 
-Swordfish (`/root/swordfish`) is a Wayland compositor + Vulkan 3D scene that, when launched from a TTY, renders direct-to-display through pengine's `VK_KHR_display` path (`is_drm_rendering`). Today that path drives exactly one monitor: `vk_get_displays()` (`/root/pengine/src/engine/renderer/display.c:29,41`) enumerates every display but keeps only `displays[0]`/`modes[0]`, and `pe_vk_create_display_surface()` hardcodes plane 0 and a 1920×1080 extent (`surface.c:40-44`).
+Swordfish (`/root/swordfish`) is a Wayland compositor + Vulkan 3D scene that, when launched from a TTY, renders direct-to-display through pengine's `VK_KHR_display` path (`is_drm_rendering`). Today that path drives exactly one monitor: `vk_get_displays()` (`/root/pengine/src/pengine/renderer/display.c:29,41`) enumerates every display but keeps only `displays[0]`/`modes[0]`, and `pe_vk_create_display_surface()` hardcodes plane 0 and a 1920×1080 extent (`surface.c:40-44`).
 
 Goal: **each connected monitor becomes its own wl_output with its own tiling area** (extended desktop). Static detection at startup — no hotplug. The nested-Wayland-window mode stays single-monitor.
 
@@ -20,7 +20,7 @@ The recent pengine work (`PRenderTarget`, HEAD 68f29fa) already made surface/swa
 - **Scene split**: 3D city + system monitor + HUD draw on output 0 only; client windows tile per output; the cursor draws on whichever output contains it.
 - **Virtual coordinate space**: outputs laid left-to-right (`x = sum of previous widths`, `y = 0`). Layout tiles in virtual coords, so pointer.c hit-testing works unchanged; draw subtracts the output origin.
 
-## Phase 1 — pengine (all under `/root/pengine/src/engine/`)
+## Phase 1 — pengine (all under `/root/pengine/src/pengine/`)
 
 1. **renderer/vulkan.h / vulkan.c / renderer.h**: registry array + count + `main_render_target` macro + `pe_vk_targets_max_images_count()`; widen `pe_vk_draw_scene` extern (forward-declare `PRenderTarget`). Delete dead globals: `viewport`/`scissor` (vulkan.c:53-54), `pe_vk_color_image`/`pe_vk_color_memory` (surface.c:15-16).
 2. **renderer/display.c/.h**: replace `vk_display`/`vk_display_mode` globals with

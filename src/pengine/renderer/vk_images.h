@@ -1,0 +1,88 @@
+#ifndef PE_VK_IMAGES_H
+#define PE_VK_IMAGES_H
+
+#include "pengine/images.h"
+#include "vulkan.h"
+#include <stdint.h>
+#include <vulkan/vulkan_core.h>
+
+typedef struct PImportImageInfo{
+  VkImportMemoryFdInfoKHR info; 
+  uint32_t file_descriptor;
+}PImportImageInfo;
+
+typedef struct PImageCreateInfo {
+  uint32_t width;
+  uint32_t height;
+  uint32_t mip_level;
+  VkFormat format;
+  VkImageTiling tiling;
+  VkImageUsageFlags usage;
+  VkMemoryPropertyFlags properties;
+  PTexture* texture;
+  VkSampleCountFlagBits number_of_samples;
+  bool is_exportable;
+  bool is_importable;
+  PImportImageInfo import;
+  const void *pNext;
+} PImageCreateInfo;
+
+#define PE_MAX_IMAGE_PLANES 4
+
+//everything the exporter decided about the buffer's layout. vulkan cannot work
+//any of it out for itself on an import: the client picked the format, and the
+//driver that allocated the buffer picked the row pitch
+typedef struct PImageImportInfo {
+  uint32_t width;
+  uint32_t height;
+  VkFormat format;
+  uint64_t modifier;
+  uint32_t plane_count;
+  int file_descriptor;
+  uint32_t offsets[PE_MAX_IMAGE_PLANES];
+  uint32_t strides[PE_MAX_IMAGE_PLANES];
+  //the format has no alpha channel, so the fourth byte is undefined and the
+  //view has to answer 1 for it instead of sampling it
+  bool opaque;
+} PImageImportInfo;
+
+bool pe_vk_import_image(PTexture *new_texture, const PImageImportInfo *info);
+
+void pe_vk_create_texture(PTexture* new_texture, const char* path);
+
+void pe_vk_create_texture_from_image(PTexture* new_texture, PImage* image);
+
+void pe_vk_create_texture_from_image_format(PTexture* new_texture,
+                                            PImage* image, VkFormat format,
+                                            bool mipmaps);
+
+void pe_vk_clean_image(PTexture* image);
+void pe_vk_create_image(PImageCreateInfo *info);
+void pe_vk_create_depth_resources(PRenderTarget *target);
+
+//the three halves of pe_vk_create_texture_from_image, declared so a caller that
+//has pixels of its own - a wl_shm client's buffer, which is neither a file nor
+//a PImage and is a format of the client's choosing - can put them on the gpu
+//without going through a PNG. all three submit to vk_queue and wait on it, so
+//they belong to whichever thread owns the queue
+void pe_vk_transition_image_layout(VkImage image, VkFormat format,
+                                   VkImageLayout old_layout,
+                                   VkImageLayout new_layout,
+                                   uint32_t mip_level);
+
+void pe_vk_image_copy_buffer(VkBuffer buffer, VkImage image, uint32_t width,
+                             uint32_t height);
+
+void pe_vk_create_texture_sampler(PTexture *new_texture);
+
+void pe_vk_image_to_color_attacthment(VkImage image);
+
+void pe_vk_image_color_to_transfer(VkImage image);
+
+void pe_vk_image_to_destination(VkImage image);
+
+void pe_vk_copy_image(VkImage source, VkImage destination);
+
+void pe_vk_image_transfer_to_present(VkImage image);
+
+#endif

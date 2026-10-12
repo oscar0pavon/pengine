@@ -51,8 +51,8 @@ make -j8
 This builds `lib/libpengine.a` and compiles the SPIR-V shaders in `src/shaders`.
 
 `make install` puts the headers in `/usr/local/include/pengine` and the library in
-`/usr/local/lib`. A program that installs them adds `-I/usr/local/include/pengine`
-and nothing else, because the headers keep the tree they are written against.
+`/usr/local/lib`. A program includes them as `<pengine/engine.h>`, the same names
+as in this tree, and needs no `-I` beyond the default ones.
 
 ## Run the chess demo
 ```
@@ -72,12 +72,12 @@ inside the pass, and what it records is your scene — the engine has none of it
 own to walk.
 
 ```c
-#include <engine/engine.h>
-#include <engine/files.h>
-#include <engine/renderer/descriptor_set.h>
-#include <engine/renderer/draw.h>
-#include <engine/renderer/shaders.h>
-#include <engine/renderer/uniform_buffer.h>
+#include <pengine/engine.h>
+#include <pengine/files.h>
+#include <pengine/renderer/descriptor_set.h>
+#include <pengine/renderer/draw.h>
+#include <pengine/renderer/shaders.h>
+#include <pengine/renderer/uniform_buffer.h>
 
 static PModel cube;
 static PShader shader;

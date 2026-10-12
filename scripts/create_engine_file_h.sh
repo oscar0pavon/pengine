@@ -2,7 +2,7 @@
 
 WORKDIR=$(pwd)
 
-FILE=${WORKDIR}/src/engine/files.h
+FILE=${WORKDIR}/src/pengine/files.h
 touch ${FILE}
 
 

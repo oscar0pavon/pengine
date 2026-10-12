@@ -1,0 +1,20 @@
+
+#ifndef PE_VK_UNIFORM_BUFFER_H
+#define PE_VK_UNIFORM_BUFFER_H
+
+#include "vk_buffer.h"
+
+#include <pengine/model.h>
+
+typedef struct PRenderTarget PRenderTarget;
+
+extern PBufferCreateInfo buffer_color;
+
+void pe_vk_uniform_buffer_update(uint32_t image_index);
+
+void pe_vk_create_uniform_buffers(PModel *model, PRenderTarget *target);
+void pe_vk_uniform_buffer_update_skeletal(uint32_t image_index);
+
+void pe_vk_send_uniform_buffer(PModel* model, uint32_t image_index);
+
+#endif

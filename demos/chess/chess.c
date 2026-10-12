@@ -1,11 +1,11 @@
 #include "chess.h"
 
-#include <engine/files.h>
-#include <engine/renderer/descriptor_set.h>
-#include <engine/renderer/draw.h>
-#include <engine/renderer/shaders.h>
-#include <engine/renderer/uniform_buffer.h>
-#include <engine/window_manager.h>
+#include <pengine/files.h>
+#include <pengine/renderer/descriptor_set.h>
+#include <pengine/renderer/draw.h>
+#include <pengine/renderer/shaders.h>
+#include <pengine/renderer/uniform_buffer.h>
+#include <pengine/window_manager.h>
 
 #define CHESS_SQUARES 64
 #define CHESS_PIECES 32

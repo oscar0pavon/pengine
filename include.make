@@ -16,7 +16,7 @@ CINCLUDES := -I$(WORKDIR)/src -I/usr/local/include -I$(WORKDIR)/src/external
 
 GLOBAL_DEFINE := -D LINUX -D DESKTOP -D VULKAN -D DEBUG -D EDITOR
 #INFO the vulkan renderer expects a 0..1 depth range and a left handed world.
-#swordfish built engine/ and renderer/ with these two and nothing else with
+#swordfish built pengine/ and renderer/ with these two and nothing else with
 #them, so they have to be here or every projection matrix comes out different
 GLOBAL_DEFINE += -DCGLM_FORCE_DEPTH_ZERO_TO_ONE -DCGLM_FORCE_LEFT_HANDED
 
@@ -33,7 +33,7 @@ WAYLAND_LIBS += -lxkbcommon
 LIBRARIES := $(WAYLAND_LIBS) -lvulkan -lm -lpthread -ldl
 LIBRARIES += -lpway
 
-#INFO engine/text.c wraps pfonts (/root/pfonts) for on screen text. its own
+#INFO pengine/text.c wraps pfonts (/root/pfonts) for on screen text. its own
 #Vulkan backend never creates a GL context, but truetype.o (font loading, the
 #glyph atlas) is one translation unit with the parts of pfonts that do -
 #pfonts_init()/pfonts_atlas_upload()/pfonts_free_atlas() call real GL entry
