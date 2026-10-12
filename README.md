@@ -24,13 +24,13 @@ What it has to build a game with:
 - vulkan
 - wayland, xkbcommon, EGL
 - [cglm](https://github.com/recp/cglm) (headers only, fetched by `./configure` when the host has none)
-- [lodepng](https://github.com/lvandeve/lodepng)
 - [pway](https://github.com/oscar0pavon/pway)
 - curl, to fetch the single-file libraries below
 
 `./configure` downloads [stb_image](https://github.com/nothings/stb),
 [parson](https://github.com/kgabis/parson) and
-[cgltf](https://github.com/jkuhlmann/cgltf) into `src/external`, each at a
+[cgltf](https://github.com/jkuhlmann/cgltf) and
+[lodepng](https://github.com/lvandeve/lodepng) into `src/external`, each at a
 pinned commit and checked against its sha256. `make` runs it when they are
 missing.
 

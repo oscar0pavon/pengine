@@ -5,7 +5,7 @@
 #include <engine/log.h>
 #include <engine/renderer/vk_images.h>
 #include <engine/window_manager.h>
-#include <lodepng.h>
+#include <external/lodepng.h>
 #include <stdlib.h>
 #include <string.h>
 

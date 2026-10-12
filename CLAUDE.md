@@ -68,8 +68,9 @@ All four variables come from `include.make` and none of them is decoration:
   globals as tentative definitions, so `-fcommon` is required. It is the only flag left in
   `CFLAGS` besides `-g -fPIC`; the five `-Wno-` suppressions are gone and the tree builds
   clean without them.
-- `LIBRARIES` carries `-lpway` and `-llodepng` alongside the system libraries, because
-  `libpengine.a` calls into both.
+- `LIBRARIES` carries `-lpway` alongside the system libraries, because `libpengine.a`
+  calls into it. lodepng is not linked: `./configure` fetches it into `src/external` and
+  the library compiles it in, like parson.
 
 `src/engine/files.h` is **generated** by `scripts/create_engine_file_h.sh` and gitignored.
 It bakes absolute paths to `.spv` shaders and editor gizmo models from the repo checkout,

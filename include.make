@@ -27,11 +27,11 @@ LIBC := /usr/lib/crt1.o /usr/lib/crti.o /usr/lib/libc.so /usr/lib/crtn.o -dynami
 WAYLAND_LIBS := -lEGL -lwayland-client -lwayland-egl
 WAYLAND_LIBS += -lxkbcommon
 
-#INFO libpengine.a calls into pway for the window and lodepng for image
-#decoding, so a program linking the engine needs both. they are here rather
-#than in each consumer's own link line
+#INFO libpengine.a calls into pway for the window, so a program linking the
+#engine needs it. it is here rather than in each consumer's own link line.
+#lodepng is not here: it is compiled into the library from src/external
 LIBRARIES := $(WAYLAND_LIBS) -lvulkan -lm -lpthread -ldl
-LIBRARIES += -lpway -llodepng
+LIBRARIES += -lpway
 
 #INFO engine/text.c wraps pfonts (/root/pfonts) for on screen text. its own
 #Vulkan backend never creates a GL context, but truetype.o (font loading, the
