@@ -8,6 +8,7 @@
 #include "images.h"
 #include "utils.h"
 
+#include "renderer/pipeline.h"
 #include "renderer/shader_module.h"
 #include "renderer/vk_buffer.h"
 #include "renderer/vk_images.h"
@@ -231,6 +232,8 @@ static bool create_pipelines() {
 
     ok = vkCreateGraphicsPipelines(vk_device, VK_NULL_HANDLE, 1, &info, NULL,
                                    &pipelines[blend]) == VK_SUCCESS;
+    if (ok)
+      pe_vk_pipeline_register(pipelines[blend]);
   }
 
   if (vertex)
@@ -327,7 +330,7 @@ void pe_ui_shutdown() {
   frames = NULL;
 
   for (int blend = 0; blend < UI_BLEND_COUNT; blend++)
-    vkDestroyPipeline(vk_device, pipelines[blend], NULL);
+    pe_vk_pipeline_destroy(pipelines[blend]);
   vkDestroyPipelineLayout(vk_device, pipeline_layout, NULL);
   vkDestroyDescriptorPool(vk_device, pool, NULL);
   vkDestroyDescriptorSetLayout(vk_device, set_layout, NULL);

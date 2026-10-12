@@ -1,4 +1,5 @@
 #include "engine.h"
+#include "text.h"
 
 //INFO called once, after pengine_run()'s main loop has already exited -
 //pe_terminate() is what breaks that loop by clearing pe_running. tearing
@@ -6,6 +7,7 @@
 //in flight on the GPU when pe_running goes false
 void pe_end(){
     vkDeviceWaitIdle(vk_device);
+    pe_text_shutdown();
     pe_vk_end();
     clear_engine_memory();
 }

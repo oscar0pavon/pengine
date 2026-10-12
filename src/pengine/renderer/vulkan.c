@@ -75,6 +75,8 @@ void pe_vk_end() {
 
   pe_vk_clean_commands();
 
+  pe_vk_pipelines_clean();
+
   for (u32 t = 0; t < pe_render_targets_count; t++) {
     PRenderTarget *target = &pe_render_targets[t];
 

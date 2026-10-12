@@ -31,6 +31,31 @@ VkPipelineDepthStencilStateCreateInfo depth_stencil;
 VkDynamicState dynamicStates[] = {VK_DYNAMIC_STATE_VIEWPORT,
                                   VK_DYNAMIC_STATE_SCISSOR};
 
+static Array registered_pipelines;
+
+void pe_vk_pipeline_register(VkPipeline pipeline) {
+  if (registered_pipelines.data == NULL)
+    array_init(&registered_pipelines, sizeof(VkPipeline), PE_VK_PIPELINES_MAX);
+  array_add(&registered_pipelines, &pipeline);
+}
+
+void pe_vk_pipeline_destroy(VkPipeline pipeline) {
+  for (int i = 0; i < registered_pipelines.count; i++) {
+    VkPipeline *registered = array_get(&registered_pipelines, i);
+    if (*registered == pipeline)
+      *registered = VK_NULL_HANDLE;
+  }
+  vkDestroyPipeline(vk_device, pipeline, NULL);
+}
+
+void pe_vk_pipelines_clean() {
+  for (int i = 0; i < registered_pipelines.count; i++) {
+    VkPipeline *registered = array_get(&registered_pipelines, i);
+    vkDestroyPipeline(vk_device, *registered, NULL);
+    *registered = VK_NULL_HANDLE;
+  }
+}
+
 void pe_vk_clean_layouts(){
 
   vkDestroyPipelineLayout(vk_device, pe_vk_pipeline_layout3, NULL);
@@ -232,6 +257,8 @@ void pe_vk_pipeline_create_pipelines() {
               vk_device, VK_NULL_HANDLE, pe_vk_pipeline_infos.count,
               pe_vk_pipeline_infos.data, NULL, pe_graphics_pipelines.data),
           "Can't create pipelines");
+  for (int i = 0; i < pe_vk_pipeline_infos.count; i++)
+    pe_vk_pipeline_register(*(VkPipeline *)array_get(&pe_graphics_pipelines, i));
   LOG("Created %i pipelines\n", pe_vk_pipeline_infos.count);
 }
 

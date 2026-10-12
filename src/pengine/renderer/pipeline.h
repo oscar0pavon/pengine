@@ -27,6 +27,16 @@ void pe_vk_pipelines_init(PRenderTarget *target);
 
 void pe_vk_clean_layouts();
 
+//every graphics pipeline is registered when it is made, so pe_vk_end() can
+//destroy what the game did not. the driver asserts at vkDestroyDevice() when a
+//pipeline is still alive
+void pe_vk_pipeline_register(VkPipeline pipeline);
+
+//destroys the pipeline and takes it off the registry
+void pe_vk_pipeline_destroy(VkPipeline pipeline);
+
+void pe_vk_pipelines_clean();
+
 void pe_vk_pipeline_create_layout(bool use_descriptor, VkPipelineLayout *layout,
                                   VkDescriptorSetLayout *set_layout);
 

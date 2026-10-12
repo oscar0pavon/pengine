@@ -13,7 +13,7 @@ void pe_vk_clean_shader(PShader *shader) {
   if (shader->cleaned == false) {
     vkDestroyShaderModule(vk_device, shader->fragment, NULL);
     vkDestroyShaderModule(vk_device, shader->vertex, NULL);
-    vkDestroyPipeline(vk_device, shader->pipeline, NULL);
+    pe_vk_pipeline_destroy(shader->pipeline);
     shader->cleaned = true;
   }
 }
@@ -101,6 +101,7 @@ void pe_vk_create_shader(PCreateShaderInfo* info){
   VKVALID(vkCreateGraphicsPipelines(vk_device, VK_NULL_HANDLE, count,
                                     info->vk_create_info, NULL, &info->out_shader->pipeline),
           "Can't create pipeline");
+  pe_vk_pipeline_register(info->out_shader->pipeline);
 }
 
 //same as pe_vk_create_shader but the pipeline also reads a per instance
@@ -129,4 +130,5 @@ void pe_vk_create_shader_instanced(PCreateShaderInfo *info) {
                                     info->vk_create_info, NULL,
                                     &info->out_shader->pipeline),
           "Can't create instanced pipeline");
+  pe_vk_pipeline_register(info->out_shader->pipeline);
 }
