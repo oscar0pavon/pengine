@@ -1,0 +1,34 @@
+#!/bin/sh
+set -e
+
+#INFO the third party code is not kept in this repository. every file is
+#fetched from a pinned upstream commit and checked against its sha256, so a
+#build is the same on every machine. to move to a newer version change the
+#commit and the sum together
+
+root=$(cd "$(dirname "$0")" && pwd)
+destination="$root/src/ThirdParty"
+
+fetch() {
+  repository=$1
+  commit=$2
+  file=$3
+  sum=$4
+
+  if [ -f "$destination/$file" ] && echo "$sum  $destination/$file" | sha256sum -c - >/dev/null 2>&1
+  then
+    echo "[OK] $file"
+    return
+  fi
+
+  curl -fsSL "https://raw.githubusercontent.com/$repository/$commit/$file" -o "$destination/$file"
+  echo "$sum  $destination/$file" | sha256sum -c - >/dev/null
+  echo "[OK] $file downloaded"
+}
+
+mkdir -p "$destination"
+
+fetch nothings/stb 013ac3beddff3dbffafd5177e7972067cd2b5083 stb_image.h 594c2fe35d49488b4382dbfaec8f98366defca819d916ac95becf3e75f4200b3
+fetch kgabis/parson ec53fb6528b45811df9db0db22cab96a94a96a11 parson.c a61370722e98609342278591c755a1632bf52281b0a054f2ef8a550ef456e799
+fetch kgabis/parson ec53fb6528b45811df9db0db22cab96a94a96a11 parson.h 1909de7cdfa3b4383f2779ea6677b48a8a916ef975ca20c303ec5943459bb0f8
+fetch jkuhlmann/cgltf de9828bc6419064c302546313ce8ff5eac6cd703 cgltf.h efb169dee911696b5d35fc8e3f7ea0c56d679debc529eba9ca6aa6443ba9d5e9

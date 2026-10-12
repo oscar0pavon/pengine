@@ -5,7 +5,7 @@
 #include <vulkan/vulkan_core.h>
 
 #define CGLTF_IMPLEMENTATION
-#include <cgltf.h>
+#include <ThirdParty/cgltf.h>
 
 #include "stdio.h"
 

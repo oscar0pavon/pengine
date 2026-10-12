@@ -26,6 +26,13 @@ What it has to build a game with:
 - [cglm](https://github.com/recp/cglm) (headers only)
 - [lodepng](https://github.com/lvandeve/lodepng)
 - [pway](https://github.com/oscar0pavon/pway)
+- curl, to fetch the single-file libraries below
+
+`./configure` downloads [stb_image](https://github.com/nothings/stb),
+[parson](https://github.com/kgabis/parson) and
+[cgltf](https://github.com/jkuhlmann/cgltf) into `src/ThirdParty`, each at a
+pinned commit and checked against its sha256. `make` runs it when they are
+missing.
 
 EGL is on the link line for pway's sake, not the engine's; nothing here draws
 with GL.
