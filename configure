@@ -33,6 +33,9 @@ fetch nothings/stb 013ac3beddff3dbffafd5177e7972067cd2b5083 stb_image.h 594c2fe3
 fetch kgabis/parson ec53fb6528b45811df9db0db22cab96a94a96a11 parson.c a61370722e98609342278591c755a1632bf52281b0a054f2ef8a550ef456e799
 fetch kgabis/parson ec53fb6528b45811df9db0db22cab96a94a96a11 parson.h 1909de7cdfa3b4383f2779ea6677b48a8a916ef975ca20c303ec5943459bb0f8
 fetch jkuhlmann/cgltf de9828bc6419064c302546313ce8ff5eac6cd703 cgltf.h efb169dee911696b5d35fc8e3f7ea0c56d679debc529eba9ca6aa6443ba9d5e9
+#INFO miniaudio is one header: sound.c compiles its implementation, and it loads the
+#audio backend (alsa, pulse) with dlopen, so it needs no library at link time
+fetch mackron/miniaudio 9634bedb5b5a2ca38c1ee7108a9358a4e233f14d miniaudio.h ac7af4de748b7e26b777f37e01cee313a308a7296a3eb080e2906b320cc55c89
 #INFO upstream names the C source lodepng.cpp, it is plain C and its own Makefile copies it to lodepng.c
 fetch lvandeve/lodepng e584a8490db1b76b81bf298c11c09d3b55d9c270 lodepng.cpp 6aec876971ec860527859458d3095220fc5ee1258ec37eb59e1e7dd9cf136a81 lodepng.c
 fetch lvandeve/lodepng e584a8490db1b76b81bf298c11c09d3b55d9c270 lodepng.h 9a1fca0238c38333bdc8545336961b73fd0b76957bbacf033186991be9d7cf85

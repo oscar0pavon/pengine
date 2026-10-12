@@ -275,6 +275,15 @@ draw with.
 - Walls are a few spheres on the body pushed out of the mesh; `impact_speed` says
   how hard it hit. `physics.h` is still an empty stub; this is the only physics.
 
+### Sound
+
+`sound.h` / `sound.c` play sounds through miniaudio (`src/external/miniaudio.h`, fetched by
+`./configure`; `sound.c` compiles its implementation and the backend is loaded with dlopen,
+so nothing is linked). `PSound` keeps the `ma_sound` behind a pointer so no includer parses
+the header. Without an output device `pe_sound_init()` returns false and every call is a
+no-op. The old `audio/` directory (a wav through ALSA, `PAudio`) is not compiled and does not
+mix; `sound.c` is the audio path.
+
 ### Platforms
 
 `src/pengine/platforms/` is **not compiled by this Makefile** — no rule reaches it, and the
