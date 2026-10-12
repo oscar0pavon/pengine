@@ -129,6 +129,11 @@ void pe_input_init();
 
 void pe_parse_key_event(unsigned int key_code, uint8_t type);
 
+//releases every key and button that is held. the compositor sends no release
+//for a key that is down when the window loses focus, so without this it stays
+//pressed until the key is pressed again
+void pe_release_all_input(void);
+
 void pe_parse_mouse_motion(float x, float y);
 void pe_parse_mouse_delta(float dx, float dy);
 void pe_parse_mouse_button(uint32_t button_id, bool pressed);

@@ -51,6 +51,23 @@ void pe_parse_key_event(unsigned int key_code, uint8_t type){
 
 }
 
+static void release_key(Key* key){
+    if(!key->pressed)
+        return;
+    key->Released = true;
+    key->pressed = false;
+}
+
+void pe_release_all_input(void){
+    Key* keys = (Key*)&input;
+    for(uint8_t i = 0; i < input_key_size; i++)
+        release_key(&keys[i]);
+
+    release_key(&mouse.left);
+    release_key(&mouse.middle);
+    release_key(&mouse.right);
+}
+
 void pe_parse_mouse_delta(float dx, float dy){
     mouse.dx += dx;
     mouse.dy += dy;

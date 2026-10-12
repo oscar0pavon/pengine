@@ -62,6 +62,11 @@ static void pe_wm_key_event(uint32_t key_code, uint32_t state) {
   pe_parse_key_event(key_code, state);
 }
 
+static void pe_wm_focus_event(bool focused) {
+  if (!focused)
+    pe_release_all_input();
+}
+
 static void pe_wm_mouse_motion(void) {
   pe_parse_mouse_motion(pway->mouse.x, pway->mouse.y);
 }
@@ -129,6 +134,7 @@ void pe_create_window(){
 
   pway->key = &pe_wm_key_event;
   pway->exit = &pe_wm_exit_event;
+  pway->focus = &pe_wm_focus_event;
   pway->resize = &pe_wm_resize_event;
   pway->update_mouse = &pe_wm_mouse_motion;
   pway->mouse_delta = &pe_wm_mouse_delta;
