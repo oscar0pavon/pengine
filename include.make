@@ -10,7 +10,9 @@ OBJS := $(SRCS:c=o)
 #and base.c to call pway_create_window() with one argument instead of three
 CFLAGS := -g -fPIC -fcommon
 
-CINCLUDES := -I$(WORKDIR)/src -I/usr/local/include
+#INFO src/external holds what ./configure fetched, cglm among it when the host
+#has none. it comes last so an installed cglm is the one used
+CINCLUDES := -I$(WORKDIR)/src -I/usr/local/include -I$(WORKDIR)/src/external
 
 GLOBAL_DEFINE := -D LINUX -D DESKTOP -D VULKAN -D DEBUG -D EDITOR
 #INFO the vulkan renderer expects a 0..1 depth range and a left handed world.

@@ -29,9 +29,10 @@ and the engine Makefile `-include`s the resulting `.d` files, so editing a heade
 every object that read it. A `make clean` is still the honest check before claiming a
 change builds, since nothing tracks the Makefiles themselves.
 
-Requires: `cc`, `glslc`, vulkan, wayland, and two of the author's own libraries installed
-under `/usr/local`: **cglm** (headers only, `-I/usr/local/include`) and **pway** (the
-Wayland windowing lib, `libpway.a`). `-lEGL`/`-lwayland-egl` are still on the link line
+Requires: `cc`, `glslc`, `git`, `curl`, vulkan, wayland, and the author's **pway** (the
+Wayland windowing lib, `libpway.a`) installed under `/usr/local`. **cglm** (headers only)
+is taken from the host, or fetched into `src/external` by `./configure` when the
+compiler does not find it. `-lEGL`/`-lwayland-egl` are still on the link line
 because `libpway.a`'s `pway.o` references its own EGL setup, not because the engine draws
 with GL.
 

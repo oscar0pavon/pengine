@@ -23,7 +23,7 @@ What it has to build a game with:
 - glslc
 - vulkan
 - wayland, xkbcommon, EGL
-- [cglm](https://github.com/recp/cglm) (headers only)
+- [cglm](https://github.com/recp/cglm) (headers only, fetched by `./configure` when the host has none)
 - [lodepng](https://github.com/lvandeve/lodepng)
 - [pway](https://github.com/oscar0pavon/pway)
 - curl, to fetch the single-file libraries below
@@ -37,8 +37,9 @@ missing.
 EGL is on the link line for pway's sake, not the engine's; nothing here draws
 with GL.
 
-cglm and pway are looked for under `/usr/local`; the build adds
-`-I/usr/local/include` and nothing else beyond the default paths.
+pway is looked for under `/usr/local`; the build adds `-I/usr/local/include`
+and `-I src/external` (where `./configure` puts cglm if the host has none),
+and nothing else beyond the default paths.
 
 ## Build
 ```

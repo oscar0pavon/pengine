@@ -32,3 +32,26 @@ fetch nothings/stb 013ac3beddff3dbffafd5177e7972067cd2b5083 stb_image.h 594c2fe3
 fetch kgabis/parson ec53fb6528b45811df9db0db22cab96a94a96a11 parson.c a61370722e98609342278591c755a1632bf52281b0a054f2ef8a550ef456e799
 fetch kgabis/parson ec53fb6528b45811df9db0db22cab96a94a96a11 parson.h 1909de7cdfa3b4383f2779ea6677b48a8a916ef975ca20c303ec5943459bb0f8
 fetch jkuhlmann/cgltf de9828bc6419064c302546313ce8ff5eac6cd703 cgltf.h efb169dee911696b5d35fc8e3f7ea0c56d679debc529eba9ca6aa6443ba9d5e9
+
+#INFO cglm is many headers, so it is taken from the host when the compiler
+#already finds it, and only otherwise fetched into src/external. include.make
+#puts src/external after /usr/local/include on the include path, so a host copy
+#always wins and the fetched one is only ever seen when there is no other.
+#git checks the commit id, which stands in for the sha256 of each file
+cglm_commit=144d1e7c29b3b0c6dede7917a0476cc95248559c
+
+if echo '#include <cglm/cglm.h>' | cc -E -x c -I/usr/local/include - >/dev/null 2>&1
+then
+  echo "[OK] cglm found on the host"
+elif [ -f "$destination/cglm/cglm.h" ]
+then
+  echo "[OK] cglm"
+else
+  checkout=$(mktemp -d)
+  git -C "$checkout" init -q
+  git -C "$checkout" fetch -q --depth 1 https://github.com/recp/cglm "$cglm_commit"
+  git -C "$checkout" checkout -q FETCH_HEAD
+  cp -r "$checkout/include/cglm" "$destination/cglm"
+  rm -rf "$checkout"
+  echo "[OK] cglm downloaded"
+fi
