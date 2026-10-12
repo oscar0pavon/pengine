@@ -50,6 +50,12 @@ bool pe_collision_mesh_floor(const PCollisionMesh *mesh, const vec3 origin,
                              const vec3 down, float max_distance,
                              float *distance);
 
+//the same, and the floor's unit normal on the side the ray came from
+bool pe_collision_mesh_floor_normal(const PCollisionMesh *mesh,
+                                    const vec3 origin, const vec3 down,
+                                    float max_distance, float *distance,
+                                    vec3 normal);
+
 //moves the centre of a sphere out of every wall it is inside, along the plane
 //at right angles to up, so that a sphere held up by a floor is not lifted off
 //it. floors and ceilings are not walls. true if it moved

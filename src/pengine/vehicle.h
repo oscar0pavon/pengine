@@ -44,6 +44,12 @@ typedef struct PVehicleWheel {
 
   //what the last step found
   bool grounded;
+
+  //the ground's unit normal under the wheel, or the body's up in the air. the
+  //spring is damped by the speed along this and not along the body's up, which
+  //at speed reads a body tilted a degree as a suspension moving at a metre a
+  //second, and lets the springs run out
+  vec3 ground_normal;
   float suspension_length;
   float load;
 

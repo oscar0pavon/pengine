@@ -103,10 +103,11 @@ static void probe_wheel(PVehicleWheel *wheel, const PCollisionMesh *ground,
   glm_vec3_negate_to((float *)up, down);
 
   float distance;
+  glm_vec3_copy((float *)up, wheel->ground_normal);
   wheel->grounded = ground != NULL &&
-                    pe_collision_mesh_floor(ground, mount, down,
-                                            max_length + wheel->radius,
-                                            &distance);
+                    pe_collision_mesh_floor_normal(
+                        ground, mount, down, max_length + wheel->radius,
+                        &distance, wheel->ground_normal);
   wheel->overtravel = 0;
   if (!wheel->grounded) {
     wheel->suspension_length = max_length;
@@ -119,7 +120,7 @@ static void probe_wheel(PVehicleWheel *wheel, const PCollisionMesh *ground,
 }
 
 static float spring_force(const PVehicle *vehicle, const PVehicleWheel *wheel,
-                          const vec3 up, const vec3 offset) {
+                          const vec3 offset) {
   vec3 velocity;
   velocity_at(vehicle, offset, velocity);
 
@@ -128,7 +129,9 @@ static float spring_force(const PVehicle *vehicle, const PVehicleWheel *wheel,
   float spring =
       wheel->stiffness * (wheel->rest_length - wheel->suspension_length +
                           BUMP_STOP_STIFFNESS * wheel->overtravel);
-  float force = share * (spring - damping * glm_vec3_dot(velocity, (float *)up));
+  float closing_speed =
+      glm_vec3_dot(velocity, (float *)wheel->ground_normal);
+  float force = share * (spring - damping * closing_speed);
   return fmaxf(force, 0);
 }
 
@@ -205,7 +208,7 @@ static void drive_wheel(PVehicle *vehicle, PVehicleWheel *wheel,
                    mount_offset);
   glm_vec3_copy(mount_offset, contact_offset);
 
-  wheel->load = spring_force(vehicle, wheel, up, contact_offset);
+  wheel->load = spring_force(vehicle, wheel, contact_offset);
   vec3 lift;
   glm_vec3_scale((float *)up, wheel->load, lift);
   push_at(vehicle, lift, contact_offset, seconds);

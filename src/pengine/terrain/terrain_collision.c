@@ -254,9 +254,10 @@ static bool ray_meets_triangle(const PCollisionMesh *mesh, u32 triangle,
   return *distance >= 0;
 }
 
-bool pe_collision_mesh_floor(const PCollisionMesh *mesh, const vec3 origin,
-                             const vec3 down, float max_distance,
-                             float *distance) {
+bool pe_collision_mesh_floor_normal(const PCollisionMesh *mesh,
+                                    const vec3 origin, const vec3 down,
+                                    float max_distance, float *distance,
+                                    vec3 normal_out) {
   float low[2], high[2];
   for (int axis = 0; axis < 2; axis++) {
     float end = origin[axis] + down[axis] * max_distance;
@@ -290,11 +291,21 @@ bool pe_collision_mesh_floor(const PCollisionMesh *mesh, const vec3 origin,
 
         nearest = along;
         found = true;
+        float side = glm_vec3_dot(normal, (float *)down) > 0 ? -1.0f : 1.0f;
+        glm_vec3_scale(normal, side, normal_out);
       }
     }
 
   *distance = nearest;
   return found;
+}
+
+bool pe_collision_mesh_floor(const PCollisionMesh *mesh, const vec3 origin,
+                             const vec3 down, float max_distance,
+                             float *distance) {
+  vec3 normal;
+  return pe_collision_mesh_floor_normal(mesh, origin, down, max_distance,
+                                        distance, normal);
 }
 
 //the point of a triangle nearest to a point, from Ericson's Real-Time Collision
