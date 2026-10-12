@@ -18,8 +18,10 @@ typedef struct PVehicleWheel {
   vec3 mount;
   float radius;
 
-  //the length the spring settles at when it holds its share of the weight, and
-  //how far it may go either side of that
+  //the length of the spring with nothing on it, and how far it may go either
+  //side of that. under its share of the weight it settles shorter by gravity
+  //over stiffness, so a body whose wheels are to hang at a given length at rest
+  //mounts them that much higher
   float rest_length;
   float travel;
 
